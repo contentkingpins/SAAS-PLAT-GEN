@@ -1,0 +1,19 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - cd healthcare-lead-platform
+        - npm ci
+    build:
+      commands:
+        - cd healthcare-lead-platform
+        - npm run build
+  artifacts:
+    baseDirectory: healthcare-lead-platform/.next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - healthcare-lead-platform/node_modules/**/*
+      - healthcare-lead-platform/.next/cache/**/* 

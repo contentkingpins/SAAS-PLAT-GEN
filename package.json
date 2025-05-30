@@ -1,0 +1,32 @@
+{
+  "name": "saas-plat-gen",
+  "version": "1.0.0",
+  "description": "SaaS Platform Generator - Enterprise Grade Solutions",
+  "private": true,
+  "scripts": {
+    "dev": "cd healthcare-lead-platform && npm run dev",
+    "build": "cd healthcare-lead-platform && npm run build",
+    "start": "cd healthcare-lead-platform && npm run start",
+    "install:healthcare": "cd healthcare-lead-platform && npm install",
+    "build:healthcare": "cd healthcare-lead-platform && npm run build",
+    "deploy:amplify": "npm run install:healthcare && npm run build:healthcare"
+  },
+  "workspaces": [
+    "healthcare-lead-platform"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "saas",
+    "platform",
+    "generator",
+    "healthcare",
+    "enterprise",
+    "next.js",
+    "typescript"
+  ],
+  "author": "SAAS Platform Team",
+  "license": "MIT"
+} 
