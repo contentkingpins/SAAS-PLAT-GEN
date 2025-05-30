@@ -4,7 +4,7 @@ frontend:
     preBuild:
       commands:
         - cd healthcare-lead-platform
-        - npm ci
+        - npm install
     build:
       commands:
         - cd healthcare-lead-platform
@@ -15,5 +15,4 @@ frontend:
       - '**/*'
   cache:
     paths:
-      - healthcare-lead-platform/node_modules/**/*
-      - healthcare-lead-platform/.next/cache/**/* 
+      - healthcare-lead-platform/node_modules/**/* 
