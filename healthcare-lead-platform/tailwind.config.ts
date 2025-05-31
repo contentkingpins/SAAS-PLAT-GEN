@@ -10,8 +10,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // CSS Custom Properties
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
         // Primary Healthcare Brand Colors
         primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',
@@ -26,6 +34,8 @@ const config: Config = {
         },
         // Secondary Accent Colors
         secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
           50: '#f8fafc',
           100: '#f1f5f9',
           200: '#e2e8f0',
@@ -37,6 +47,26 @@ const config: Config = {
           800: '#1e293b',
           900: '#0f172a',
           950: '#020617',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
         },
         // Success/Health Colors
         success: {
@@ -95,6 +125,14 @@ const config: Config = {
           950: '#0a0a0a',
         }
       },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+        'xl': '1rem',
+        '2xl': '1.5rem',
+        '3xl': '2rem',
+      },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
@@ -118,11 +156,6 @@ const config: Config = {
         '18': '4.5rem',
         '88': '22rem',
         '128': '32rem',
-      },
-      borderRadius: {
-        'xl': '1rem',
-        '2xl': '1.5rem',
-        '3xl': '2rem',
       },
       boxShadow: {
         'soft': '0 2px 8px 0 rgba(0, 0, 0, 0.08)',
