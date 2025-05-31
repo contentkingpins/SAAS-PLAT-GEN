@@ -4,19 +4,9 @@ applications:
       phases:
         preBuild:
           commands:
-            - echo "===== DEBUG INFO START ====="
-            - pwd
-            - echo "Repository contents:"
-            - find . -maxdepth 2 -type d | sort
-            - echo "Checking for healthcare-lead-platform:"
-            - '[ -d "healthcare-lead-platform" ] && echo "Directory exists" || echo "Directory NOT found"'
-            - echo "===== DEBUG INFO END ====="
-            - cd healthcare-lead-platform
-            - pwd
             - npm install
         build:
           commands:
-            - cd healthcare-lead-platform
             - npm run build
       artifacts:
         baseDirectory: .next

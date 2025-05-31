@@ -1,0 +1,437 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User and Authentication Models
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  avatar    String?
+  department String?
+  title     String?
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  role        UserRole @relation(fields: [roleId], references: [id])
+  roleId      String
+  permissions UserPermission[]
+  preferences UserPreferences?
+  
+  // Lead Management
+  assignedLeads Lead[]
+  activities    Activity[]
+  notes         Note[]
+  communications Communication[]
+  appointments   Appointment[]
+  campaigns      Campaign[]
+
+  // NextAuth Relations
+  accounts Account[]
+  sessions Session[]
+
+  @@map("users")
+}
+
+model UserRole {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String
+  level       Int
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("user_roles")
+}
+
+model Permission {
+  id          String @id @default(cuid())
+  name        String @unique
+  resource    String
+  action      String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userPermissions UserPermission[]
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserPermission {
+  id     String @id @default(cuid())
+  userId String
+  permissionId String
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@map("user_permissions")
+}
+
+model RolePermission {
+  id     String @id @default(cuid())
+  roleId String
+  permissionId String
+
+  role       UserRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserPreferences {
+  id       String @id @default(cuid())
+  userId   String @unique
+  theme    String @default("light")
+  language String @default("en")
+  timezone String @default("UTC")
+  
+  // Notification Settings
+  emailNotifications     Boolean @default(true)
+  smsNotifications       Boolean @default(true)
+  pushNotifications      Boolean @default(true)
+  leadAssignments        Boolean @default(true)
+  systemAlerts           Boolean @default(true)
+  weeklyReports          Boolean @default(true)
+  
+  // Dashboard Settings
+  dashboardLayout        String @default("comfortable")
+  dashboardWidgets       Json?
+  dashboardRefreshInterval Int @default(30)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// Lead Management Models
+model Lead {
+  id              String @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String
+  phone           String
+  dateOfBirth     DateTime?
+  gender          String?
+  
+  // Address
+  street          String?
+  city            String?
+  state           String?
+  zipCode         String?
+  country         String @default("US")
+  
+  // Medical Information
+  medicalConditions String[]
+  medications       String[]
+  allergies         String[]
+  primaryPhysician  String?
+  medicalHistory    String?
+  urgencyLevel      String @default("medium")
+  treatmentType     String?
+  preferredSpecialty String?
+  
+  // Insurance Information
+  insuranceProvider String?
+  policyNumber      String?
+  groupNumber       String?
+  insuranceCoverage String @default("unknown")
+  copay             Float?
+  deductible        Float?
+  outOfPocketMax    Float?
+  isInsuranceVerified Boolean @default(false)
+  insuranceVerificationDate DateTime?
+  
+  // Financial Information
+  householdIncome   Float?
+  creditScore       Int?
+  paymentCapacity   String @default("unknown")
+  financingInterest Boolean @default(false)
+  budgetMin         Float?
+  budgetMax         Float?
+  
+  // Lead Information
+  source            String
+  campaign          String?
+  medium            String?
+  referrer          String?
+  landingPage       String?
+  utmSource         String?
+  utmMedium         String?
+  utmCampaign       String?
+  cost              Float?
+  
+  status            String @default("new")
+  priority          String @default("medium")
+  score             Int @default(0)
+  tags              String[]
+  customFields      Json?
+  
+  // Communication Preferences
+  communicationMethod String @default("email")
+  bestTimeToContact   String?
+  preferredLanguage   String @default("en")
+  doNotCall          Boolean @default(false)
+  marketingOptIn     Boolean @default(true)
+  
+  // Tracking
+  assignedToId       String?
+  lastContactDate    DateTime?
+  nextFollowUpDate   DateTime?
+  conversionDate     DateTime?
+  estimatedValue     Float?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  assignedTo     User? @relation(fields: [assignedToId], references: [id])
+  notes          Note[]
+  activities     Activity[]
+  communications Communication[]
+  appointments   Appointment[]
+
+  @@map("leads")
+}
+
+model Note {
+  id          String @id @default(cuid())
+  leadId      String
+  userId      String
+  content     String
+  type        String @default("general")
+  isPrivate   Boolean @default(false)
+  isPinned    Boolean @default(false)
+  attachments Json?
+  mentions    String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notes")
+}
+
+model Activity {
+  id          String @id @default(cuid())
+  leadId      String
+  userId      String
+  type        String
+  title       String
+  description String
+  metadata    Json?
+  isCompleted Boolean @default(false)
+  completedAt DateTime?
+  dueDate     DateTime?
+  priority    String @default("medium")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("activities")
+}
+
+model Communication {
+  id           String @id @default(cuid())
+  leadId       String
+  userId       String
+  type         String
+  direction    String
+  subject      String?
+  content      String
+  duration     Int?
+  outcome      String
+  nextAction   String?
+  nextActionDate DateTime?
+  attachments  Json?
+  recordingUrl String?
+  transcription String?
+  sentiment    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("communications")
+}
+
+model Appointment {
+  id          String @id @default(cuid())
+  leadId      String
+  assignedToId String
+  title       String
+  description String?
+  type        String
+  status      String @default("scheduled")
+  startTime   DateTime
+  endTime     DateTime
+  duration    Int
+  
+  // Location
+  locationType String
+  address      Json?
+  meetingUrl   String?
+  phone        String?
+  
+  // Additional Info
+  reminders    Json?
+  notes        String?
+  outcome      String?
+  nextSteps    String?
+  attendees    String[]
+  cost         Float?
+  revenue      Float?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lead       Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assignedTo User @relation(fields: [assignedToId], references: [id])
+
+  @@map("appointments")
+}
+
+model Campaign {
+  id          String @id @default(cuid())
+  name        String
+  description String?
+  type        String
+  status      String @default("draft")
+  budget      Float?
+  spent       Float @default(0)
+  
+  // Target Audience
+  targetAudience Json?
+  
+  // Content
+  subject     String?
+  message     String
+  template    String?
+  images      String[]
+  callToAction String
+  landingPage String?
+  personalizedFields String[]
+  
+  // Schedule
+  scheduleType String @default("immediate")
+  startDate   DateTime?
+  endDate     DateTime?
+  frequency   String?
+  timezone    String @default("UTC")
+  sendTime    String?
+  
+  // Metrics
+  sent        Int @default(0)
+  delivered   Int @default(0)
+  opened      Int @default(0)
+  clicked     Int @default(0)
+  responded   Int @default(0)
+  converted   Int @default(0)
+  unsubscribed Int @default(0)
+  
+  leads       String[]
+  
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  launchedAt  DateTime?
+  completedAt DateTime?
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@map("campaigns")
+}
+
+// System Configuration Models
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+model AuditLog {
+  id        String @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String
+  resourceId String?
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+// NextAuth Models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+} 
