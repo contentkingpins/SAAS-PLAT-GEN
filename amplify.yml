@@ -3,13 +3,13 @@ frontend:
   phases:
     preBuild:
       commands:
-        - echo "Current directory: $(pwd)"
+        - 'echo "Current directory: $(pwd)"'
         - ls -la
         - cd healthcare-lead-platform
         - npm install
     build:
       commands:
-        - echo "Current directory: $(pwd)"
+        - 'echo "Current directory: $(pwd)"'
         - ls -la
         - cd healthcare-lead-platform
         - npm run build
