@@ -1,22 +1,28 @@
 version: 1
-frontend:
-  phases:
-    preBuild:
-      commands:
-        - 'echo "Current directory: $(pwd)"'
-        - ls -la
-        - cd healthcare-lead-platform
-        - npm install
-    build:
-      commands:
-        - 'echo "Current directory: $(pwd)"'
-        - ls -la
-        - cd healthcare-lead-platform
-        - npm run build
-  artifacts:
-    baseDirectory: healthcare-lead-platform/.next
-    files:
-      - '**/*'
-  cache:
-    paths:
-      - healthcare-lead-platform/node_modules/**/* 
+applications:
+  - frontend:
+      phases:
+        preBuild:
+          commands:
+            - echo "===== DEBUG INFO START ====="
+            - pwd
+            - echo "Repository contents:"
+            - find . -maxdepth 2 -type d | sort
+            - echo "Checking for healthcare-lead-platform:"
+            - '[ -d "healthcare-lead-platform" ] && echo "Directory exists" || echo "Directory NOT found"'
+            - echo "===== DEBUG INFO END ====="
+            - cd healthcare-lead-platform
+            - pwd
+            - npm install
+        build:
+          commands:
+            - cd healthcare-lead-platform
+            - npm run build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+    appRoot: healthcare-lead-platform 
