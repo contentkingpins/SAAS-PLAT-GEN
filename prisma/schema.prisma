@@ -1,0 +1,289 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+enum UserRole {
+  ADMIN
+  VENDOR
+  ADVOCATE
+  COLLECTIONS
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole
+  isActive  Boolean  @default(true)
+  
+  // Relations
+  vendorId String?
+  vendor   Vendor? @relation(fields: [vendorId], references: [id])
+  
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id])
+  
+  // Activity tracking
+  leadsAsAdvocate     Lead[]          @relation("AdvocateLead")
+  leadsAsCollections  Lead[]          @relation("CollectionsLead")
+  contactAttempts     ContactAttempt[]
+  callbacks           Callback[]
+  fileUploads         FileUpload[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([email])
+  @@index([role])
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // 'advocates' or 'collections'
+  description String?
+  isActive    Boolean  @default(true)
+  
+  members User[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Vendor Management
+model Vendor {
+  id              String   @id @default(cuid())
+  name            String
+  code            String   @unique
+  staticCode      String   @unique
+  parentVendorId  String?
+  parentVendor    Vendor?  @relation("VendorHierarchy", fields: [parentVendorId], references: [id])
+  subVendors      Vendor[] @relation("VendorHierarchy")
+  isActive        Boolean  @default(true)
+  
+  // Relations
+  users User[]
+  leads Lead[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([code])
+  @@index([staticCode])
+}
+
+// Lead Management
+enum TestType {
+  IMMUNE
+  NEURO
+}
+
+enum LeadStatus {
+  SUBMITTED
+  ADVOCATE_REVIEW
+  QUALIFIED
+  SENT_TO_CONSULT
+  APPROVED
+  READY_TO_SHIP
+  SHIPPED
+  COLLECTIONS
+  KIT_COMPLETED
+  RETURNED
+}
+
+enum AdvocateDisposition {
+  DOESNT_QUALIFY
+  COMPLIANCE_ISSUE
+  PATIENT_DECLINED
+  CALL_BACK
+  CONNECTED_TO_COMPLIANCE
+  CALL_DROPPED
+}
+
+enum CollectionsDisposition {
+  NO_ANSWER
+  SCHEDULED_CALLBACK
+  KIT_COMPLETED
+}
+
+model Lead {
+  id              String   @id @default(cuid())
+  mbi             String   @unique
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime
+  phone           String
+  
+  // Address
+  street          String
+  city            String
+  state           String
+  zipCode         String
+  
+  // Vendor tracking
+  vendorId        String
+  vendor          Vendor   @relation(fields: [vendorId], references: [id])
+  subVendorId     String?
+  vendorCode      String
+  
+  // Status
+  status          LeadStatus
+  testType        TestType?
+  
+  // Advocate information
+  advocateId      String?
+  advocate        User?    @relation("AdvocateLead", fields: [advocateId], references: [id])
+  advocateDisposition AdvocateDisposition?
+  advocateNotes   String?
+  advocateReviewedAt DateTime?
+  
+  // Compliance checklist
+  complianceChecklist ComplianceChecklist?
+  
+  // Collections information
+  collectionsAgentId String?
+  collectionsAgent   User?   @relation("CollectionsLead", fields: [collectionsAgentId], references: [id])
+  collectionsDisposition CollectionsDisposition?
+  contactAttempts    Int     @default(0)
+  lastContactAttempt DateTime?
+  nextCallbackDate   DateTime?
+  collectionsNotes   String?
+  
+  // Medical information
+  doctorApprovalStatus DoctorApprovalStatus?
+  doctorApprovalDate   DateTime?
+  consultDate          DateTime?
+  
+  // Shipping information
+  kitShippedDate    DateTime?
+  trackingNumber    String?
+  kitReturnedDate   DateTime?
+  
+  // Relations
+  contactAttemptRecords ContactAttempt[]
+  callbacks             Callback[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([mbi])
+  @@index([status])
+  @@index([vendorId])
+  @@index([advocateId])
+  @@index([collectionsAgentId])
+}
+
+enum DoctorApprovalStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+model ComplianceChecklist {
+  id                    String   @id @default(cuid())
+  leadId                String   @unique
+  lead                  Lead     @relation(fields: [leadId], references: [id])
+  
+  verifyDobAddress      Boolean
+  patientConsent        Boolean
+  notInCareFacility     Boolean
+  makesMedicalDecisions Boolean
+  understandsBilling    Boolean
+  noCognitiveImpairment Boolean
+  agentNotMedicare      Boolean
+  noIncentives          Boolean
+  futureContactConsent  Boolean
+  
+  completedAt           DateTime?
+  completedBy           String?
+  
+  createdAt DateTime @default(now())
+}
+
+// Contact Management
+model ContactAttempt {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id])
+  agentId     String
+  agent       User     @relation(fields: [agentId], references: [id])
+  attemptDate DateTime @default(now())
+  outcome     String
+  notes       String?
+  
+  @@index([leadId])
+  @@index([agentId])
+}
+
+model Callback {
+  id            String   @id @default(cuid())
+  leadId        String
+  lead          Lead     @relation(fields: [leadId], references: [id])
+  agentId       String
+  agent         User     @relation(fields: [agentId], references: [id])
+  scheduledDate DateTime
+  completed     Boolean  @default(false)
+  completedDate DateTime?
+  notes         String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([scheduledDate])
+  @@index([agentId])
+}
+
+// File Uploads
+enum FileUploadType {
+  DOCTOR_APPROVAL
+  SHIPPING_REPORT
+  KIT_RETURN
+}
+
+model FileUpload {
+  id               String         @id @default(cuid())
+  type             FileUploadType
+  fileName         String
+  fileUrl          String
+  uploadedById     String
+  uploadedBy       User           @relation(fields: [uploadedById], references: [id])
+  uploadedAt       DateTime       @default(now())
+  processedAt      DateTime?
+  recordsProcessed Int            @default(0)
+  errors           Json?          // Array of {row: number, error: string}
+  
+  @@index([type])
+  @@index([uploadedAt])
+}
+
+// Analytics & Reporting
+model DailyMetrics {
+  id              String   @id @default(cuid())
+  date            DateTime @unique
+  totalLeads      Int
+  qualifiedLeads  Int
+  approvedLeads   Int
+  shippedKits     Int
+  completedKits   Int
+  
+  // By test type
+  immuneLeads     Int
+  neuroLeads      Int
+  
+  // Conversion rates
+  conversionData  Json     // Detailed conversion metrics
+  
+  createdAt DateTime @default(now())
+  
+  @@index([date])
+} 
