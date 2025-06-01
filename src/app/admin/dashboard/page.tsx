@@ -98,7 +98,6 @@ export default function AdminDashboard() {
           </Typography>
           
           <Chip
-            icon={isConnected ? null : undefined}
             label={isConnected ? 'Connected' : 'Disconnected'}
             color={isConnected ? 'success' : 'error'}
             size="small"
