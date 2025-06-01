@@ -182,8 +182,8 @@ export default function AdminDashboard() {
             <Typography variant="h5" gutterBottom>
               Agent Management
             </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
+            <Box sx={{ mt: 3 }}>
+              <Box>
                 <Paper sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
                     <Typography variant="h6">Active Agents</Typography>
@@ -196,16 +196,16 @@ export default function AdminDashboard() {
                     Agent management interface coming soon...
                   </Typography>
                 </Paper>
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>
             <Typography variant="h5" gutterBottom>
               Reports
             </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+            <Box sx={{ mt: 3 }}>
+              <Box>
                 <Paper sx={{ p: 3, height: 200 }}>
                   <Typography variant="h6" gutterBottom>
                     Daily Reports
@@ -214,8 +214,8 @@ export default function AdminDashboard() {
                     Generate Daily Report
                   </Button>
                 </Paper>
-              </Grid>
-              <Grid item xs={12} md={6}>
+              </Box>
+              <Box>
                 <Paper sx={{ p: 3, height: 200 }}>
                   <Typography variant="h6" gutterBottom>
                     Monthly Reports
@@ -224,16 +224,16 @@ export default function AdminDashboard() {
                     Generate Monthly Report
                   </Button>
                 </Paper>
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </TabPanel>
 
           <TabPanel value={tabValue} index={3}>
             <Typography variant="h5" gutterBottom>
               File Uploads
             </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={4}>
+            <Box sx={{ mt: 3 }}>
+              <Box>
                 <Paper sx={{ p: 3, textAlign: 'center' }}>
                   <Upload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
                   <Typography variant="h6" gutterBottom>
@@ -244,8 +244,8 @@ export default function AdminDashboard() {
                     <input type="file" hidden accept=".csv" />
                   </Button>
                 </Paper>
-              </Grid>
-              <Grid item xs={12} md={4}>
+              </Box>
+              <Box>
                 <Paper sx={{ p: 3, textAlign: 'center' }}>
                   <Upload sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
                   <Typography variant="h6" gutterBottom>
@@ -256,8 +256,8 @@ export default function AdminDashboard() {
                     <input type="file" hidden accept=".csv" />
                   </Button>
                 </Paper>
-              </Grid>
-              <Grid item xs={12} md={4}>
+              </Box>
+              <Box>
                 <Paper sx={{ p: 3, textAlign: 'center' }}>
                   <Upload sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
                   <Typography variant="h6" gutterBottom>
@@ -268,8 +268,8 @@ export default function AdminDashboard() {
                     <input type="file" hidden accept=".csv" />
                   </Button>
                 </Paper>
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </TabPanel>
         </Container>
       </Box>
