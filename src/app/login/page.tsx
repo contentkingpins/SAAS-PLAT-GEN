@@ -21,6 +21,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import useStore from '@/store/useStore';
+import { UserRole } from "@/types";
 
 // Validation schema
 const loginSchema = z.object({
@@ -63,7 +64,7 @@ export default function LoginPage() {
           email: data.email,
           firstName: 'John',
           lastName: 'Doe',
-          role: 'admin' as const,
+          role: 'admin' as UserRole,
           createdAt: new Date(),
           updatedAt: new Date(),
           isActive: true,
