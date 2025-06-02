@@ -87,8 +87,6 @@ export default function LoginPage() {
             router.push('/collections/dashboard');
             break;
         }
-      } else if (nextStep.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
-        router.push('/reset-password');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
