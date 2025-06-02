@@ -143,13 +143,13 @@ export function AnalyticsDashboard() {
   if (isLoading) {
     return (
       <Box sx={{ p: 3 }}>
-        <Grid container spacing={3}>
+        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
           {[1, 2, 3, 4].map((i) => (
-            <Grid item xs={12} sm={6} md={3} key={i}>
+            <Box key={i} sx={{ flex: '1 1 250px', minWidth: '250px' }}>
               <Skeleton variant="rectangular" height={120} />
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </Box>
     );
   }
@@ -173,8 +173,8 @@ export function AnalyticsDashboard() {
       </Box>
 
       {/* Key Metrics */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Box sx={{ display: 'flex', gap: 3, mb: 3, flexWrap: 'wrap' }}>
+        <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <MetricCard
             title="Total Leads"
             value={metrics?.totalLeads || 0}
@@ -182,8 +182,8 @@ export function AnalyticsDashboard() {
             trend={12}
             color="primary.main"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <MetricCard
             title="Qualified Leads"
             value={metrics?.conversionRates.submittedToQualified 
@@ -193,8 +193,8 @@ export function AnalyticsDashboard() {
             trend={-5}
             color="info.main"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <MetricCard
             title="Kits Shipped"
             value={metrics?.leadsThisMonth || 0}
@@ -202,8 +202,8 @@ export function AnalyticsDashboard() {
             trend={8}
             color="warning.main"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <MetricCard
             title="Completed Kits"
             value={metrics?.conversionRates.overallConversion 
@@ -213,13 +213,13 @@ export function AnalyticsDashboard() {
             trend={15}
             color="success.main"
           />
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Charts */}
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
         {/* Conversion Funnel */}
-        <Grid item xs={12} md={6}>
+        <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
           <Paper sx={{ p: 3, height: 400 }}>
             <Typography variant="h6" gutterBottom>
               Conversion Funnel
@@ -234,10 +234,10 @@ export function AnalyticsDashboard() {
               </BarChart>
             </ResponsiveContainer>
           </Paper>
-        </Grid>
+        </Box>
 
         {/* Test Type Distribution */}
-        <Grid item xs={12} md={6}>
+        <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
           <Paper sx={{ p: 3, height: 400 }}>
             <Typography variant="h6" gutterBottom>
               Test Type Distribution
@@ -262,10 +262,10 @@ export function AnalyticsDashboard() {
               </PieChart>
             </ResponsiveContainer>
           </Paper>
-        </Grid>
+        </Box>
 
         {/* Weekly Trend */}
-        <Grid item xs={12}>
+        <Box sx={{ width: '100%' }}>
           <Paper sx={{ p: 3, height: 400 }}>
             <Typography variant="h6" gutterBottom>
               Weekly Lead Trend
@@ -292,11 +292,11 @@ export function AnalyticsDashboard() {
               </LineChart>
             </ResponsiveContainer>
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Vendor Performance Table */}
-      <Grid item xs={12} sx={{ mt: 3 }}>
+      <Box sx={{ width: '100%', mt: 3 }}>
         <Paper sx={{ p: 3 }}>
           <Typography variant="h6" gutterBottom>
             Top Vendor Performance
@@ -332,7 +332,7 @@ export function AnalyticsDashboard() {
             <Typography color="text.secondary">No vendor data available</Typography>
           )}
         </Paper>
-      </Grid>
+      </Box>
     </Box>
   );
 } 
