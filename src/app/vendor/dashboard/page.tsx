@@ -33,7 +33,7 @@ import {
   Pending,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'aws-amplify/auth';
+import { signOut } from 'aws-amplify';
 import { LeadSubmissionForm } from '@/components/vendors/LeadSubmissionForm';
 import useStore from '@/store/useStore';
 import { Lead } from '@/types';

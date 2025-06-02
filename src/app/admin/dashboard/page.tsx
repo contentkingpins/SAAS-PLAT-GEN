@@ -30,7 +30,7 @@ import {
   AccountCircle,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'aws-amplify/auth';
+import { signOut } from 'aws-amplify';
 import { AnalyticsDashboard } from '@/components/dashboard/AnalyticsDashboard';
 import useStore from '@/store/useStore';
 import { wsService } from '@/lib/utils/websocket';

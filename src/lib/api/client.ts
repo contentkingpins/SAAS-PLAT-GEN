@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
-import { fetchAuthSession } from 'aws-amplify/auth';
+import { fetchAuthSession } from 'aws-amplify';
 
 interface ApiError {
   message: string;

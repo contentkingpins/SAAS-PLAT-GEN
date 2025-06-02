@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'aws-amplify/auth';
+import { signIn } from 'aws-amplify';
 import {
   Box,
   Container,
