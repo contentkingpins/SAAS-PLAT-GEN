@@ -21,7 +21,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import useStore from '@/store/useStore';
-import { UserRole } from "@/types";
+import { UserRole } from '@/types';
 
 // Validation schema
 const loginSchema = z.object({
@@ -51,10 +51,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const user = await Auth.signIn({
-        username: data.email,
-        password: data.password,
-      });
+      const user = await Auth.signIn(data.email, data.password);
 
       if (user) {
         // Fetch user details and update store

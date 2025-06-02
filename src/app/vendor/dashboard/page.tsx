@@ -316,4 +316,4 @@ export default function VendorDashboard() {
       </Box>
     </Box>
   );
-} // Force rebuild - TypeScript fixes applied
+} 

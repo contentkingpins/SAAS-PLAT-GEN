@@ -1,9 +1,9 @@
-import io, { Socket } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import { WSEvent } from '@/types';
 import useStore from '@/store/useStore';
 
 class WebSocketService {
-  private socket: ReturnType<typeof io> | null = null;
+  private socket: Socket | null = null;
   private reconnectInterval: NodeJS.Timeout | null = null;
   private eventHandlers: Map<string, Set<(data: any) => void>> = new Map();
 
@@ -42,31 +42,31 @@ class WebSocketService {
       this.attemptReconnect();
     });
 
-    this.socket.on('connect_error', (error: any) => {
+    this.socket.on('connect_error', (error) => {
       console.error('WebSocket connection error:', error);
       useStore.getState().setConnected(false);
     });
 
     // Business event listeners
-    this.socket.on('lead_updated', (data: any) => {
+    this.socket.on('lead_updated', (data) => {
       this.emit('lead_updated', data);
       const store = useStore.getState();
       store.updateLead(data.leadId, data.updates);
     });
 
-    this.socket.on('new_lead', (data: any) => {
+    this.socket.on('new_lead', (data) => {
       this.emit('new_lead', data);
       const store = useStore.getState();
       store.addLead(data.lead);
     });
 
-    this.socket.on('metric_update', (data: any) => {
+    this.socket.on('metric_update', (data) => {
       this.emit('metric_update', data);
       const store = useStore.getState();
       store.setMetrics(data.metrics);
     });
 
-    this.socket.on('agent_status', (data: any) => {
+    this.socket.on('agent_status', (data) => {
       this.emit('agent_status', data);
     });
   }

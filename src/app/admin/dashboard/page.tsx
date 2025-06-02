@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
-  Grid,
   Paper,
   Typography,
   Button,
@@ -34,6 +33,8 @@ import { Auth } from 'aws-amplify';
 import { AnalyticsDashboard } from '@/components/dashboard/AnalyticsDashboard';
 import useStore from '@/store/useStore';
 import { wsService } from '@/lib/utils/websocket';
+import { VendorManagement } from '@/components/admin/VendorManagement';
+import { AgentManagement } from '@/components/admin/AgentManagement';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -171,6 +172,11 @@ export default function AdminDashboard() {
                 iconPosition="start"
                 label="File Uploads"
               />
+              <Tab
+                icon={<People />}
+                iconPosition="start"
+                label="Vendors"
+              />
             </Tabs>
           </Paper>
 
@@ -179,33 +185,15 @@ export default function AdminDashboard() {
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
-            <Typography variant="h5" gutterBottom>
-              Agent Management
-            </Typography>
-            <Box sx={{ mt: 3 }}>
-              <Box>
-                <Paper sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                    <Typography variant="h6">Active Agents</Typography>
-                    <Button variant="contained" startIcon={<People />}>
-                      Add New Agent
-                    </Button>
-                  </Box>
-                  {/* Agent list would go here */}
-                  <Typography color="text.secondary">
-                    Agent management interface coming soon...
-                  </Typography>
-                </Paper>
-              </Box>
-            </Box>
+            <AgentManagement />
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>
             <Typography variant="h5" gutterBottom>
               Reports
             </Typography>
-            <Box sx={{ mt: 3 }}>
-              <Box>
+            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3 }}>
+              <Box sx={{ flex: '1 1 300px' }}>
                 <Paper sx={{ p: 3, height: 200 }}>
                   <Typography variant="h6" gutterBottom>
                     Daily Reports
@@ -215,7 +203,7 @@ export default function AdminDashboard() {
                   </Button>
                 </Paper>
               </Box>
-              <Box>
+              <Box sx={{ flex: '1 1 300px' }}>
                 <Paper sx={{ p: 3, height: 200 }}>
                   <Typography variant="h6" gutterBottom>
                     Monthly Reports
@@ -232,8 +220,8 @@ export default function AdminDashboard() {
             <Typography variant="h5" gutterBottom>
               File Uploads
             </Typography>
-            <Box sx={{ mt: 3 }}>
-              <Box>
+            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3 }}>
+              <Box sx={{ flex: '1 1 250px' }}>
                 <Paper sx={{ p: 3, textAlign: 'center' }}>
                   <Upload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
                   <Typography variant="h6" gutterBottom>
@@ -245,7 +233,7 @@ export default function AdminDashboard() {
                   </Button>
                 </Paper>
               </Box>
-              <Box>
+              <Box sx={{ flex: '1 1 250px' }}>
                 <Paper sx={{ p: 3, textAlign: 'center' }}>
                   <Upload sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
                   <Typography variant="h6" gutterBottom>
@@ -257,7 +245,7 @@ export default function AdminDashboard() {
                   </Button>
                 </Paper>
               </Box>
-              <Box>
+              <Box sx={{ flex: '1 1 250px' }}>
                 <Paper sx={{ p: 3, textAlign: 'center' }}>
                   <Upload sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
                   <Typography variant="h6" gutterBottom>
@@ -270,6 +258,10 @@ export default function AdminDashboard() {
                 </Paper>
               </Box>
             </Box>
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={4}>
+            <VendorManagement />
           </TabPanel>
         </Container>
       </Box>
