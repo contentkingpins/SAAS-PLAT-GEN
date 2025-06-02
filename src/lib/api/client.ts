@@ -24,7 +24,7 @@ class ApiClient {
       async (config) => {
         try {
           const session = await Auth.currentSession();
-          const token = session.tokens?.idToken?.toString();
+          const token = session.getIdToken().getJwtToken();
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
           }
