@@ -171,8 +171,8 @@ export default function VendorDashboard() {
       <Box sx={{ flexGrow: 1, bgcolor: 'background.default', py: 3 }}>
         <Container maxWidth="xl">
           {/* Metrics Cards */}
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6} md={3}>
+          <Box sx={{ display: 'flex', gap: 3, mb: 3, flexWrap: 'wrap' }}>
+            <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
               <Card>
                 <CardContent>
                   <Typography color="text.secondary" gutterBottom>
@@ -186,8 +186,8 @@ export default function VendorDashboard() {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </Box>
+            <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
               <Card>
                 <CardContent>
                   <Typography color="text.secondary" gutterBottom>
@@ -201,8 +201,8 @@ export default function VendorDashboard() {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </Box>
+            <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
               <Card>
                 <CardContent>
                   <Typography color="text.secondary" gutterBottom>
@@ -216,8 +216,8 @@ export default function VendorDashboard() {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </Box>
+            <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
               <Card>
                 <CardContent>
                   <Typography color="text.secondary" gutterBottom>
@@ -231,21 +231,21 @@ export default function VendorDashboard() {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
 
           {/* Lead Submission Form */}
-          <Grid container spacing={3}>
-            <Grid item xs={12} lg={5}>
+          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+            <Box sx={{ flex: '0 0 auto', width: { xs: '100%', lg: '40%' }, minWidth: '400px' }}>
               <LeadSubmissionForm
                 vendorId={user?.vendorId || ''}
                 vendorCode={user?.vendorId || ''}
                 onSuccess={handleLeadSubmitted}
               />
-            </Grid>
+            </Box>
 
             {/* Recent Leads Table */}
-            <Grid item xs={12} lg={7}>
+            <Box sx={{ flex: '1 1 auto', minWidth: '500px' }}>
               <Paper elevation={3} sx={{ p: 3 }}>
                 <Typography variant="h5" gutterBottom fontWeight="bold">
                   Recent Leads
@@ -310,11 +310,10 @@ export default function VendorDashboard() {
                   }}
                 />
               </Paper>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Container>
       </Box>
     </Box>
   );
 } // Force rebuild - TypeScript fixes applied
-
