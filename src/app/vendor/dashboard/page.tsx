@@ -138,7 +138,7 @@ export default function VendorDashboard() {
           </Typography>
           
           <Typography variant="body2" sx={{ mr: 3 }}>
-            Vendor Code: <strong>{user?.vendor?.code || 'N/A'}</strong>
+            Vendor ID: <strong>{user?.vendorId || 'N/A'}</strong>
           </Typography>
 
           <IconButton
@@ -239,7 +239,7 @@ export default function VendorDashboard() {
             <Grid item xs={12} lg={5}>
               <LeadSubmissionForm
                 vendorId={user?.vendorId || ''}
-                vendorCode={user?.vendor?.code || ''}
+                vendorCode={user?.vendorId || ''}
                 onSuccess={handleLeadSubmitted}
               />
             </Grid>
