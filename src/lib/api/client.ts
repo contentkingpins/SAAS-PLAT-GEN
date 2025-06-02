@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
-import { fetchAuthSession } from 'aws-amplify';
+import { Auth } from 'aws-amplify';
 
 interface ApiError {
   message: string;
@@ -23,7 +23,7 @@ class ApiClient {
     this.client.interceptors.request.use(
       async (config) => {
         try {
-          const session = await fetchAuthSession();
+          const session = await Auth.currentSession();
           const token = session.tokens?.idToken?.toString();
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;

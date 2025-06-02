@@ -30,7 +30,7 @@ import {
   AccountCircle,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'aws-amplify';
+import { Auth } from 'aws-amplify';
 import { AnalyticsDashboard } from '@/components/dashboard/AnalyticsDashboard';
 import useStore from '@/store/useStore';
 import { wsService } from '@/lib/utils/websocket';
@@ -76,7 +76,7 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      await Auth.signOut();
       logout();
       router.push('/login');
     } catch (error) {

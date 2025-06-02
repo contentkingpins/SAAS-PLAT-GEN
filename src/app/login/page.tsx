@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'aws-amplify';
+import { Auth } from 'aws-amplify';
 import {
   Box,
   Container,
@@ -51,12 +51,12 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const { isSignedIn, nextStep } = await signIn({
+      const user = await Auth.signIn({
         username: data.email,
         password: data.password,
       });
 
-      if (isSignedIn) {
+      if (user) {
         // Fetch user details and update store
         // This would typically call your API to get user details
         const mockUser = {

@@ -33,7 +33,7 @@ import {
   Pending,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'aws-amplify';
+import { Auth } from 'aws-amplify';
 import { LeadSubmissionForm } from '@/components/vendors/LeadSubmissionForm';
 import useStore from '@/store/useStore';
 import { Lead } from '@/types';
@@ -85,7 +85,7 @@ export default function VendorDashboard() {
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      await Auth.signOut();
       logout();
       router.push('/login');
     } catch (error) {
