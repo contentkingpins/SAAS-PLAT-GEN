@@ -110,16 +110,16 @@ export function LeadSubmissionForm({ vendorId, vendorCode, onSuccess }: LeadSubm
       )}
 
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <Grid container spacing={3}>
+        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
           {/* Personal Information */}
-          <Grid item xs={12}>
+          <Box sx={{ width: '100%' }}>
             <Typography variant="h6" gutterBottom>
               Personal Information
             </Typography>
             <Divider sx={{ mb: 2 }} />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={4}>
+          <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
             <TextField
               fullWidth
               label="MBI (Medicare Beneficiary Identifier)"
@@ -128,9 +128,9 @@ export function LeadSubmissionForm({ vendorId, vendorCode, onSuccess }: LeadSubm
               helperText={errors.mbi?.message || 'Must be 11 characters'}
               inputProps={{ maxLength: 11 }}
             />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={4}>
+          <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
             <TextField
               fullWidth
               label="First Name"
@@ -138,9 +138,9 @@ export function LeadSubmissionForm({ vendorId, vendorCode, onSuccess }: LeadSubm
               error={!!errors.firstName}
               helperText={errors.firstName?.message}
             />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={4}>
+          <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
             <TextField
               fullWidth
               label="Last Name"
@@ -148,9 +148,9 @@ export function LeadSubmissionForm({ vendorId, vendorCode, onSuccess }: LeadSubm
               error={!!errors.lastName}
               helperText={errors.lastName?.message}
             />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={6}>
+          <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
             <Controller
               name="dateOfBirth"
               control={control}
@@ -169,9 +169,9 @@ export function LeadSubmissionForm({ vendorId, vendorCode, onSuccess }: LeadSubm
                 />
               )}
             />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={6}>
+          <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
             <TextField
               fullWidth
               label="Phone Number"
@@ -181,17 +181,17 @@ export function LeadSubmissionForm({ vendorId, vendorCode, onSuccess }: LeadSubm
               inputProps={{ maxLength: 10 }}
               placeholder="1234567890"
             />
-          </Grid>
+          </Box>
 
           {/* Address Information */}
-          <Grid item xs={12}>
+          <Box sx={{ width: '100%' }}>
             <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
               Address Information
             </Typography>
             <Divider sx={{ mb: 2 }} />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12}>
+          <Box sx={{ width: '100%' }}>
             <TextField
               fullWidth
               label="Street Address"
@@ -199,9 +199,9 @@ export function LeadSubmissionForm({ vendorId, vendorCode, onSuccess }: LeadSubm
               error={!!errors.street}
               helperText={errors.street?.message}
             />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={5}>
+          <Box sx={{ flex: '2 1 400px', minWidth: '400px' }}>
             <TextField
               fullWidth
               label="City"
@@ -209,9 +209,9 @@ export function LeadSubmissionForm({ vendorId, vendorCode, onSuccess }: LeadSubm
               error={!!errors.city}
               helperText={errors.city?.message}
             />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={3}>
+          <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
             <TextField
               fullWidth
               label="State"
@@ -221,9 +221,9 @@ export function LeadSubmissionForm({ vendorId, vendorCode, onSuccess }: LeadSubm
               inputProps={{ maxLength: 2 }}
               placeholder="FL"
             />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={4}>
+          <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
             <TextField
               fullWidth
               label="ZIP Code"
@@ -233,10 +233,10 @@ export function LeadSubmissionForm({ vendorId, vendorCode, onSuccess }: LeadSubm
               inputProps={{ maxLength: 5 }}
               placeholder="12345"
             />
-          </Grid>
+          </Box>
 
           {/* Submit Button */}
-          <Grid item xs={12}>
+          <Box sx={{ width: '100%' }}>
             <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
               <Button
                 type="submit"
@@ -249,8 +249,8 @@ export function LeadSubmissionForm({ vendorId, vendorCode, onSuccess }: LeadSubm
                 {isSubmitting ? 'Submitting...' : 'Submit Lead'}
               </Button>
             </Box>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Box>
     </Paper>
   );
