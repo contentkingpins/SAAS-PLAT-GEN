@@ -41,7 +41,7 @@ class ApiClient {
       (response) => response,
       (error: AxiosError) => {
         const apiError: ApiError = {
-          message: error.response?.data?.message || error.message || 'An error occurred',
+          message: (error.response?.data as any)?.message || error.message || 'An error occurred',
           status: error.response?.status || 500,
           code: error.code,
         };
