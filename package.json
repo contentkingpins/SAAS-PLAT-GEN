@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node server.js",
+    "dev:next": "next dev",
+    "dev:ws": "node scripts/start-websocket.js",
     "build": "next build",
-    "start": "next start",
+    "start": "NODE_ENV=production node server.js",
+    "start:next": "next start",
     "lint": "next lint",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "type-check": "tsc --noEmit",
@@ -14,7 +17,8 @@
     "test:coverage": "jest --coverage",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "ws:test": "node scripts/test-websocket.js"
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^5.3.3",
@@ -39,6 +43,7 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.49.3",
     "recharts": "^2.12.0",
+    "socket.io": "^4.8.1",
     "socket.io-client": "^4.7.4",
     "zod": "^3.22.4",
     "zustand": "^4.5.0"
@@ -49,6 +54,7 @@
     "@types/node": "^20.11.16",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
+    "@types/socket.io": "^3.0.2",
     "autoprefixer": "^10.4.21",
     "eslint": "^8.56.0",
     "eslint-config-next": "^14.1.0",
