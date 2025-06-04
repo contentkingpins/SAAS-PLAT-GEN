@@ -1,0 +1,16 @@
+{
+  "name": "saas-plat-scripts",
+  "version": "1.0.0",
+  "description": "Utility scripts for SAAS Platform",
+  "main": "index.js",
+  "scripts": {
+    "import-baseline": "node import-baseline-data.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.7.0"
+  },
+  "devDependencies": {},
+  "keywords": ["healthcare", "mbi", "import"],
+  "author": "SAAS Platform Team",
+  "license": "ISC"
+} 
