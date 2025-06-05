@@ -101,6 +101,20 @@ enum LeadStatus {
   RETURNED
 }
 
+// Alert System Enums
+enum AlertType {
+  MBI_DUPLICATE
+  COMPLIANCE_ISSUE
+  DATA_QUALITY
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 enum AdvocateDisposition {
   DOESNT_QUALIFY
   COMPLIANCE_ISSUE
@@ -108,6 +122,7 @@ enum AdvocateDisposition {
   CALL_BACK
   CONNECTED_TO_COMPLIANCE
   CALL_DROPPED
+  DUPE
 }
 
 enum CollectionsDisposition {
@@ -139,6 +154,10 @@ model Lead {
   // Status
   status          LeadStatus
   testType        TestType?
+  
+  // Alert System Fields
+  isDuplicate     Boolean  @default(false)
+  hasActiveAlerts Boolean  @default(false)
   
   // Advocate information
   advocateId      String?
@@ -172,6 +191,7 @@ model Lead {
   // Relations
   contactAttemptRecords ContactAttempt[]
   callbacks             Callback[]
+  alerts                LeadAlert[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -181,6 +201,8 @@ model Lead {
   @@index([vendorId])
   @@index([advocateId])
   @@index([collectionsAgentId])
+  @@index([isDuplicate])
+  @@index([hasActiveAlerts])
 }
 
 enum DoctorApprovalStatus {
@@ -286,4 +308,36 @@ model DailyMetrics {
   createdAt DateTime @default(now())
   
   @@index([date])
+}
+
+// Alert System Model
+model LeadAlert {
+  id              String        @id @default(cuid())
+  leadId          String
+  lead            Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  type            AlertType
+  severity        AlertSeverity
+  message         String
+  
+  // Acknowledgment tracking
+  isAcknowledged  Boolean       @default(false)
+  acknowledgedBy  String?
+  acknowledgedAt  DateTime?
+  
+  // For duplicate alerts - references the related lead ID
+  relatedLeadId   String?
+  
+  // Additional context data
+  metadata        Json?         // Store additional alert context
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([leadId])
+  @@index([type])
+  @@index([severity])
+  @@index([isAcknowledged])
+  @@index([createdAt])
+  @@index([relatedLeadId])
 } 
