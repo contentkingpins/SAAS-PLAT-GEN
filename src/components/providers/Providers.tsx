@@ -1,12 +1,11 @@
 'use client';
 
-import React, { ReactNode, useEffect } from 'react';
+import React, { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { configureAmplify } from '@/config/amplify.config';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -104,10 +103,6 @@ const theme = createTheme({
 });
 
 export function Providers({ children }: { children: ReactNode }) {
-  useEffect(() => {
-    configureAmplify();
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
