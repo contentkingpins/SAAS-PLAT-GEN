@@ -29,7 +29,6 @@ import {
   AccountCircle,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import { Auth } from 'aws-amplify';
 import { AnalyticsDashboard } from '@/components/dashboard/AnalyticsDashboard';
 import useStore from '@/store/useStore';
 import { wsService } from '@/lib/utils/websocket';
@@ -77,7 +76,7 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     try {
-      await Auth.signOut();
+      // Clear JWT token and user data
       logout();
       router.push('/login');
     } catch (error) {
