@@ -5,7 +5,7 @@ const databaseConfig = {
   // PostgreSQL RDS Instance Details
   host: 'healthcare-db.c6ds4c4qok1n.us-east-1.rds.amazonaws.com', // Updated with actual endpoint
   port: 5432,
-  database: 'postgres',
+  database: 'healthcare_db',
   username: 'healthcareapi',
   password: 'HealthcareDB2024!',
   
