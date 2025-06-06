@@ -65,18 +65,48 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create advocate user
+    // Create primary advocate user
     const advocateUser = await prisma.user.create({
       data: {
         email: 'advocate@healthcare.com',
         password: hashedPassword,
-        firstName: 'Test',
+        firstName: 'Lead',
         lastName: 'Advocate',
         role: 'ADVOCATE',
         teamId: advocateTeam.id,
         isActive: true,
       },
     });
+
+    // Create 10 additional patient advocate logins
+    const advocateNames = [
+      { firstName: 'Sarah', lastName: 'Johnson', email: 'sarah.johnson@healthcare.com' },
+      { firstName: 'Michael', lastName: 'Davis', email: 'michael.davis@healthcare.com' },
+      { firstName: 'Emily', lastName: 'Rodriguez', email: 'emily.rodriguez@healthcare.com' },
+      { firstName: 'David', lastName: 'Wilson', email: 'david.wilson@healthcare.com' },
+      { firstName: 'Jessica', lastName: 'Brown', email: 'jessica.brown@healthcare.com' },
+      { firstName: 'Robert', lastName: 'Miller', email: 'robert.miller@healthcare.com' },
+      { firstName: 'Ashley', lastName: 'Garcia', email: 'ashley.garcia@healthcare.com' },
+      { firstName: 'Christopher', lastName: 'Martinez', email: 'christopher.martinez@healthcare.com' },
+      { firstName: 'Amanda', lastName: 'Taylor', email: 'amanda.taylor@healthcare.com' },
+      { firstName: 'Joshua', lastName: 'Anderson', email: 'joshua.anderson@healthcare.com' },
+    ];
+
+    const createdAdvocates = [];
+    for (const advocate of advocateNames) {
+      const newAdvocate = await prisma.user.create({
+        data: {
+          email: advocate.email,
+          password: hashedPassword,
+          firstName: advocate.firstName,
+          lastName: advocate.lastName,
+          role: 'ADVOCATE',
+          teamId: advocateTeam.id,
+          isActive: true,
+        },
+      });
+      createdAdvocates.push(newAdvocate);
+    }
 
     // Create collections team
     const collectionsTeam = await prisma.team.create({
@@ -93,7 +123,7 @@ export async function POST(request: NextRequest) {
       data: {
         email: 'collections@healthcare.com',
         password: hashedPassword,
-        firstName: 'Test',
+        firstName: 'Lead',
         lastName: 'Collections',
         role: 'COLLECTIONS',
         teamId: collectionsTeam.id,
@@ -124,7 +154,12 @@ export async function POST(request: NextRequest) {
           email: 'collections@healthcare.com',
           role: 'COLLECTIONS',
           password: 'admin123'
-        }
+        },
+        ...advocateNames.map(advocate => ({
+          email: advocate.email,
+          role: 'ADVOCATE',
+          password: 'admin123'
+        }))
       ]
     });
 
