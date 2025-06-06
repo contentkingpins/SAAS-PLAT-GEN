@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Lead Platform - Test Login</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            color: #333;
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .logo p {
+            color: #666;
+            margin: 5px 0 0 0;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        input[type="email"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .login-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .login-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .test-accounts {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .test-accounts h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .account-btn {
+            display: block;
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .account-btn:hover {
+            background: #f0f0f0;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .info {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #99d3ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>🏥 Healthcare Lead Platform</h1>
+            <p>Real Authentication Test</p>
+        </div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required placeholder="Enter your email">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Enter your password">
+            </div>
+            
+            <button type="submit" class="login-btn" id="loginBtn">
+                🔐 Sign In
+            </button>
+        </form>
+        
+        <div class="test-accounts">
+            <h3>📋 Test Accounts</h3>
+            <button type="button" class="account-btn" onclick="fillCredentials('admin@healthcare.com', 'admin123')">
+                👑 Admin - admin@healthcare.com (Full Access)
+            </button>
+            <button type="button" class="account-btn" onclick="fillCredentials('vendor@healthcare.com', 'admin123')">
+                🏢 Vendor - vendor@healthcare.com (Lead Submission)
+            </button>
+            <button type="button" class="account-btn" onclick="fillCredentials('advocate@healthcare.com', 'admin123')">
+                📞 Advocate - advocate@healthcare.com (Lead Qualification)
+            </button>
+            <button type="button" class="account-btn" onclick="fillCredentials('collections@healthcare.com', 'admin123')">
+                📦 Collections - collections@healthcare.com (Kit Follow-up)
+            </button>
+        </div>
+        
+        <div id="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        function fillCredentials(email, password) {
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = password;
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideStatus();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            // Disable button during login
+            loginBtn.disabled = true;
+            loginBtn.textContent = '🔄 Signing In...';
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    // Store the token
+                    localStorage.setItem('authToken', result.token);
+                    
+                    showStatus(`✅ Login successful! Welcome ${result.user.firstName}! Role: ${result.user.role}`, 'success');
+                    
+                    // Test the analytics API
+                    setTimeout(async () => {
+                        try {
+                            const analyticsResponse = await fetch('/api/analytics/dashboard?range=week', {
+                                headers: {
+                                    'Authorization': `Bearer ${result.token}`
+                                }
+                            });
+                            
+                            if (analyticsResponse.ok) {
+                                const analyticsData = await analyticsResponse.json();
+                                showStatus(`✅ Login & API Test Successful! Analytics data loaded. Total Leads: ${analyticsData.totalLeads}`, 'success');
+                                
+                                // Redirect based on role after successful test
+                                setTimeout(() => {
+                                    const role = result.user.role.toLowerCase();
+                                    window.location.href = `/${role}/dashboard`;
+                                }, 2000);
+                            } else {
+                                showStatus('✅ Login successful, but analytics API test failed. Check server logs.', 'info');
+                            }
+                        } catch (err) {
+                            showStatus('✅ Login successful, but analytics API test failed: ' + err.message, 'info');
+                        }
+                    }, 1000);
+                    
+                } else {
+                    showStatus(`❌ Login failed: ${result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Network error: ${error.message}`, 'error');
+            } finally {
+                // Re-enable button
+                loginBtn.disabled = false;
+                loginBtn.textContent = '🔐 Sign In';
+            }
+        });
+        
+        // Auto-fill admin credentials on page load
+        window.addEventListener('load', () => {
+            fillCredentials('admin@healthcare.com', 'admin123');
+        });
+    </script>
+</body>
+</html> 

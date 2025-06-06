@@ -169,5 +169,44 @@ export async function POST(request: NextRequest) {
       { error: 'Failed to create initial users', details: error },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// GET /api/auth/setup - Check setup status
+export async function GET(request: NextRequest) {
+  try {
+    // Test database connection
+    await prisma.$queryRaw`SELECT 1`;
+    
+    const userCount = await prisma.user.count();
+    const vendorCount = await prisma.vendor.count();
+    const teamCount = await prisma.team.count();
+
+    return NextResponse.json({
+      success: true,
+      database: {
+        connected: true,
+        users: userCount,
+        vendors: vendorCount,
+        teams: teamCount
+      },
+      setup: userCount > 0 ? 'complete' : 'needed'
+    });
+
+  } catch (error) {
+    console.error('Database connection test failed:', error);
+    
+    return NextResponse.json({
+      success: false,
+      database: {
+        connected: false,
+        error: error instanceof Error ? error.message : 'Connection failed'
+      },
+      setup: 'failed'
+    }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 } 
