@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AlertService } from '../../../../lib/services/alertService';
-
-// Admin authentication helper (reusing from existing admin endpoints)
-async function verifyAdminAuth(request: NextRequest) {
-  // This should implement the same auth logic as other admin endpoints
-  // For now, returning success - in production this would verify JWT token
-  return { error: null, status: 200 };
-}
+import { verifyAdminAuth } from '../../../../lib/auth/middleware';
 
 // GET /api/admin/alerts - Get all active alerts for admin overview
 export async function GET(request: NextRequest) {

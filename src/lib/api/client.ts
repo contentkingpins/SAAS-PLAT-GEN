@@ -1,5 +1,4 @@
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
-import { Auth } from 'aws-amplify';
 
 interface ApiError {
   message: string;
@@ -23,8 +22,8 @@ class ApiClient {
     this.client.interceptors.request.use(
       async (config) => {
         try {
-          const session = await Auth.currentSession();
-          const token = session.getIdToken().getJwtToken();
+          // Get JWT token from localStorage
+          const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
           }
@@ -40,6 +39,15 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError) => {
+        // Handle 401 (Unauthorized) errors
+        if (error.response?.status === 401) {
+          // Clear token and redirect to login
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('authToken');
+            window.location.href = '/login';
+          }
+        }
+
         const apiError: ApiError = {
           message: (error.response?.data as any)?.message || error.message || 'An error occurred',
           status: error.response?.status || 500,

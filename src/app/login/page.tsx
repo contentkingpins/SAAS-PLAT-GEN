@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Auth } from 'aws-amplify';
+
 import {
   Box,
   Container,
@@ -51,26 +51,43 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const user = await Auth.signIn(data.email, data.password);
+      // Call our real login API
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-      if (user) {
-        // Fetch user details and update store
-        // This would typically call your API to get user details
-        const mockUser = {
-          id: '1',
-          email: data.email,
-          firstName: 'John',
-          lastName: 'Doe',
-          role: 'admin' as UserRole,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          isActive: true,
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Login failed');
+      }
+
+      if (result.success && result.user && result.token) {
+        // Store the JWT token
+        localStorage.setItem('authToken', result.token);
+        
+        // Update store with user data
+        const user = {
+          id: result.user.id,
+          email: result.user.email,
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
+          role: result.user.role.toLowerCase() as UserRole,
+          createdAt: new Date(result.user.createdAt),
+          updatedAt: new Date(result.user.updatedAt),
+          isActive: result.user.isActive,
+          vendorId: result.user.vendorId,
+          teamId: result.user.teamId,
         };
         
-        login(mockUser);
+        login(user);
         
         // Redirect based on role
-        switch (mockUser.role) {
+        switch (user.role) {
           case 'admin':
             router.push('/admin/dashboard');
             break;
@@ -83,6 +100,8 @@ export default function LoginPage() {
           case 'collections':
             router.push('/collections/dashboard');
             break;
+          default:
+            router.push('/dashboard');
         }
       }
     } catch (err: any) {
