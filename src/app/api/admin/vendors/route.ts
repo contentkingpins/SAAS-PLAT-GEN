@@ -1,27 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { Auth } from 'aws-amplify';
 import { z } from 'zod';
+import { verifyAdminAuth } from '@/lib/auth/middleware';
 
 const prisma = new PrismaClient();
 
-// Middleware to verify admin permissions
-async function verifyAdminAuth(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return { error: 'Unauthorized', status: 401 };
-    }
 
-    const token = authHeader.substring(7);
-    // Verify token with AWS Cognito and check for admin role
-    // Implementation depends on your auth setup
-    
-    return { authenticated: true };
-  } catch (error) {
-    return { error: 'Authentication failed', status: 401 };
-  }
-}
 
 // Validation schemas
 const vendorCreateSchema = z.object({
