@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { useFormActivity } from '@/hooks/useAutoRefresh';
+import React, { useState } from 'react';
 
 interface SmartFormProps {
   title: string;
@@ -21,46 +20,19 @@ export function SmartForm({ title, onSubmit, initialData = {}, fields }: SmartFo
   const [formData, setFormData] = useState(initialData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  
-  // Register form activity with auto-refresh system
-  const { registerForm, setUserTyping, updateActivity } = useFormActivity();
-
-  // Register this form when component mounts
-  useEffect(() => {
-    const unregister = registerForm();
-    return unregister; // Cleanup when component unmounts
-  }, [registerForm]);
-
-  // Track if user is actively typing
-  const handleInputFocus = () => {
-    setUserTyping(true);
-    updateActivity();
-  };
-
-  const handleInputBlur = () => {
-    setUserTyping(false);
-  };
 
   const handleInputChange = (name: string, value: string) => {
     setFormData((prev: any) => ({ ...prev, [name]: value }));
     setHasChanges(true);
-    updateActivity(); // Update activity timestamp
-  };
-
-  const handleKeyDown = () => {
-    setUserTyping(true);
-    updateActivity();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setUserTyping(false);
 
     try {
       await onSubmit(formData);
       setHasChanges(false);
-      // Form completed, auto-refresh can resume
     } catch (error) {
       console.error('Form submission error:', error);
     } finally {
@@ -71,18 +43,15 @@ export function SmartForm({ title, onSubmit, initialData = {}, fields }: SmartFo
   return (
     <div className="max-w-2xl mx-auto p-6">
       {/* Form status indicator */}
-      <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-yellow-800">
-            🔄 Auto-refresh paused while editing
-          </span>
-          {hasChanges && (
-            <span className="text-xs text-yellow-600">
-              Unsaved changes detected
+      {hasChanges && (
+        <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-yellow-800">
+              📝 You have unsaved changes
             </span>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">{title}</h2>
@@ -100,9 +69,6 @@ export function SmartForm({ title, onSubmit, initialData = {}, fields }: SmartFo
                 name={field.name}
                 value={formData[field.name] || ''}
                 onChange={(e) => handleInputChange(field.name, e.target.value)}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                onKeyDown={handleKeyDown}
                 placeholder={field.placeholder}
                 required={field.required}
                 rows={4}
@@ -114,8 +80,6 @@ export function SmartForm({ title, onSubmit, initialData = {}, fields }: SmartFo
                 name={field.name}
                 value={formData[field.name] || ''}
                 onChange={(e) => handleInputChange(field.name, e.target.value)}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
                 required={field.required}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
@@ -133,9 +97,6 @@ export function SmartForm({ title, onSubmit, initialData = {}, fields }: SmartFo
                 name={field.name}
                 value={formData[field.name] || ''}
                 onChange={(e) => handleInputChange(field.name, e.target.value)}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                onKeyDown={handleKeyDown}
                 placeholder={field.placeholder}
                 required={field.required}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -199,10 +160,13 @@ export function NewLeadForm() {
   ];
 
   const handleSubmit = async (data: any) => {
-    // Submit to API
-    const response = await fetch('/api/leads', {
+    // Note: This would need to import apiClient for real usage
+    const response = await fetch('/api/admin/leads/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      },
       body: JSON.stringify(data)
     });
 
@@ -211,7 +175,7 @@ export function NewLeadForm() {
     }
 
     // Redirect to leads list
-    window.location.href = '/leads';
+    window.location.href = '/admin/dashboard';
   };
 
   return (

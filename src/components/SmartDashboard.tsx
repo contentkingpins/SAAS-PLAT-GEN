@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { useAutoRefresh, useAutoRefreshData } from '@/hooks/useAutoRefresh';
+import React, { useEffect, useState } from 'react';
+import apiClient from '@/lib/api';
 
 interface DashboardMetrics {
   totalLeads: number;
@@ -11,52 +11,53 @@ interface DashboardMetrics {
 }
 
 export function SmartDashboard() {
-  // Fetch dashboard metrics with auto-refresh
-  const {
-    data: metrics,
-    loading,
-    error,
-    refresh: manualRefresh,
-    autoRefresh
-  } = useAutoRefreshData<DashboardMetrics>(
-    async () => {
-      const response = await fetch('/api/dashboard/metrics');
-      if (!response.ok) throw new Error('Failed to fetch metrics');
-      return response.json();
-    },
-    [], // dependencies
-    {
-      interval: 30000, // 30 seconds
-      pauseOnFormActivity: true,
-      pauseOnRoutes: ['/leads/new', '/leads/edit', '/vendors/new', '/vendors/edit']
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+
+  const fetchMetrics = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await apiClient.getDashboardMetrics();
+      if (response.success && response.data) {
+        setMetrics(response.data);
+        setLastRefresh(new Date());
+      } else {
+        throw new Error('Failed to fetch metrics');
+      }
+    } catch (err: any) {
+      setError(err);
+    } finally {
+      setLoading(false);
     }
-  );
+  };
+
+  useEffect(() => {
+    fetchMetrics();
+  }, []);
 
   return (
     <div className="p-6 space-y-6">
-      {/* Auto-refresh status indicator */}
+      {/* Refresh controls */}
       <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg">
         <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full ${autoRefresh.isActive ? 'bg-green-500' : 'bg-yellow-500'}`} />
+          <div className={`w-2 h-2 rounded-full ${!loading ? 'bg-green-500' : 'bg-yellow-500'}`} />
           <span className="text-sm">
-            Auto-refresh: {autoRefresh.isActive ? 'Active' : 'Paused'}
+            Dashboard Status: {!loading ? 'Ready' : 'Loading'}
           </span>
-          {autoRefresh.status.isPausedForForms && (
-            <span className="text-xs text-blue-600">(Form editing detected)</span>
-          )}
-          {autoRefresh.status.isPausedForRoute && (
-            <span className="text-xs text-blue-600">(On editing page)</span>
-          )}
         </div>
         
         <div className="flex items-center space-x-4">
-          {autoRefresh.lastRefresh && (
+          {lastRefresh && (
             <span className="text-xs text-gray-500">
-              Last update: {autoRefresh.lastRefresh.toLocaleTimeString()}
+              Last update: {lastRefresh.toLocaleTimeString()}
             </span>
           )}
           <button
-            onClick={manualRefresh}
+            onClick={fetchMetrics}
             className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
             disabled={loading}
           >
@@ -70,7 +71,7 @@ export function SmartDashboard() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-600">Failed to load dashboard data: {error.message}</p>
           <button 
-            onClick={manualRefresh}
+            onClick={fetchMetrics}
             className="mt-2 text-sm text-red-600 underline"
           >
             Try again
