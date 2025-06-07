@@ -22,6 +22,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import useStore from '@/store/useStore';
 import { UserRole } from '@/types';
+import apiClient, { TEST_CREDENTIALS } from '@/lib/api';
 
 // Validation schema
 const loginSchema = z.object({
@@ -51,25 +52,10 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Call our real login API
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Login failed');
-      }
+      // Use the new API client for login
+      const result = await apiClient.login(data.email, data.password);
 
       if (result.success && result.user && result.token) {
-        // Store the JWT token
-        localStorage.setItem('authToken', result.token);
-        
         // Update store with user data
         const user = {
           id: result.user.id,
@@ -77,11 +63,11 @@ export default function LoginPage() {
           firstName: result.user.firstName,
           lastName: result.user.lastName,
           role: result.user.role.toLowerCase() as UserRole,
-          createdAt: new Date(result.user.createdAt),
-          updatedAt: new Date(result.user.updatedAt),
+          createdAt: new Date(), // Backend doesn't send timestamps in auth response
+          updatedAt: new Date(), // Backend doesn't send timestamps in auth response
           isActive: result.user.isActive,
-          vendorId: result.user.vendorId,
-          teamId: result.user.teamId,
+          vendorId: result.user.vendorId || undefined,
+          teamId: result.user.teamId || undefined,
         };
         
         login(user);
@@ -195,6 +181,31 @@ export default function LoginPage() {
               </Link>
             </Box>
           </Box>
+          
+          {/* Development Test Credentials */}
+          {process.env.NODE_ENV === 'development' && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                Test Credentials (Development Only):
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {Object.entries(TEST_CREDENTIALS).map(([role, creds]) => (
+                  <Button
+                    key={role}
+                    size="small"
+                    variant="text"
+                    onClick={() => {
+                      // Auto-fill the form
+                      document.getElementById('email')?.setAttribute('value', creds.email);
+                      document.getElementById('password')?.setAttribute('value', creds.password);
+                    }}
+                  >
+                    {role}
+                  </Button>
+                ))}
+              </Box>
+            </Box>
+          )}
         </Paper>
 
         <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
