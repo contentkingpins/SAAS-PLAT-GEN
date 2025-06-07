@@ -5,11 +5,8 @@ import { verifyAdminAuth } from '@/lib/auth/middleware';
 
 const prisma = new PrismaClient();
 
-<<<<<<< HEAD
 
 
-=======
->>>>>>> 0776f005f4795a05d04938b15acd936075d298dc
 // Validation schemas
 const vendorCreateSchema = z.object({
   name: z.string().min(2),
