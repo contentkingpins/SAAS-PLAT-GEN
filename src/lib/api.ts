@@ -154,6 +154,19 @@ class ApiClient {
     });
   }
 
+  async updateVendor(id: string, vendorData: any): Promise<ApiResponse> {
+    return this.request<ApiResponse>(`/api/admin/vendors/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(vendorData),
+    });
+  }
+
+  async deleteVendor(id: string): Promise<ApiResponse> {
+    return this.request<ApiResponse>(`/api/admin/vendors/${id}/`, {
+      method: 'DELETE',
+    });
+  }
+
   // Team Management
   async getTeams(): Promise<ApiResponse> {
     return this.request<ApiResponse>('/api/admin/teams/');

@@ -41,7 +41,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { apiClient } from '@/lib/api/client';
+import apiClient from '@/lib/api';
 import { format } from 'date-fns';
 
 interface Vendor {
@@ -104,11 +104,12 @@ export function VendorManagement() {
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.get<Vendor[]>('/admin/vendors');
+      const response = await apiClient.getVendors();
+      const data = response.data || [];
       setVendors(data);
       
       // Filter for parent vendors (no parentVendorId)
-      const parents = data.filter(v => !v.parentVendorId);
+      const parents = data.filter((v: Vendor) => !v.parentVendorId);
       setParentVendors(parents);
     } catch (error: any) {
       setError('Failed to fetch vendors: ' + error.message);
@@ -156,10 +157,10 @@ export function VendorManagement() {
       };
 
       if (editingVendor) {
-        await apiClient.put(`/admin/vendors/${editingVendor.id}`, vendorData);
+        await apiClient.updateVendor(editingVendor.id, vendorData);
         setSuccess('Vendor updated successfully');
       } else {
-        await apiClient.post('/admin/vendors', vendorData);
+        await apiClient.createVendor(vendorData);
         setSuccess('Vendor created successfully');
       }
       
@@ -174,7 +175,7 @@ export function VendorManagement() {
     if (!vendorToDelete) return;
 
     try {
-      await apiClient.delete(`/admin/vendors/${vendorToDelete.id}`);
+      await apiClient.deleteVendor(vendorToDelete.id);
       setSuccess('Vendor deleted successfully');
       setDeleteDialogOpen(false);
       setVendorToDelete(null);
