@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ['error', 'warn'],
+});
 
 // POST /api/auth/setup - Create initial users for testing
 export async function POST(request: NextRequest) {
@@ -166,7 +168,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Setup error:', error);
     return NextResponse.json(
-      { error: 'Failed to create initial users', details: error },
+      { 
+        success: false,
+        error: 'Failed to create initial users', 
+        details: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     );
   } finally {
@@ -174,18 +181,44 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/auth/setup - Check setup status
+// GET /api/auth/setup - Check setup status with detailed diagnostics
 export async function GET(request: NextRequest) {
   try {
-    // Test database connection
-    await prisma.$queryRaw`SELECT 1`;
+    console.log('Setup endpoint called - starting diagnostics...');
     
+    // Environment diagnostics
+    const envDiagnostics = {
+      DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'MISSING',
+      DATABASE_URL_LENGTH: process.env.DATABASE_URL?.length || 0,
+      DATABASE_URL_PREFIX: process.env.DATABASE_URL?.substring(0, 20) + '...',
+      JWT_SECRET: process.env.JWT_SECRET ? 'SET' : 'MISSING',
+      NODE_ENV: process.env.NODE_ENV || 'undefined'
+    };
+    
+    console.log('Environment diagnostics:', envDiagnostics);
+    
+    // Test database connection step by step
+    console.log('Testing database connection...');
+    
+    // Step 1: Test raw connection
+    await prisma.$connect();
+    console.log('✅ Prisma connected');
+    
+    // Step 2: Test simple query
+    const testQuery = await prisma.$queryRaw`SELECT 1 as test`;
+    console.log('✅ Raw query successful:', testQuery);
+    
+    // Step 3: Test table counts
     const userCount = await prisma.user.count();
     const vendorCount = await prisma.vendor.count();
     const teamCount = await prisma.team.count();
+    
+    console.log('✅ Table counts successful');
 
     return NextResponse.json({
       success: true,
+      timestamp: new Date().toISOString(),
+      environment: envDiagnostics,
       database: {
         connected: true,
         users: userCount,
@@ -198,11 +231,28 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Database connection test failed:', error);
     
+    const errorDetails = {
+      message: error instanceof Error ? error.message : String(error),
+      name: error instanceof Error ? error.name : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+      code: (error as any)?.code,
+      meta: (error as any)?.meta
+    };
+    
+    console.error('Detailed error:', errorDetails);
+    
     return NextResponse.json({
       success: false,
+      timestamp: new Date().toISOString(),
+      environment: {
+        DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'MISSING',
+        DATABASE_URL_LENGTH: process.env.DATABASE_URL?.length || 0,
+        JWT_SECRET: process.env.JWT_SECRET ? 'SET' : 'MISSING',
+        NODE_ENV: process.env.NODE_ENV || 'undefined'
+      },
       database: {
         connected: false,
-        error: error instanceof Error ? error.message : 'Connection failed'
+        error: errorDetails
       },
       setup: 'failed'
     }, { status: 500 });
