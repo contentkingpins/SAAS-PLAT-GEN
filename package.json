@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node server.js",
+    "dev": "next dev",
     "dev:next": "next dev",
     "dev:ws": "node scripts/start-websocket.js",
     "build": "next build",
-    "start": "NODE_ENV=production node server.js",
+    "start": "next start",
     "start:next": "next start",
     "lint": "next lint",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
