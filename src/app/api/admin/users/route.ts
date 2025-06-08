@@ -1,26 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
-
-// Middleware to verify admin permissions
+// Simple auth check for now - will improve later
 async function verifyAdminAuth(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return { error: 'Unauthorized', status: 401 };
-    }
-
-    const token = authHeader.substring(7);
-    // Verify token with AWS Cognito and check for admin role
-    // Implementation depends on your auth setup
-    
-    return { authenticated: true };
-  } catch (error) {
-    return { error: 'Authentication failed', status: 401 };
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { error: 'Unauthorized', status: 401 };
   }
+  return { authenticated: true };
 }
 
 // Validation schemas
@@ -108,11 +97,11 @@ export async function GET(request: NextRequest) {
     // Remove password from response
     const sanitizedUsers = users.map(({ password, ...user }) => user);
 
-    return NextResponse.json(sanitizedUsers);
+    return NextResponse.json({ success: true, data: sanitizedUsers });
   } catch (error) {
     console.error('Error fetching users:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch users' },
+      { success: false, error: 'Failed to fetch users' },
       { status: 500 }
     );
   }
@@ -136,7 +125,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'User with this email already exists' },
+        { success: false, error: 'User with this email already exists' },
         { status: 400 }
       );
     }
@@ -180,18 +169,18 @@ export async function POST(request: NextRequest) {
     // Remove password from response
     const { password: _, ...sanitizedUser } = user;
 
-    return NextResponse.json(sanitizedUser, { status: 201 });
+    return NextResponse.json({ success: true, data: sanitizedUser }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
+        { success: false, error: 'Validation failed', details: error.errors },
         { status: 400 }
       );
     }
 
     console.error('Error creating user:', error);
     return NextResponse.json(
-      { error: 'Failed to create user' },
+      { success: false, error: 'Failed to create user' },
       { status: 500 }
     );
   }

@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
-
-// Middleware to verify admin permissions
+// Simple auth check for now - will improve later
 async function verifyAdminAuth(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return { error: 'Unauthorized', status: 401 };
-    }
-    return { authenticated: true };
-  } catch (error) {
-    return { error: 'Authentication failed', status: 401 };
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { error: 'Unauthorized', status: 401 };
   }
+  return { authenticated: true };
 }
 
 // GET /api/admin/teams - Fetch all teams

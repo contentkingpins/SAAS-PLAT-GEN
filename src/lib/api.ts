@@ -142,6 +142,18 @@ class ApiClient {
     });
   }
 
+  // Team Management
+  async getTeams(): Promise<ApiResponse> {
+    return this.request<ApiResponse>('/api/admin/teams/');
+  }
+
+  async createTeam(teamData: any): Promise<ApiResponse> {
+    return this.request<ApiResponse>('/api/admin/teams/', {
+      method: 'POST',
+      body: JSON.stringify(teamData),
+    });
+  }
+
   // Vendor Management
   async getVendors(): Promise<ApiResponse> {
     return this.request<ApiResponse>('/api/admin/vendors/');
@@ -164,18 +176,6 @@ class ApiClient {
   async deleteVendor(id: string): Promise<ApiResponse> {
     return this.request<ApiResponse>(`/api/admin/vendors/${id}/`, {
       method: 'DELETE',
-    });
-  }
-
-  // Team Management
-  async getTeams(): Promise<ApiResponse> {
-    return this.request<ApiResponse>('/api/admin/teams/');
-  }
-
-  async createTeam(teamData: any): Promise<ApiResponse> {
-    return this.request<ApiResponse>('/api/admin/teams/', {
-      method: 'POST',
-      body: JSON.stringify(teamData),
     });
   }
 
