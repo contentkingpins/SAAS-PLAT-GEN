@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import { Phone, Assignment, CheckCircle, Warning } from '@mui/icons-material';
 import useStore from '@/store/useStore';
-import apiClient from '@/lib/api';
+import { apiClient } from '@/lib/api/client';
 
 interface Lead {
   id: string;
@@ -57,16 +57,13 @@ export default function AdvocateDashboard() {
       setLoading(true);
       
       // Get leads assigned to this advocate
-      const leadsResponse = await apiClient.getLeads({
-        advocateId: user?.id,
-        status: 'advocate_review,qualified,sent_to_consult',
-      });
+      const leadsResponse = await apiClient.get<Lead[]>(`/api/leads?advocateId=${user?.id}&status=advocate_review,qualified,sent_to_consult`);
 
-      if (leadsResponse.success) {
-        setLeads(leadsResponse.data || []);
+      if (leadsResponse) {
+        setLeads(leadsResponse || []);
         
         // Calculate stats
-        const data = leadsResponse.data || [];
+        const data = leadsResponse || [];
         setStats({
           totalAssigned: data.length,
           pendingReview: data.filter((l: Lead) => l.status === 'advocate_review').length,

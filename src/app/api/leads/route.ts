@@ -314,6 +314,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const vendorId = searchParams.get('vendorId');
+    const advocateId = searchParams.get('advocateId');
     const status = searchParams.get('status');
     const hasAlerts = searchParams.get('hasAlerts');
 
@@ -322,7 +323,16 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: any = {};
     if (vendorId) where.vendorId = vendorId;
-    if (status) where.status = status;
+    if (advocateId) where.advocateId = advocateId;
+    if (status) {
+      // Handle multiple status values separated by comma
+      const statusArray = status.split(',');
+      if (statusArray.length > 1) {
+        where.status = { in: statusArray };
+      } else {
+        where.status = status;
+      }
+    }
     if (hasAlerts === 'true') where.hasActiveAlerts = true;
 
     // Get leads with pagination
