@@ -87,7 +87,7 @@ export default function CollectionsDashboard() {
       setLoading(true);
       
       // Get leads in collections status
-      const leadsResponse = await apiClient.get<Lead[]>(`/api/leads?collectionsAgentId=${user?.id}&status=collections,shipped`);
+      const leadsResponse = await apiClient.get<Lead[]>(`/api/leads?collectionsAgentId=${user?.id}&status=COLLECTIONS,SHIPPED`);
 
       if (leadsResponse) {
         setLeads(leadsResponse || []);
@@ -97,7 +97,7 @@ export default function CollectionsDashboard() {
         setStats({
           totalAssigned: data.length,
           pendingContact: data.filter((l: Lead) => !l.lastContactAttempt).length,
-          kitsCompleted: data.filter((l: Lead) => l.status === 'kit_completed').length,
+          kitsCompleted: data.filter((l: Lead) => l.status === 'KIT_COMPLETED').length,
           callbacksScheduled: data.filter((l: Lead) => l.nextCallbackDate).length,
         });
       }
@@ -110,18 +110,18 @@ export default function CollectionsDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'collections': return 'warning';
-      case 'shipped': return 'info';
-      case 'kit_completed': return 'success';
+      case 'COLLECTIONS': return 'warning';
+      case 'SHIPPED': return 'info';
+      case 'KIT_COMPLETED': return 'success';
       default: return 'default';
     }
   };
 
   const getDispositionColor = (disposition?: string) => {
     switch (disposition) {
-      case 'kit_completed': return 'success';
-      case 'scheduled_callback': return 'info';
-      case 'no_answer': return 'warning';
+      case 'KIT_COMPLETED': return 'success';
+      case 'SCHEDULED_CALLBACK': return 'info';
+      case 'NO_ANSWER': return 'warning';
       default: return 'default';
     }
   };
@@ -136,8 +136,8 @@ export default function CollectionsDashboard() {
   const handleMarkCompleted = async (leadId: string) => {
     try {
       await apiClient.patch(`/api/leads/${leadId}`, {
-        status: 'kit_completed',
-        collectionsDisposition: 'kit_completed',
+        status: 'KIT_COMPLETED',
+        collectionsDisposition: 'KIT_COMPLETED',
       });
       loadCollectionsData(); // Refresh data
     } catch (err: any) {
@@ -385,7 +385,7 @@ export default function CollectionsDashboard() {
                           >
                             Call
                           </Button>
-                          {lead.status === 'shipped' && (
+                          {lead.status === 'SHIPPED' && (
                             <Button
                               size="small"
                               variant="contained"

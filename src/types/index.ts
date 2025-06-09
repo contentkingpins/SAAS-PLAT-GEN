@@ -30,29 +30,29 @@ export interface Vendor {
 export type TestType = 'immune' | 'neuro';
 
 export type LeadStatus = 
-  | 'submitted'
-  | 'advocate_review'
-  | 'qualified'
-  | 'sent_to_consult'
-  | 'approved'
-  | 'ready_to_ship'
-  | 'shipped'
-  | 'collections'
-  | 'kit_completed'
-  | 'returned';
+  | 'SUBMITTED'
+  | 'ADVOCATE_REVIEW'
+  | 'QUALIFIED'
+  | 'SENT_TO_CONSULT'
+  | 'APPROVED'
+  | 'READY_TO_SHIP'
+  | 'SHIPPED'
+  | 'COLLECTIONS'
+  | 'KIT_COMPLETED'
+  | 'RETURNED';
 
 export type AdvocateDisposition = 
-  | 'doesnt_qualify'
-  | 'compliance_issue'
-  | 'patient_declined'
-  | 'call_back'
-  | 'connected_to_compliance'
-  | 'call_dropped';
+  | 'DOESNT_QUALIFY'
+  | 'COMPLIANCE_ISSUE'
+  | 'PATIENT_DECLINED'
+  | 'CALL_BACK'
+  | 'CONNECTED_TO_COMPLIANCE'
+  | 'CALL_DROPPED';
 
 export type CollectionsDisposition =
-  | 'no_answer'
-  | 'scheduled_callback'
-  | 'kit_completed';
+  | 'NO_ANSWER'
+  | 'SCHEDULED_CALLBACK'
+  | 'KIT_COMPLETED';
 
 export interface ComplianceChecklist {
   verifyDobAddress: boolean;

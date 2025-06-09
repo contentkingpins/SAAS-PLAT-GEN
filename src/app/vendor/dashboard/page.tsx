@@ -102,13 +102,13 @@ export default function VendorDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'qualified':
-      case 'approved':
+      case 'QUALIFIED':
+      case 'APPROVED':
         return 'success';
-      case 'submitted':
-      case 'advocate_review':
+      case 'SUBMITTED':
+      case 'ADVOCATE_REVIEW':
         return 'warning';
-      case 'kit_completed':
+      case 'KIT_COMPLETED':
         return 'info';
       default:
         return 'default';
@@ -117,10 +117,10 @@ export default function VendorDashboard() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'kit_completed':
+      case 'KIT_COMPLETED':
         return <CheckCircle fontSize="small" />;
-      case 'qualified':
-      case 'approved':
+      case 'QUALIFIED':
+      case 'APPROVED':
         return <TrendingUp fontSize="small" />;
       default:
         return <Pending fontSize="small" />;

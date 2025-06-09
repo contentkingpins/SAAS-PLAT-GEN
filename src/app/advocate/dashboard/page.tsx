@@ -83,7 +83,7 @@ export default function AdvocateDashboard() {
       setLoading(true);
       
       // Get leads assigned to this advocate
-      const leadsResponse = await apiClient.get<Lead[]>(`/api/leads?advocateId=${user?.id}&status=advocate_review,qualified,sent_to_consult`);
+      const leadsResponse = await apiClient.get<Lead[]>(`/api/leads?advocateId=${user?.id}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`);
 
       if (leadsResponse) {
         setLeads(leadsResponse || []);
@@ -92,8 +92,8 @@ export default function AdvocateDashboard() {
         const data = leadsResponse || [];
         setStats({
           totalAssigned: data.length,
-          pendingReview: data.filter((l: Lead) => l.status === 'advocate_review').length,
-          qualified: data.filter((l: Lead) => l.status === 'qualified').length,
+          pendingReview: data.filter((l: Lead) => l.status === 'ADVOCATE_REVIEW').length,
+          qualified: data.filter((l: Lead) => l.status === 'QUALIFIED').length,
           completedToday: data.filter((l: Lead) => 
             new Date(l.createdAt).toDateString() === new Date().toDateString()
           ).length,
@@ -108,9 +108,9 @@ export default function AdvocateDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'advocate_review': return 'warning';
-      case 'qualified': return 'success';
-      case 'sent_to_consult': return 'info';
+      case 'ADVOCATE_REVIEW': return 'warning';
+      case 'QUALIFIED': return 'success';
+      case 'SENT_TO_CONSULT': return 'info';
       default: return 'default';
     }
   };
@@ -313,7 +313,7 @@ export default function AdvocateDashboard() {
                           size="small"
                           variant="outlined"
                           onClick={() => handleStartReview(lead.id)}
-                          disabled={lead.status !== 'advocate_review'}
+                          disabled={lead.status !== 'ADVOCATE_REVIEW'}
                         >
                           Review
                         </Button>

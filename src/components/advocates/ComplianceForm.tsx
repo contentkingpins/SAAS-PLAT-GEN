@@ -135,7 +135,7 @@ export function ComplianceForm({ lead, agentId, onComplete }: ComplianceFormProp
         testType,
         advocateNotes: notes,
         advocateReviewedAt: new Date(),
-        status: disposition === 'connected_to_compliance' ? 'qualified' : 'advocate_review',
+        status: disposition === 'CONNECTED_TO_COMPLIANCE' ? 'QUALIFIED' : 'ADVOCATE_REVIEW',
         complianceChecklist: {
           verifyDobAddress: checkedItems.verifyDobAddress || false,
           patientConsent: checkedItems.patientConsent || false,
@@ -253,7 +253,7 @@ export function ComplianceForm({ lead, agentId, onComplete }: ComplianceFormProp
           onChange={(e) => setDisposition(e.target.value as AdvocateDisposition)}
         >
           <FormControlLabel
-            value="connected_to_compliance"
+            value="CONNECTED_TO_COMPLIANCE"
             control={<Radio color="success" />}
             label={
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -264,27 +264,27 @@ export function ComplianceForm({ lead, agentId, onComplete }: ComplianceFormProp
             disabled={hasComplianceIssue || !allRequiredChecked}
           />
           <FormControlLabel
-            value="doesnt_qualify"
+            value="DOESNT_QUALIFY"
             control={<Radio />}
             label="Doesn't qualify for test"
           />
           <FormControlLabel
-            value="compliance_issue"
+            value="COMPLIANCE_ISSUE"
             control={<Radio />}
             label="Compliance issue"
           />
           <FormControlLabel
-            value="patient_declined"
+            value="PATIENT_DECLINED"
             control={<Radio />}
             label="Patient no longer wants to continue"
           />
           <FormControlLabel
-            value="call_back"
+            value="CALL_BACK"
             control={<Radio />}
             label="Call back (scheduled)"
           />
           <FormControlLabel
-            value="call_dropped"
+            value="CALL_DROPPED"
             control={<Radio />}
             label="Call dropped"
           />
