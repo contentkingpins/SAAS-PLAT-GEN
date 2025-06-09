@@ -313,7 +313,7 @@ export function VendorManagement() {
   const getFormLink = (vendor: Vendor) => {
     // Generate the form submission link for vendors
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${baseUrl}/submit?vendor=${vendor.code}`;
+    return `${baseUrl}/form/${vendor.code}`;
   };
 
   const copyToClipboard = (text: string) => {
