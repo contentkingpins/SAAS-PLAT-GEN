@@ -63,10 +63,7 @@ export async function GET(
       }
     });
 
-    return NextResponse.json({
-      success: true,
-      data: downlineVendors
-    });
+    return NextResponse.json(downlineVendors);
 
   } catch (error) {
     console.error('Error fetching downline vendors:', error);
@@ -196,11 +193,7 @@ export async function POST(
     // Log the creation
     console.log(`Downline vendor created: ${newVendor.id} (${newVendor.code}) under parent ${vendorId}`);
 
-    return NextResponse.json({
-      success: true,
-      data: newVendor,
-      message: 'Downline vendor created successfully'
-    });
+    return NextResponse.json(newVendor);
 
   } catch (error) {
     console.error('Error creating downline vendor:', error);
