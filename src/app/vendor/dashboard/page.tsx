@@ -51,7 +51,6 @@ import {
   AccountTree as AccountTreeIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import { LeadSubmissionForm } from '@/components/vendors/LeadSubmissionForm';
 import useStore from '@/store/useStore';
 import { Lead } from '@/types';
 import { apiClient } from '@/lib/api/client';
@@ -63,7 +62,7 @@ import { z } from 'zod';
 interface VendorMetrics {
   totalLeads: number;
   qualifiedLeads: number;
-  completedKits: number;
+  acceptedDenials: number;
   conversionRate: number;
 }
 
@@ -122,7 +121,7 @@ export default function VendorDashboard() {
   const [metrics, setMetrics] = useState<VendorMetrics>({
     totalLeads: 0,
     qualifiedLeads: 0,
-    completedKits: 0,
+    acceptedDenials: 0,
     conversionRate: 0,
   });
   const [page, setPage] = useState(0);
@@ -165,8 +164,8 @@ export default function VendorDashboard() {
       setLoading(true);
       // Fetch leads and metrics
       const [leadsData, metricsData] = await Promise.all([
-        apiClient.get<Lead[]>(`/vendors/${user?.vendorId}/leads`),
-        apiClient.get<VendorMetrics>(`/vendors/${user?.vendorId}/metrics`),
+        apiClient.get<Lead[]>(`/api/vendors/${user?.vendorId}/leads`),
+        apiClient.get<VendorMetrics>(`/api/vendors/${user?.vendorId}/metrics`),
       ]);
       
       setLeads(leadsData);
@@ -408,13 +407,13 @@ export default function VendorDashboard() {
                 <Card>
                   <CardContent>
                     <Typography color="text.secondary" gutterBottom>
-                      Completed Kits
+                      Accepted Denials
                     </Typography>
                     <Typography variant="h4" component="div">
-                      {metrics.completedKits}
+                      {metrics.acceptedDenials}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Successfully returned
+                      Denied applications accepted
                     </Typography>
                   </CardContent>
                 </Card>
@@ -438,18 +437,13 @@ export default function VendorDashboard() {
 
             {/* Lead Management Section */}
             <Grid container spacing={3}>
-              <Grid item xs={12} lg={5}>
-                <LeadSubmissionForm
-                  vendorId={user?.vendorId || ''}
-                  vendorCode={user?.vendorId || ''}
-                  onSuccess={handleLeadSubmitted}
-                />
-              </Grid>
-
-              <Grid item xs={12} lg={7}>
+              <Grid item xs={12}>
                 <Paper elevation={3} sx={{ p: 3 }}>
                   <Typography variant="h5" gutterBottom fontWeight="bold">
                     Recent Leads
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Monitor leads submitted through your downline vendor forms. Vendors do not submit leads directly.
                   </Typography>
                   <TableContainer>
                     <Table>
