@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import apiClient from '@/lib/api';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { apiClient } from '@/lib/api/client';
 
 interface DashboardMetrics {
   totalLeads: number;
@@ -11,9 +13,9 @@ interface DashboardMetrics {
 }
 
 export function SmartDashboard() {
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [metrics, setMetrics] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const fetchMetrics = async () => {
@@ -21,15 +23,12 @@ export function SmartDashboard() {
       setLoading(true);
       setError(null);
       
-      const response = await apiClient.getDashboardMetrics();
-      if (response.success && response.data) {
-        setMetrics(response.data);
-        setLastRefresh(new Date());
-      } else {
-        throw new Error('Failed to fetch metrics');
-      }
+      const data = await apiClient.get('/api/analytics/dashboard');
+      setMetrics(data);
+      setLastRefresh(new Date());
     } catch (err: any) {
       setError(err);
+      console.error('Dashboard fetch error:', err);
     } finally {
       setLoading(false);
     }
@@ -80,45 +79,31 @@ export function SmartDashboard() {
       )}
 
       {metrics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <MetricCard
-            title="Total Leads"
-            value={metrics.totalLeads}
-            className="bg-blue-50 border-blue-200"
-          />
-          <MetricCard
-            title="Leads Today"
-            value={metrics.leadsToday}
-            className="bg-green-50 border-green-200"
-          />
-          <MetricCard
-            title="Active Alerts"
-            value={metrics.activeAlerts}
-            className="bg-red-50 border-red-200"
-            alert={metrics.activeAlerts > 0}
-          />
-          <MetricCard
-            title="Conversion Rate"
-            value={`${(metrics.conversionRate * 100).toFixed(1)}%`}
-            className="bg-purple-50 border-purple-200"
-          />
-          <MetricCard
-            title="Duplicates Detected"
-            value={metrics.duplicatesDetected}
-            className="bg-yellow-50 border-yellow-200"
-          />
-          <MetricCard
-            title="Last Updated"
-            value={new Date(metrics.lastUpdated).toLocaleTimeString()}
-            className="bg-gray-50 border-gray-200"
-          />
-        </div>
-      )}
-
-      {loading && !metrics && (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <span className="ml-3 text-gray-600">Loading dashboard...</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-sm font-medium text-gray-500">Total Leads</h3>
+            <p className="text-2xl font-bold text-gray-900">{metrics.totalLeads || 0}</p>
+          </div>
+          
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-sm font-medium text-gray-500">Leads Today</h3>
+            <p className="text-2xl font-bold text-blue-600">{metrics.leadsToday || 0}</p>
+          </div>
+          
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-sm font-medium text-gray-500">This Week</h3>
+            <p className="text-2xl font-bold text-green-600">{metrics.leadsThisWeek || 0}</p>
+          </div>
+          
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-sm font-medium text-gray-500">Conversion Rate</h3>
+            <p className="text-2xl font-bold text-purple-600">
+              {metrics.conversionRates?.overallConversion 
+                ? `${(metrics.conversionRates.overallConversion * 100).toFixed(1)}%` 
+                : '0%'
+              }
+            </p>
+          </div>
         </div>
       )}
     </div>

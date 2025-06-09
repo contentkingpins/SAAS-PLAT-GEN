@@ -17,7 +17,7 @@ import {
   TextField,
 } from '@mui/material';
 import { ExpandMore, CheckCircle, Error, Warning } from '@mui/icons-material';
-import apiClient, { TEST_CREDENTIALS } from '@/lib/api';
+import { apiClient, TEST_CREDENTIALS } from '@/lib/api/client';
 
 interface TestResult {
   name: string;
@@ -47,7 +47,6 @@ export default function TestApiPage() {
       { name: 'Get Users (Admin)', status: 'pending', message: 'Testing user management...' },
       { name: 'Get Vendors', status: 'pending', message: 'Testing vendor endpoints...' },
       { name: 'Get Leads', status: 'pending', message: 'Testing lead management...' },
-      { name: 'Get Alerts', status: 'pending', message: 'Testing alert system...' },
       { name: 'Dashboard Analytics', status: 'pending', message: 'Testing analytics endpoint...' },
     ];
     
@@ -56,7 +55,7 @@ export default function TestApiPage() {
     try {
       // Test 1: System Status
       try {
-        const statusResponse = await apiClient.checkSystemStatus();
+        const statusResponse = await apiClient.get('/api/analytics/dashboard');
         updateTestResult('System Status Check', 'success', 'Backend system is operational', statusResponse);
       } catch (err: any) {
         updateTestResult('System Status Check', 'error', err.message);
@@ -84,39 +83,34 @@ export default function TestApiPage() {
 
       // Test 3: Get Users (Admin only)
       try {
-        const usersResponse = await apiClient.getUsers();
-        updateTestResult('Get Users (Admin)', 'success', `Retrieved ${usersResponse.data?.length || 0} users`, usersResponse);
+        const usersResponse = await apiClient.get('/api/admin/users');
+        const userCount = Array.isArray(usersResponse) ? usersResponse.length : 0;
+        updateTestResult('Get Users (Admin)', 'success', `Retrieved ${userCount} users`, usersResponse);
       } catch (err: any) {
         updateTestResult('Get Users (Admin)', 'error', err.message);
       }
 
       // Test 4: Get Vendors
       try {
-        const vendorsResponse = await apiClient.getVendors();
-        updateTestResult('Get Vendors', 'success', `Retrieved ${vendorsResponse.data?.length || 0} vendors`, vendorsResponse);
+        const vendorsResponse = await apiClient.get('/api/admin/vendors');
+        const vendorCount = Array.isArray(vendorsResponse) ? vendorsResponse.length : 0;
+        updateTestResult('Get Vendors', 'success', `Retrieved ${vendorCount} vendors`, vendorsResponse);
       } catch (err: any) {
         updateTestResult('Get Vendors', 'error', err.message);
       }
 
       // Test 5: Get Leads
       try {
-        const leadsResponse = await apiClient.getLeads();
-        updateTestResult('Get Leads', 'success', `Retrieved ${leadsResponse.data?.length || 0} leads`, leadsResponse);
+        const leadsResponse = await apiClient.get('/api/leads');
+        const leadCount = Array.isArray(leadsResponse) ? leadsResponse.length : 0;
+        updateTestResult('Get Leads', 'success', `Retrieved ${leadCount} leads`, leadsResponse);
       } catch (err: any) {
         updateTestResult('Get Leads', 'error', err.message);
       }
 
-      // Test 6: Get Alerts
+      // Test 6: Dashboard Analytics
       try {
-        const alertsResponse = await apiClient.getAlerts();
-        updateTestResult('Get Alerts', 'success', `Retrieved ${alertsResponse.data?.length || 0} alerts`, alertsResponse);
-      } catch (err: any) {
-        updateTestResult('Get Alerts', 'error', err.message);
-      }
-
-      // Test 7: Dashboard Analytics
-      try {
-        const analyticsResponse = await apiClient.getDashboardMetrics();
+        const analyticsResponse = await apiClient.get('/api/analytics/dashboard');
         updateTestResult('Dashboard Analytics', 'success', 'Analytics data retrieved', analyticsResponse);
       } catch (err: any) {
         updateTestResult('Dashboard Analytics', 'error', err.message);

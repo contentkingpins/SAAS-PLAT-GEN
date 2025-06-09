@@ -13,6 +13,24 @@ interface ApiResponse<T = any> {
   error?: string;
 }
 
+// Login response interface
+interface LoginResponse {
+  success: boolean;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    isActive: boolean;
+    vendorId: string | null;
+    teamId: string | null;
+    vendor: any | null;
+    team: any | null;
+  };
+  token: string;
+}
+
 class ApiClient {
   private client: AxiosInstance;
 
@@ -81,6 +99,21 @@ class ApiClient {
     return responseData;
   }
 
+  // Authentication method
+  async login(email: string, password: string): Promise<LoginResponse> {
+    const response = await this.client.post('/auth/login', { email, password });
+    const loginResponse = response.data as LoginResponse;
+    
+    if (loginResponse.success && loginResponse.token) {
+      // Store the token
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('authToken', loginResponse.token);
+      }
+    }
+    
+    return loginResponse;
+  }
+
   // GET request
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.get(url, config);
@@ -134,4 +167,12 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
-export type { ApiError, ApiResponse }; 
+export type { ApiError, ApiResponse, LoginResponse };
+
+// Export test credentials for development
+export const TEST_CREDENTIALS = {
+  admin: { email: 'admin@healthcare.com', password: 'admin123' },
+  vendor: { email: 'vendor@healthcare.com', password: 'admin123' },
+  advocate: { email: 'advocate@healthcare.com', password: 'admin123' },
+  collections: { email: 'collections@healthcare.com', password: 'admin123' },
+}; 

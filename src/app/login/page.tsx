@@ -22,7 +22,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import useStore from '@/store/useStore';
 import { UserRole } from '@/types';
-import apiClient, { TEST_CREDENTIALS } from '@/lib/api';
+import { apiClient, TEST_CREDENTIALS } from '@/lib/api/client';
 
 // Validation schema
 const loginSchema = z.object({
