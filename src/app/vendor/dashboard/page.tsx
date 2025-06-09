@@ -115,6 +115,7 @@ export default function VendorDashboard() {
   const { user, logout } = useStore();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [tabValue, setTabValue] = useState(0);
+  const [isMainVendor, setIsMainVendor] = useState(true); // Default to true since only main vendors can log in
   
   // Lead Management State
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -162,13 +163,29 @@ export default function VendorDashboard() {
   const fetchVendorData = async () => {
     try {
       setLoading(true);
-      // Fetch vendor leads and metrics
+      // Fetch leads and metrics
       const [leadsData, metricsData] = await Promise.all([
         apiClient.get<Lead[]>(`/vendors/${user?.vendorId}/leads`),
         apiClient.get<VendorMetrics>(`/vendors/${user?.vendorId}/metrics`),
       ]);
+      
       setLeads(leadsData);
       setMetrics(metricsData);
+      
+      // Check if this is a main vendor by trying to access downlines
+      // Only main vendors can access this endpoint
+      try {
+        await apiClient.get(`/api/vendors/${user?.vendorId}/downlines`);
+        setIsMainVendor(true); // If successful, it's a main vendor
+      } catch (error: any) {
+        // If we get a 403 about sub-vendors, then this is a sub-vendor
+        if (error?.status === 403 && error?.message?.includes('main vendors')) {
+          setIsMainVendor(false);
+        } else {
+          // Any other error (like empty results) means it's still a main vendor
+          setIsMainVendor(true);
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch vendor data:', error);
     } finally {
@@ -343,11 +360,13 @@ export default function VendorDashboard() {
                 iconPosition="start" 
                 label="Lead Management" 
               />
-              <Tab 
-                icon={<AccountTreeIcon />} 
-                iconPosition="start" 
-                label="Downline Management" 
-              />
+              {isMainVendor && (
+                <Tab 
+                  icon={<AccountTreeIcon />} 
+                  iconPosition="start" 
+                  label="Downline Management" 
+                />
+              )}
             </Tabs>
           </Paper>
 
@@ -496,8 +515,9 @@ export default function VendorDashboard() {
             </Grid>
           </TabPanel>
 
-          {/* Tab 2: Downline Management */}
-          <TabPanel value={tabValue} index={1}>
+          {/* Tab 2: Downline Management - Only for Main Vendors */}
+          {isMainVendor && (
+            <TabPanel value={tabValue} index={1}>
             {/* Header */}
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Box>
@@ -681,6 +701,7 @@ export default function VendorDashboard() {
               )}
             </Paper>
           </TabPanel>
+          )}
         </Container>
       </Box>
 

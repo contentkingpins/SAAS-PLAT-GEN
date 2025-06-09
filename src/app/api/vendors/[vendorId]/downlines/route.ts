@@ -114,7 +114,7 @@ export async function POST(
     // Verify the parent vendor exists and the user has access to it
     const parentVendor = await prisma.vendor.findUnique({
       where: { id: vendorId },
-      select: { id: true, name: true, isActive: true }
+      select: { id: true, name: true, isActive: true, parentVendorId: true }
     });
 
     if (!parentVendor) {
@@ -123,6 +123,14 @@ export async function POST(
 
     if (!parentVendor.isActive) {
       return NextResponse.json({ error: 'Parent vendor is inactive' }, { status: 403 });
+    }
+
+    // Check if this is a main vendor (only main vendors can create downlines)
+    if (parentVendor.parentVendorId) {
+      return NextResponse.json(
+        { error: 'Only main vendors can create downline vendors. Sub-vendors cannot create their own downlines.' },
+        { status: 403 }
+      );
     }
 
     // Check if vendor code already exists
