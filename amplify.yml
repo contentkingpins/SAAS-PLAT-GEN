@@ -29,4 +29,6 @@ frontend:
         - key: 'X-XSS-Protection'
           value: '1; mode=block'
         - key: 'Referrer-Policy'
-          value: 'strict-origin-when-cross-origin' 
+          value: 'strict-origin-when-cross-origin'
+
+# Deployment timestamp: 2024-06-09-18:08 - Force rebuild to ensure all routing fixes are applied 
