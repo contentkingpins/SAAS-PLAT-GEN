@@ -315,6 +315,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const vendorId = searchParams.get('vendorId');
     const advocateId = searchParams.get('advocateId');
+    const collectionsAgentId = searchParams.get('collectionsAgentId');
     const status = searchParams.get('status');
     const hasAlerts = searchParams.get('hasAlerts');
 
@@ -324,6 +325,7 @@ export async function GET(request: NextRequest) {
     const where: any = {};
     if (vendorId) where.vendorId = vendorId;
     if (advocateId) where.advocateId = advocateId;
+    if (collectionsAgentId) where.collectionsAgentId = collectionsAgentId;
     if (status) {
       // Handle multiple status values separated by comma
       const statusArray = status.split(',');
@@ -345,6 +347,12 @@ export async function GET(request: NextRequest) {
         include: {
           vendor: {
             select: { name: true, code: true }
+          },
+          advocate: {
+            select: { id: true, firstName: true, lastName: true }
+          },
+          collectionsAgent: {
+            select: { id: true, firstName: true, lastName: true }
           },
           alerts: {
             where: { isAcknowledged: false },
@@ -376,12 +384,17 @@ export async function GET(request: NextRequest) {
         zipCode: lead.zipCode
       },
       vendor: lead.vendor,
+      advocate: lead.advocate,
+      collectionsAgent: lead.collectionsAgent,
       testType: lead.testType,
       status: lead.status,
       isDuplicate: lead.isDuplicate,
       hasActiveAlerts: lead.hasActiveAlerts,
       activeAlerts: lead.alerts,
       contactAttempts: lead.contactAttempts,
+      lastContactAttempt: lead.lastContactAttempt,
+      nextCallbackDate: lead.nextCallbackDate,
+      collectionsDisposition: lead.collectionsDisposition,
       createdAt: lead.createdAt,
       updatedAt: lead.updatedAt
     }));
