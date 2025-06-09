@@ -34,6 +34,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { apiClient } from '@/lib/api/client';
+import MBIChecker from '@/components/forms/MBIChecker';
 
 // Comprehensive validation schema - only MBI and basic patient info required
 const comprehensiveLeadSchema = z.object({
@@ -132,6 +133,11 @@ export default function ComprehensiveMedicalForm() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // MBI validation state
+  const [mbiValidated, setMbiValidated] = useState(false);
+  const [validatedMbi, setValidatedMbi] = useState<string>('');
+  const [validatedTestType, setValidatedTestType] = useState<'IMMUNE' | 'NEURO'>('NEURO');
 
   const {
     register,
@@ -169,6 +175,14 @@ export default function ComprehensiveMedicalForm() {
     }
   };
 
+  const handleMBIValidation = (isValid: boolean, mbi?: string, testType?: string) => {
+    setMbiValidated(isValid);
+    if (isValid && mbi && testType) {
+      setValidatedMbi(mbi.replace(/-/g, '')); // Remove dashes for form
+      setValidatedTestType(testType as 'IMMUNE' | 'NEURO');
+    }
+  };
+
   const onSubmit = async (data: ComprehensiveLeadFormData) => {
     if (!vendor) return;
 
@@ -178,8 +192,8 @@ export default function ComprehensiveMedicalForm() {
 
       // Transform data for submission
       const submissionData = {
-        // Required fields
-        mbi: data.mbi,
+        // Required fields - use validated MBI
+        mbi: validatedMbi || data.mbi,
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone,
@@ -263,7 +277,7 @@ export default function ComprehensiveMedicalForm() {
         
         vendorCode: vendor.code,
         vendorId: vendor.id,
-        testType: 'neuro', // Default for comprehensive form
+        testType: validatedTestType.toLowerCase(), // Use validated test type
       };
 
       await apiClient.post('/api/leads/submit', submissionData);
@@ -366,7 +380,15 @@ export default function ComprehensiveMedicalForm() {
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        {/* MBI Duplicate Checker */}
+        <MBIChecker 
+          onValidationComplete={handleMBIValidation}
+          defaultTestType="NEURO"
+        />
+
+        {/* Form only shows if MBI is validated */}
+        {mbiValidated && (
+          <form onSubmit={handleSubmit(onSubmit)} noValidate>
           {/* Basic Patient Information - REQUIRED */}
           <Box mb={4}>
             <Typography variant="h6" gutterBottom color="primary">
@@ -380,10 +402,11 @@ export default function ComprehensiveMedicalForm() {
                   fullWidth
                   label="Medicare Beneficiary Identifier (MBI) *"
                   {...register('mbi')}
+                  value={validatedMbi}
                   error={!!errors.mbi}
-                  helperText={errors.mbi?.message || 'Must be exactly 11 characters'}
-                  placeholder="1EG4-TE5-MK73"
-                  inputProps={{ maxLength: 11 }}
+                  helperText="✅ MBI validated - cannot be changed"
+                  disabled
+                  sx={{ backgroundColor: 'success.light', opacity: 0.8 }}
                 />
               </Grid>
               
@@ -1041,6 +1064,7 @@ export default function ComprehensiveMedicalForm() {
             </Button>
           </Box>
         </form>
+        )}
       </Paper>
     </Container>
   );
