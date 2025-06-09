@@ -2,6 +2,7 @@
   "name": "healthcare-lead-platform",
   "version": "1.0.0",
   "private": true,
+  "description": "Healthcare lead management platform with vendor portals and MBI duplicate checking",
   "scripts": {
     "dev": "next dev",
     "dev:next": "next dev",
