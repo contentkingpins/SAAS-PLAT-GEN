@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { vendorId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Verify authentication
@@ -15,7 +15,7 @@ export async function GET(
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
-    const { vendorId } = params;
+    const { id: vendorId } = params;
 
     // Verify the user has access to this vendor (vendors can only see their own leads, admins can see all)
     if (authResult.user?.role !== 'ADMIN' && authResult.user?.vendorId !== vendorId) {

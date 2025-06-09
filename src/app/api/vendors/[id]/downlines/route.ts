@@ -14,7 +14,7 @@ const createDownlineSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { vendorId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Verify authentication
@@ -23,7 +23,7 @@ export async function GET(
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
-    const { vendorId } = params;
+    const { id: vendorId } = params;
 
     // Verify the user has access to this vendor
     if (authResult.user?.role !== 'ADMIN' && authResult.user?.vendorId !== vendorId) {
@@ -76,7 +76,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { vendorId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Verify authentication
@@ -85,7 +85,7 @@ export async function POST(
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
-    const { vendorId } = params;
+    const { id: vendorId } = params;
 
     // Verify the user has access to this vendor
     if (authResult.user?.role !== 'ADMIN' && authResult.user?.vendorId !== vendorId) {
