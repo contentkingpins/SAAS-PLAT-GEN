@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyAuth } from '@/lib/auth/middleware';
 
 // GET /api/analytics/dashboard - Get dashboard metrics
 export async function GET(request: NextRequest) {
-  // Skip authentication for now to debug - will add back later
-  // const authResult = await verifyAuth(request);
-  // if (authResult.error) {
-  //   return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-  // }
+  // Verify authentication
+  const authResult = await verifyAuth(request);
+  if (authResult.error) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+  }
+
+  // Only allow admins to access analytics dashboard
+  if (authResult.user?.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Access denied. Admin role required.' }, { status: 403 });
+  }
 
   try {
     const url = new URL(request.url);
