@@ -186,7 +186,7 @@ export function AnalyticsDashboard() {
         <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <MetricCard
             title="Qualified Leads"
-            value={metrics?.conversionRates.submittedToQualified 
+            value={metrics?.conversionRates.submittedToQualified
               ? `${(metrics.conversionRates.submittedToQualified * 100).toFixed(1)}%`
               : '0%'}
             icon={<Assignment sx={{ color: 'white' }} />}
@@ -206,7 +206,7 @@ export function AnalyticsDashboard() {
         <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <MetricCard
             title="Completed Kits"
-            value={metrics?.conversionRates.overallConversion 
+            value={metrics?.conversionRates.overallConversion
               ? `${(metrics.conversionRates.overallConversion * 100).toFixed(1)}%`
               : '0%'}
             icon={<CheckCircle sx={{ color: 'white' }} />}
@@ -335,4 +335,4 @@ export function AnalyticsDashboard() {
       </Box>
     </Box>
   );
-} 
+}

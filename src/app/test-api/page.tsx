@@ -32,8 +32,8 @@ export default function TestApiPage() {
   const [authToken, setAuthToken] = useState<string | null>(null);
 
   const updateTestResult = (name: string, status: 'success' | 'error', message: string, data?: any) => {
-    setTestResults(prev => prev.map(test => 
-      test.name === name 
+    setTestResults(prev => prev.map(test =>
+      test.name === name
         ? { ...test, status, message, data }
         : test
     ));
@@ -49,7 +49,7 @@ export default function TestApiPage() {
       { name: 'Get Leads', status: 'pending', message: 'Testing lead management...' },
       { name: 'Dashboard Analytics', status: 'pending', message: 'Testing analytics endpoint...' },
     ];
-    
+
     setTestResults(tests);
 
     try {
@@ -64,10 +64,10 @@ export default function TestApiPage() {
       // Test 2: Admin Login
       try {
         const loginResponse = await apiClient.login(
-          TEST_CREDENTIALS.admin.email, 
+          TEST_CREDENTIALS.admin.email,
           TEST_CREDENTIALS.admin.password
         );
-        
+
         if (loginResponse.success && loginResponse.token) {
           setAuthToken(loginResponse.token);
           updateTestResult('Admin Login', 'success', 'Authentication successful', {
@@ -125,7 +125,7 @@ export default function TestApiPage() {
     try {
       const creds = TEST_CREDENTIALS[role];
       const response = await apiClient.login(creds.email, creds.password);
-      
+
       if (response.success) {
         alert(`${role} login successful! User: ${response.user.firstName} ${response.user.lastName}`);
       }
@@ -152,7 +152,7 @@ export default function TestApiPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Backend API Integration Test
       </Typography>
-      
+
       <Typography variant="body1" color="text.secondary" paragraph>
         Test the integration with the Healthcare Lead Platform backend API.
       </Typography>
@@ -194,7 +194,7 @@ export default function TestApiPage() {
           <Typography variant="h6" gutterBottom>
             Run Tests
           </Typography>
-          
+
           <Box display="flex" gap={2} flexWrap="wrap">
             <Button
               variant="contained"
@@ -204,21 +204,21 @@ export default function TestApiPage() {
             >
               {isRunning ? 'Running Tests...' : 'Run All API Tests'}
             </Button>
-            
+
             <Button
               variant="outlined"
               onClick={() => testSpecificRole('vendor')}
             >
               Test Vendor Login
             </Button>
-            
+
             <Button
               variant="outlined"
               onClick={() => testSpecificRole('advocate')}
             >
               Test Advocate Login
             </Button>
-            
+
             <Button
               variant="outlined"
               onClick={() => testSpecificRole('collections')}
@@ -270,15 +270,15 @@ export default function TestApiPage() {
           <Typography variant="h6" gutterBottom>
             Backend API Information
           </Typography>
-          
+
           <Typography variant="body2" paragraph>
             <strong>Base URL:</strong> https://main.d1iz6ogqp82qj7.amplifyapp.com
           </Typography>
-          
+
           <Typography variant="body2" paragraph>
             <strong>Test Credentials:</strong>
           </Typography>
-          
+
           <Grid container spacing={2}>
             {Object.entries(TEST_CREDENTIALS).map(([role, creds]) => (
               <Grid item xs={12} sm={6} md={3} key={role}>
@@ -300,4 +300,4 @@ export default function TestApiPage() {
       </Card>
     </Container>
   );
-} 
+}

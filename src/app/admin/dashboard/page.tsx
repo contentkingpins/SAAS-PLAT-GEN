@@ -34,6 +34,7 @@ import useStore from '@/store/useStore';
 import { wsService } from '@/lib/utils/websocket';
 import { VendorManagement } from '@/components/admin/VendorManagement';
 import { AgentManagement } from '@/components/admin/AgentManagement';
+import { PortalLayout } from '@/components/layout/PortalLayout';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -58,10 +59,8 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function AdminDashboard() {
-  const router = useRouter();
-  const { user, logout, isConnected } = useStore();
+  const { isConnected } = useStore();
   const [tabValue, setTabValue] = useState(0);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notifications, setNotifications] = useState(5);
 
   useEffect(() => {
@@ -74,110 +73,54 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      // Clear JWT token and user data
-      logout();
-      router.push('/login');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
-
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* App Bar */}
-      <AppBar position="static" elevation={1}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Healthcare Lead Management - Admin Portal
-          </Typography>
-          
-          <Chip
-            label={isConnected ? 'Connected' : 'Disconnected'}
-            color={isConnected ? 'success' : 'error'}
-            size="small"
-            sx={{ mr: 2 }}
+    <PortalLayout
+      title="Healthcare Lead Management"
+      userRole="admin"
+      showConnectionStatus={true}
+      showNotifications={true}
+      notifications={notifications}
+      fullWidth={true}
+    >
+      <Paper elevation={0} sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs
+          value={tabValue}
+          onChange={handleTabChange}
+          aria-label="admin dashboard tabs"
+          variant="scrollable"
+          scrollButtons="auto"
+        >
+          <Tab
+            icon={<DashboardIcon />}
+            iconPosition="start"
+            label="Dashboard"
           />
-
-          <IconButton color="inherit" sx={{ mr: 2 }}>
-            <Badge badgeContent={notifications} color="error">
-              <Notifications />
-            </Badge>
-          </IconButton>
-
-          <IconButton
-            color="inherit"
-            onClick={(e) => setAnchorEl(e.currentTarget)}
-          >
-            <Avatar sx={{ bgcolor: 'secondary.main', width: 32, height: 32 }}>
-              {user?.firstName?.[0]}
-            </Avatar>
-          </IconButton>
-
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={() => setAnchorEl(null)}
-          >
-            <MenuItem disabled>
-              <AccountCircle sx={{ mr: 1 }} />
-              {user?.email}
-            </MenuItem>
-            <MenuItem onClick={() => setAnchorEl(null)}>
-              <Settings sx={{ mr: 1 }} />
-              Settings
-            </MenuItem>
-            <MenuItem onClick={handleLogout}>
-              <ExitToApp sx={{ mr: 1 }} />
-              Logout
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
-
-      {/* Main Content */}
-      <Box sx={{ flexGrow: 1, bgcolor: 'background.default' }}>
-        <Container maxWidth={false} sx={{ mt: 2, mb: 2 }}>
-          <Paper elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs
-              value={tabValue}
-              onChange={handleTabChange}
-              aria-label="admin dashboard tabs"
-              variant="scrollable"
-              scrollButtons="auto"
-            >
-              <Tab
-                icon={<DashboardIcon />}
-                iconPosition="start"
-                label="Dashboard"
-              />
-              <Tab
-                icon={<People />}
-                iconPosition="start"
-                label="Agent Management"
-              />
-              <Tab
-                icon={<Assessment />}
-                iconPosition="start"
-                label="Reports"
-              />
-              <Tab
-                icon={<Upload />}
-                iconPosition="start"
-                label="File Uploads"
-              />
-              <Tab
-                icon={<People />}
-                iconPosition="start"
-                label="Vendors"
-              />
-            </Tabs>
-          </Paper>
+          <Tab
+            icon={<People />}
+            iconPosition="start"
+            label="Agent Management"
+          />
+          <Tab
+            icon={<Assessment />}
+            iconPosition="start"
+            label="Reports"
+          />
+          <Tab
+            icon={<Upload />}
+            iconPosition="start"
+            label="File Uploads"
+          />
+          <Tab
+            icon={<People />}
+            iconPosition="start"
+            label="Vendors"
+          />
+        </Tabs>
+      </Paper>
 
           <TabPanel value={tabValue} index={0}>
             <AnalyticsDashboard />
@@ -259,11 +202,9 @@ export default function AdminDashboard() {
             </Box>
           </TabPanel>
 
-          <TabPanel value={tabValue} index={4}>
-            <VendorManagement />
-          </TabPanel>
-        </Container>
-      </Box>
-    </Box>
+      <TabPanel value={tabValue} index={4}>
+        <VendorManagement />
+      </TabPanel>
+    </PortalLayout>
   );
-} 
+}

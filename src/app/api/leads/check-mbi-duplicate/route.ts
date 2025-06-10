@@ -19,14 +19,14 @@ function daysBetween(date1: Date, date2: Date): number {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Validate request body
     const validation = mbiCheckSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Invalid request data', 
-          details: validation.error.flatten().fieldErrors 
+        {
+          error: 'Invalid request data',
+          details: validation.error.flatten().fieldErrors
         },
         { status: 400 }
       );
@@ -128,4 +128,4 @@ export async function POST(request: NextRequest) {
   } finally {
     await prisma.$disconnect();
   }
-} 
+}

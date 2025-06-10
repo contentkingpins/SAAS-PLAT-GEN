@@ -100,14 +100,14 @@ const useStore = create<AppState>()(
       }),
       {
         name: 'healthcare-storage',
-        partialize: (state) => ({ 
-          user: state.user, 
-          token: state.token, 
-          isAuthenticated: state.isAuthenticated 
+        partialize: (state) => ({
+          user: state.user,
+          token: state.token,
+          isAuthenticated: state.isAuthenticated
         }),
       }
     )
   )
 );
 
-export default useStore; 
+export default useStore;

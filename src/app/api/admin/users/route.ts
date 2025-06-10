@@ -38,15 +38,15 @@ export async function GET(request: NextRequest) {
     const vendorId = searchParams.get('vendorId');
 
     const whereClause: any = {};
-    
+
     if (role) {
       whereClause.role = role;
     }
-    
+
     if (teamId) {
       whereClause.teamId = teamId;
     }
-    
+
     if (vendorId) {
       whereClause.vendorId = vendorId;
     }
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(validatedData.password, 12);
 
     const { password, ...userData } = validatedData;
-    
+
     const user = await prisma.user.create({
       data: {
         ...userData,
@@ -184,4 +184,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

@@ -82,7 +82,7 @@ const MBIAlertDashboard: React.FC = () => {
       setSnackbarMessage('🔗 Connected to real-time alert system');
       setSnackbarOpen(true);
       console.log('Connected to WebSocket:', data);
-      
+
       // Authenticate as admin user
       send('authenticate', {
         userId: 'admin-user',
@@ -114,8 +114,8 @@ const MBIAlertDashboard: React.FC = () => {
     });
 
     const unsubscribeAlertAck = subscribe('alert_acknowledged', (data: any) => {
-      setAlerts(prev => prev.map(alert => 
-        alert.alertId === data.alertId 
+      setAlerts(prev => prev.map(alert =>
+        alert.alertId === data.alertId
           ? { ...alert, isAcknowledged: true }
           : alert
       ));
@@ -319,9 +319,9 @@ const MBIAlertDashboard: React.FC = () => {
             <Typography variant="body2" gutterBottom>
               Bulk Duplicate Check Progress: {bulkCheckProgress.percentage}%
             </Typography>
-            <LinearProgress 
-              variant="determinate" 
-              value={bulkCheckProgress.percentage} 
+            <LinearProgress
+              variant="determinate"
+              value={bulkCheckProgress.percentage}
               sx={{ mb: 1 }}
             />
             <Typography variant="caption" color="text.secondary">
@@ -381,7 +381,7 @@ const MBIAlertDashboard: React.FC = () => {
           <Typography variant="h6" gutterBottom>
             Recent Alerts ({alerts.length})
           </Typography>
-          
+
           {alerts.length === 0 ? (
             <Typography color="text.secondary" textAlign="center" sx={{ py: 4 }}>
               No alerts received yet. The system is monitoring for duplicates...
@@ -468,8 +468,8 @@ const MBIAlertDashboard: React.FC = () => {
         onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert 
-          onClose={() => setSnackbarOpen(false)} 
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
           severity="info"
           variant="filled"
         >
@@ -480,4 +480,4 @@ const MBIAlertDashboard: React.FC = () => {
   );
 };
 
-export default MBIAlertDashboard; 
+export default MBIAlertDashboard;

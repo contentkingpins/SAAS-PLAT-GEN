@@ -26,11 +26,11 @@ import {
   MenuItem,
   Avatar,
 } from '@mui/material';
-import { 
-  Phone, 
-  Schedule, 
-  CheckCircle, 
-  Assignment, 
+import {
+  Phone,
+  Schedule,
+  CheckCircle,
+  Assignment,
   CallMade,
   AccountCircle,
   ExitToApp,
@@ -39,6 +39,7 @@ import {
 import { useRouter } from 'next/navigation';
 import useStore from '@/store/useStore';
 import { apiClient } from '@/lib/api/client';
+import { PortalLayout } from '@/components/layout/PortalLayout';
 
 interface Lead {
   id: string;
@@ -56,9 +57,7 @@ interface Lead {
 }
 
 export default function CollectionsDashboard() {
-  const router = useRouter();
-  const { user, logout } = useStore();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const { user } = useStore();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,25 +72,16 @@ export default function CollectionsDashboard() {
     loadCollectionsData();
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      logout();
-      router.push('/login');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
-
   const loadCollectionsData = async () => {
     try {
       setLoading(true);
-      
+
       // Get leads in collections status
       const leadsResponse = await apiClient.get<Lead[]>(`/api/leads?collectionsAgentId=${user?.id}&status=COLLECTIONS,SHIPPED`);
 
       if (leadsResponse) {
         setLeads(leadsResponse || []);
-        
+
         // Calculate stats
         const data = leadsResponse || [];
         setStats({
@@ -158,62 +148,21 @@ export default function CollectionsDashboard() {
     );
   }
 
+  const welcomeMessage = `Welcome back, ${user?.firstName}! Follow up on shipped kits and manage collections.`;
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* App Bar */}
-      <AppBar position="static" elevation={1}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Healthcare Lead Management - Collections Portal
-          </Typography>
-
-          <IconButton
-            color="inherit"
-            onClick={(e) => setAnchorEl(e.currentTarget)}
-          >
-            <Avatar sx={{ bgcolor: 'secondary.main', width: 32, height: 32 }}>
-              {user?.firstName?.[0]}
-            </Avatar>
-          </IconButton>
-
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={() => setAnchorEl(null)}
-          >
-            <MenuItem disabled>
-              <AccountCircle sx={{ mr: 1 }} />
-              {user?.email}
-            </MenuItem>
-            <MenuItem onClick={() => setAnchorEl(null)}>
-              <Settings sx={{ mr: 1 }} />
-              Settings
-            </MenuItem>
-            <MenuItem onClick={handleLogout}>
-              <ExitToApp sx={{ mr: 1 }} />
-              Logout
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
-
-      {/* Main Content */}
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-        {/* Header */}
-        <Box mb={4}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Collections Dashboard
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Welcome back, {user?.firstName}! Follow up on shipped kits and manage collections.
-          </Typography>
-        </Box>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
+    <PortalLayout
+      title="Healthcare Lead Management"
+      userRole="collections"
+      subtitle="Collections Dashboard"
+      error={error}
+      onErrorClose={() => setError(null)}
+    >
+      <Box mb={3}>
+        <Typography variant="body1" color="text.secondary">
+          {welcomeMessage}
+        </Typography>
+      </Box>
 
         {/* Stats Cards */}
         <Grid container spacing={3} mb={4}>
@@ -296,7 +245,7 @@ export default function CollectionsDashboard() {
             <Typography variant="h6" gutterBottom>
               Collections Queue
             </Typography>
-            
+
             <TableContainer component={Paper} elevation={0}>
               <Table>
                 <TableHead>
@@ -314,11 +263,11 @@ export default function CollectionsDashboard() {
                 </TableHead>
                 <TableBody>
                   {leads.map((lead) => (
-                    <TableRow 
+                    <TableRow
                       key={lead.id}
                       sx={{
-                        backgroundColor: isDueForCallback(lead.nextCallbackDate) 
-                          ? 'rgba(255, 152, 0, 0.1)' 
+                        backgroundColor: isDueForCallback(lead.nextCallbackDate)
+                          ? 'rgba(255, 152, 0, 0.1)'
                           : 'inherit'
                       }}
                     >
@@ -331,8 +280,8 @@ export default function CollectionsDashboard() {
                       <TableCell>
                         <Box display="flex" alignItems="center">
                           {lead.phone}
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             onClick={() => handleMakeCall(lead.id, lead.phone)}
                             sx={{ ml: 1 }}
                           >
@@ -349,15 +298,15 @@ export default function CollectionsDashboard() {
                       </TableCell>
                       <TableCell>{lead.contactAttempts}</TableCell>
                       <TableCell>
-                        {lead.lastContactAttempt 
+                        {lead.lastContactAttempt
                           ? new Date(lead.lastContactAttempt).toLocaleDateString()
                           : 'Never'
                         }
                       </TableCell>
                       <TableCell>
                         {lead.nextCallbackDate ? (
-                          <Typography 
-                            variant="body2" 
+                          <Typography
+                            variant="body2"
                             color={isDueForCallback(lead.nextCallbackDate) ? 'error' : 'inherit'}
                           >
                             {new Date(lead.nextCallbackDate).toLocaleDateString()}
@@ -412,7 +361,6 @@ export default function CollectionsDashboard() {
             )}
           </CardContent>
         </Card>
-      </Container>
-    </Box>
+    </PortalLayout>
   );
-} 
+}

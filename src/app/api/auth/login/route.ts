@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     // Find user by email
     const user = await prisma.user.findUnique({
-      where: { 
+      where: {
         email: validatedData.email.toLowerCase(),
         isActive: true
       },
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     // Verify password
     const isValidPassword = await bcrypt.compare(validatedData.password, user.password);
-    
+
     if (!isValidPassword) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
@@ -92,4 +92,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

@@ -60,7 +60,7 @@ interface Vendor {
 function SubmitFormContent() {
   const searchParams = useSearchParams();
   const vendorCode = searchParams?.get('vendor');
-  
+
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -451,4 +451,4 @@ export default function SubmitPage() {
       <SubmitFormContent />
     </Suspense>
   );
-} 
+}

@@ -25,7 +25,7 @@ export async function GET(
       where: {
         OR: [
           { vendorId: vendorId }, // Direct vendor leads
-          { 
+          {
             vendor: {
               parentVendorId: vendorId // Sub-vendor leads
             }
@@ -40,7 +40,7 @@ export async function GET(
           {
             OR: [
               { vendorId: vendorId }, // Direct vendor leads
-              { 
+              {
                 vendor: {
                   parentVendorId: vendorId // Sub-vendor leads
                 }
@@ -62,7 +62,7 @@ export async function GET(
           {
             OR: [
               { vendorId: vendorId }, // Direct vendor leads
-              { 
+              {
                 vendor: {
                   parentVendorId: vendorId // Sub-vendor leads
                 }
@@ -101,4 +101,4 @@ export async function GET(
       { status: 500 }
     );
   }
-} 
+}

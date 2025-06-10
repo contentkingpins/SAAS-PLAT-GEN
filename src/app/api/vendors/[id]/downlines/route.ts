@@ -93,12 +93,12 @@ export async function POST(
     }
 
     const body = await request.json();
-    
+
     // Validate the request body
     const validationResult = createDownlineSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { 
+        {
           error: 'Invalid request data',
           details: validationResult.error.flatten().fieldErrors
         },
@@ -197,7 +197,7 @@ export async function POST(
 
   } catch (error) {
     console.error('Error creating downline vendor:', error);
-    
+
     // Handle Prisma unique constraint violations
     if (error instanceof Error && error.message.includes('Unique constraint')) {
       return NextResponse.json(
@@ -211,4 +211,4 @@ export async function POST(
       { status: 500 }
     );
   }
-} 
+}

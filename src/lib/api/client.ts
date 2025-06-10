@@ -72,7 +72,7 @@ class ApiClient {
       },
       (error: AxiosError) => {
         console.error(`API Error: ${error.response?.status || 'Network'} ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error.response?.data);
-        
+
         // Handle 401 (Unauthorized) errors
         if (error.response?.status === 401) {
           console.warn('Authentication failed, clearing token and redirecting to login');
@@ -104,7 +104,7 @@ class ApiClient {
         throw new Error(apiResponse.error || 'API request failed');
       }
     }
-    
+
     // Fallback to returning the data as-is (for backward compatibility)
     return responseData;
   }
@@ -113,14 +113,14 @@ class ApiClient {
   async login(email: string, password: string): Promise<LoginResponse> {
     const response = await this.client.post('/auth/login', { email, password });
     const loginResponse = response.data as LoginResponse;
-    
+
     if (loginResponse.success && loginResponse.token) {
       // Store the token
       if (typeof window !== 'undefined') {
         localStorage.setItem('authToken', loginResponse.token);
       }
     }
-    
+
     return loginResponse;
   }
 
@@ -185,4 +185,4 @@ export const TEST_CREDENTIALS = {
   vendor: { email: 'vendor@healthcare.com', password: 'admin123' },
   advocate: { email: 'advocate@healthcare.com', password: 'admin123' },
   collections: { email: 'collections@healthcare.com', password: 'admin123' },
-}; 
+};

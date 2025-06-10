@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await AlertService.runBulkDuplicateCheck();
-    
+
     return NextResponse.json({
       success: true,
       checked: result.checked,
@@ -32,4 +32,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

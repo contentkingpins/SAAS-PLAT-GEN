@@ -18,11 +18,11 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const range = url.searchParams.get('range') || 'week';
-    
+
     // Calculate date range
     const now = new Date();
     let startDate: Date;
-    
+
     switch (range) {
       case 'day':
         startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -89,13 +89,13 @@ export async function GET(request: NextRequest) {
       where: { testType: 'NEURO' }
     }).catch(() => 0);
     const immuneCompleted = await prisma.lead.count({
-      where: { 
+      where: {
         testType: 'IMMUNE',
         status: { in: ['KIT_COMPLETED', 'RETURNED'] }
       }
     }).catch(() => 0);
     const neuroCompleted = await prisma.lead.count({
-      where: { 
+      where: {
         testType: 'NEURO',
         status: { in: ['KIT_COMPLETED', 'RETURNED'] }
       }
@@ -116,13 +116,13 @@ export async function GET(request: NextRequest) {
       vendorId: vendor.id,
       vendorName: vendor.name,
       totalLeads: vendor.leads?.length || 0,
-      qualifiedLeads: vendor.leads?.filter((lead: any) => 
+      qualifiedLeads: vendor.leads?.filter((lead: any) =>
         ['QUALIFIED', 'SENT_TO_CONSULT', 'APPROVED', 'READY_TO_SHIP', 'SHIPPED', 'KIT_COMPLETED', 'RETURNED'].includes(lead.status)
       ).length || 0,
-      completedKits: vendor.leads?.filter((lead: any) => 
+      completedKits: vendor.leads?.filter((lead: any) =>
         ['KIT_COMPLETED', 'RETURNED'].includes(lead.status)
       ).length || 0,
-      conversionRate: vendor.leads?.length > 0 ? 
+      conversionRate: vendor.leads?.length > 0 ?
         vendor.leads.filter((lead: any) => ['KIT_COMPLETED', 'RETURNED'].includes(lead.status)).length / vendor.leads.length : 0
     }));
 
@@ -165,4 +165,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

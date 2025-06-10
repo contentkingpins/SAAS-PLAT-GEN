@@ -29,7 +29,7 @@ export interface Vendor {
 // Lead Types
 export type TestType = 'immune' | 'neuro';
 
-export type LeadStatus = 
+export type LeadStatus =
   | 'SUBMITTED'
   | 'ADVOCATE_REVIEW'
   | 'QUALIFIED'
@@ -41,7 +41,7 @@ export type LeadStatus =
   | 'KIT_COMPLETED'
   | 'RETURNED';
 
-export type AdvocateDisposition = 
+export type AdvocateDisposition =
   | 'DOESNT_QUALIFY'
   | 'COMPLIANCE_ISSUE'
   | 'PATIENT_DECLINED'
@@ -81,23 +81,23 @@ export interface Lead {
     state: string;
     zipCode: string;
   };
-  
+
   // Tracking
   vendorId: string;
   subVendorId?: string;
   vendorCode: string;
-  
+
   // Status
   status: LeadStatus;
   testType?: TestType;
-  
+
   // Advocate Info
   advocateId?: string;
   advocateDisposition?: AdvocateDisposition;
   complianceChecklist?: ComplianceChecklist;
   advocateNotes?: string;
   advocateReviewedAt?: Date;
-  
+
   // Collections Info
   collectionsAgentId?: string;
   collectionsDisposition?: CollectionsDisposition;
@@ -105,17 +105,17 @@ export interface Lead {
   lastContactAttempt?: Date;
   nextCallbackDate?: Date;
   collectionsNotes?: string;
-  
+
   // Medical Info
   doctorApprovalStatus?: 'pending' | 'approved' | 'declined';
   doctorApprovalDate?: Date;
   consultDate?: Date;
-  
+
   // Shipping Info
   kitShippedDate?: Date;
   trackingNumber?: string;
   kitReturnedDate?: Date;
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -148,7 +148,7 @@ export interface DashboardMetrics {
   leadsToday: number;
   leadsThisWeek: number;
   leadsThisMonth: number;
-  
+
   conversionRates: {
     submittedToQualified: number;
     qualifiedToApproved: number;
@@ -156,7 +156,7 @@ export interface DashboardMetrics {
     shippedToCompleted: number;
     overallConversion: number;
   };
-  
+
   byTestType: {
     immune: {
       total: number;
@@ -169,7 +169,7 @@ export interface DashboardMetrics {
       conversionRate: number;
     };
   };
-  
+
   vendorPerformance: Array<{
     vendorId: string;
     vendorName: string;
@@ -178,7 +178,7 @@ export interface DashboardMetrics {
     completedKits: number;
     conversionRate: number;
   }>;
-  
+
   agentPerformance: {
     advocates: Array<{
       agentId: string;
@@ -217,4 +217,4 @@ export interface WSEvent {
   type: 'lead_updated' | 'new_lead' | 'agent_status' | 'metric_update';
   payload: any;
   timestamp: Date;
-} 
+}

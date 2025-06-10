@@ -161,7 +161,7 @@ export async function PATCH(
 
     // Prepare update data
     const updateData: any = { ...validatedData };
-    
+
     // Convert date strings to Date objects
     if (validatedData.advocateReviewedAt) {
       updateData.advocateReviewedAt = new Date(validatedData.advocateReviewedAt);
@@ -246,10 +246,10 @@ export async function PATCH(
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Validation failed', 
-          details: error.errors 
+        {
+          success: false,
+          error: 'Validation failed',
+          details: error.errors
         },
         { status: 400 }
       );
@@ -261,4 +261,4 @@ export async function PATCH(
       { status: 500 }
     );
   }
-} 
+}

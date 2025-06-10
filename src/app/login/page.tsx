@@ -69,9 +69,9 @@ export default function LoginPage() {
           vendorId: result.user.vendorId || undefined,
           teamId: result.user.teamId || undefined,
         };
-        
+
         login(user, result.token);
-        
+
         // Redirect based on role
         switch (user.role) {
           case 'admin':
@@ -181,7 +181,7 @@ export default function LoginPage() {
               </Link>
             </Box>
           </Box>
-          
+
           {/* Development Test Credentials */}
           {process.env.NODE_ENV === 'development' && (
             <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
@@ -214,4 +214,4 @@ export default function LoginPage() {
       </Box>
     </Container>
   );
-} 
+}

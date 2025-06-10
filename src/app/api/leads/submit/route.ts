@@ -12,7 +12,7 @@ const leadSubmissionSchema = z.object({
   phone: z.string().min(10, 'Phone number must be at least 10 digits'),
   vendorCode: z.string().min(1, 'Vendor code is required'),
   vendorId: z.string().min(1, 'Vendor ID is required'),
-  
+
   // Optional basic fields
   middleInitial: z.string().optional(),
   primaryInsuranceCompany: z.string().optional(),
@@ -27,7 +27,7 @@ const leadSubmissionSchema = z.object({
   state: z.string().optional(),
   zipCode: z.string().optional(),
   testType: z.enum(['immune', 'neuro']).optional(),
-  
+
   // Additional comprehensive data (optional)
   additionalData: z.object({
     primaryCareProvider: z.object({
@@ -85,12 +85,12 @@ const leadSubmissionSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Validate the request body
     const validationResult = leadSubmissionSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { 
+        {
           error: 'Invalid request data',
           details: validationResult.error.flatten().fieldErrors
         },
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     if (existingLead) {
       return NextResponse.json(
-        { 
+        {
           error: 'A lead with this MBI already exists',
           existing: {
             id: existingLead.id,
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error submitting lead:', error);
-    
+
     // Handle Prisma unique constraint violations
     if (error instanceof Error && error.message.includes('Unique constraint')) {
       return NextResponse.json(
@@ -250,4 +250,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

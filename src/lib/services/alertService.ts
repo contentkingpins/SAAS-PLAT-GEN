@@ -91,8 +91,8 @@ export class AlertService {
           // Update lead flags
           await prisma.lead.update({
             where: { id: leadId },
-            data: { 
-              hasActiveAlerts: true 
+            data: {
+              hasActiveAlerts: true
             }
           });
         }
@@ -355,4 +355,4 @@ export class AlertService {
       throw error;
     }
   }
-} 
+}

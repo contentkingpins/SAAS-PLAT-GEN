@@ -33,11 +33,11 @@ export function VendorAuthGuard({ children }: VendorAuthGuardProps) {
       return;
     }
 
-    console.log('User authenticated as vendor:', { 
-      userId: user.id, 
-      role: user.role, 
+    console.log('User authenticated as vendor:', {
+      userId: user.id,
+      role: user.role,
       vendorId: user.vendorId,
-      hasToken: !!token 
+      hasToken: !!token
     });
   }, [user, isAuthenticated, token, router]);
 
@@ -80,4 +80,4 @@ export function VendorAuthGuard({ children }: VendorAuthGuardProps) {
   }
 
   return <>{children}</>;
-} 
+}

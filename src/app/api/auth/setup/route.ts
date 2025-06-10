@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     // Check if any users already exist
     const existingUsers = await prisma.user.count();
-    
+
     if (existingUsers > 0) {
       return NextResponse.json(
         { error: 'Users already exist. Setup can only be run once.' },
@@ -164,9 +164,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Setup error:', error);
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: 'Failed to create initial users', 
+        error: 'Failed to create initial users',
         details: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
       },
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     console.log('Setup endpoint called - starting diagnostics...');
-    
+
     // Environment diagnostics
     const envDiagnostics = {
       DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'MISSING',
@@ -190,25 +190,25 @@ export async function GET(request: NextRequest) {
       JWT_SECRET: process.env.JWT_SECRET ? 'SET' : 'MISSING',
       NODE_ENV: process.env.NODE_ENV || 'undefined'
     };
-    
+
     console.log('Environment diagnostics:', envDiagnostics);
-    
+
     // Test database connection step by step
     console.log('Testing database connection...');
-    
+
     // Step 1: Test raw connection
     await prisma.$connect();
     console.log('✅ Prisma connected');
-    
+
     // Step 2: Test simple query
     const testQuery = await prisma.$queryRaw`SELECT 1 as test`;
     console.log('✅ Raw query successful:', testQuery);
-    
+
     // Step 3: Test table counts
     const userCount = await prisma.user.count();
     const vendorCount = await prisma.vendor.count();
     const teamCount = await prisma.team.count();
-    
+
     console.log('✅ Table counts successful');
 
     return NextResponse.json({
@@ -226,7 +226,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Database connection test failed:', error);
-    
+
     const errorDetails = {
       message: error instanceof Error ? error.message : String(error),
       name: error instanceof Error ? error.name : 'Unknown',
@@ -234,9 +234,9 @@ export async function GET(request: NextRequest) {
       code: (error as any)?.code,
       meta: (error as any)?.meta
     };
-    
+
     console.error('Detailed error:', errorDetails);
-    
+
     return NextResponse.json({
       success: false,
       timestamp: new Date().toISOString(),
@@ -255,4 +255,4 @@ export async function GET(request: NextRequest) {
   } finally {
     await prisma.$disconnect();
   }
-} 
+}

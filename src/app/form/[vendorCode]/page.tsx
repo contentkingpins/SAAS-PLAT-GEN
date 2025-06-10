@@ -44,7 +44,7 @@ const comprehensiveLeadSchema = z.object({
   lastName: z.string().min(2, 'Last name is required'),
   phone: z.string().regex(/^\d{10}$/, 'Phone must be 10 digits (numbers only)'),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
-  
+
   // Optional fields
   middleInitial: z.string().optional(),
   primaryInsuranceCompany: z.string().optional(),
@@ -54,18 +54,18 @@ const comprehensiveLeadSchema = z.object({
   maritalStatus: z.string().optional(),
   height: z.string().optional(),
   weight: z.string().optional(),
-  
+
   // Address (optional)
   street: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   zipCode: z.string().optional(),
-  
+
   // Primary Care Provider (optional)
   primaryCareProviderName: z.string().optional(),
   primaryCareProviderPhone: z.string().optional(),
   primaryCareProviderAddress: z.string().optional(),
-  
+
   // Health Assessment (optional)
   generalHealth: z.string().optional(),
   sleepHours: z.string().optional(),
@@ -75,7 +75,7 @@ const comprehensiveLeadSchema = z.object({
   stressHandling: z.string().optional(),
   socialSupport: z.string().optional(),
   lifeSatisfaction: z.string().optional(),
-  
+
   // Preventative Screenings (optional)
   prostateScreening: z.boolean().optional(),
   colonoscopy: z.boolean().optional(),
@@ -84,14 +84,14 @@ const comprehensiveLeadSchema = z.object({
   mammogram: z.boolean().optional(),
   hivScreen: z.boolean().optional(),
   papSmear: z.boolean().optional(),
-  
+
   // Vaccinations (optional)
   fluVaccination: z.boolean().optional(),
   pneumococcalVaccination: z.boolean().optional(),
   covidVaccination: z.boolean().optional(),
   shinglesVaccination: z.boolean().optional(),
   hepBVaccination: z.boolean().optional(),
-  
+
   // Medical History (optional)
   medicalHistory: z.string().optional(),
   surgicalHistory: z.string().optional(),
@@ -99,12 +99,12 @@ const comprehensiveLeadSchema = z.object({
   medicationSideEffects: z.string().optional(),
   allergies: z.string().optional(),
   neuroConditions: z.string().optional(),
-  
+
   // Substance Use (optional)
   tobaccoUsage: z.string().optional(),
   alcoholUsage: z.string().optional(),
   recreationalDrugUsage: z.string().optional(),
-  
+
   // Family History (optional)
   familyMember1Relation: z.string().optional(),
   familyMember1NeuroConditions: z.string().optional(),
@@ -127,13 +127,13 @@ interface Vendor {
 export default function ComprehensiveMedicalForm() {
   const params = useParams();
   const vendorCode = params?.vendorCode as string;
-  
+
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // MBI validation state
   const [mbiValidated, setMbiValidated] = useState(false);
   const [validatedMbi, setValidatedMbi] = useState<string>('');
@@ -198,7 +198,7 @@ export default function ComprehensiveMedicalForm() {
         lastName: data.lastName,
         phone: data.phone,
         dateOfBirth: data.dateOfBirth,
-        
+
         // Optional demographic fields
         middleInitial: data.middleInitial || '',
         primaryInsuranceCompany: data.primaryInsuranceCompany || '',
@@ -208,13 +208,13 @@ export default function ComprehensiveMedicalForm() {
         maritalStatus: data.maritalStatus || '',
         height: data.height || '',
         weight: data.weight || '',
-        
+
         // Address
         street: data.street || '',
         city: data.city || '',
         state: data.state || '',
         zipCode: data.zipCode || '',
-        
+
         // Include all other fields as additional data
         additionalData: {
           primaryCareProvider: {
@@ -274,7 +274,7 @@ export default function ComprehensiveMedicalForm() {
             },
           ],
         },
-        
+
         vendorCode: vendor.code,
         vendorId: vendor.id,
         testType: validatedTestType.toLowerCase(), // Use validated test type
@@ -284,7 +284,7 @@ export default function ComprehensiveMedicalForm() {
       setSuccess(true);
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to submit form. Please try again.';
-      
+
       if (errorMessage.includes('MBI already exists')) {
         setError('A patient with this MBI has already been submitted. Please check the MBI and try again.');
       } else if (errorMessage.includes('Invalid request data')) {
@@ -336,7 +336,7 @@ export default function ComprehensiveMedicalForm() {
             You will be contacted within 24-48 hours regarding next steps.
           </Typography>
           <Alert severity="success" sx={{ mt: 3 }}>
-            <strong>Important:</strong> Please keep this confirmation for your records. 
+            <strong>Important:</strong> Please keep this confirmation for your records.
             Your submission has been processed and assigned a tracking number.
           </Alert>
         </Paper>
@@ -381,7 +381,7 @@ export default function ComprehensiveMedicalForm() {
         )}
 
         {/* MBI Duplicate Checker */}
-        <MBIChecker 
+        <MBIChecker
           onValidationComplete={handleMBIValidation}
           defaultTestType="NEURO"
         />
@@ -395,7 +395,7 @@ export default function ComprehensiveMedicalForm() {
               Basic Patient Information (Required)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} md={4}>
                 <TextField
@@ -409,7 +409,7 @@ export default function ComprehensiveMedicalForm() {
                   sx={{ backgroundColor: 'success.light', opacity: 0.8 }}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
@@ -428,7 +428,7 @@ export default function ComprehensiveMedicalForm() {
                   inputProps={{ maxLength: 1 }}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
@@ -438,7 +438,7 @@ export default function ComprehensiveMedicalForm() {
                   helperText={errors.lastName?.message}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -449,7 +449,7 @@ export default function ComprehensiveMedicalForm() {
                   placeholder="5551234567"
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -470,7 +470,7 @@ export default function ComprehensiveMedicalForm() {
               Demographics (Optional)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <TextField
@@ -556,7 +556,7 @@ export default function ComprehensiveMedicalForm() {
               Address Information (Optional)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <TextField
@@ -566,7 +566,7 @@ export default function ComprehensiveMedicalForm() {
                   placeholder="123 Main Street"
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -574,7 +574,7 @@ export default function ComprehensiveMedicalForm() {
                   {...register('city')}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
@@ -584,7 +584,7 @@ export default function ComprehensiveMedicalForm() {
                   inputProps={{ maxLength: 2 }}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
@@ -603,7 +603,7 @@ export default function ComprehensiveMedicalForm() {
               Primary Healthcare Provider Information (Optional)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <TextField
@@ -612,7 +612,7 @@ export default function ComprehensiveMedicalForm() {
                   {...register('primaryCareProviderName')}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -620,7 +620,7 @@ export default function ComprehensiveMedicalForm() {
                   {...register('primaryCareProviderPhone')}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -637,7 +637,7 @@ export default function ComprehensiveMedicalForm() {
               Health Assessment (Optional)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
@@ -773,7 +773,7 @@ export default function ComprehensiveMedicalForm() {
               Preventative Screening: Have you had any of these screenings? (Optional)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12} md={4}>
                 <FormControlLabel
@@ -826,7 +826,7 @@ export default function ComprehensiveMedicalForm() {
               Vaccinations: Have you had any of these? (Optional)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12} md={4}>
                 <FormControlLabel
@@ -867,7 +867,7 @@ export default function ComprehensiveMedicalForm() {
               Medical History (Optional)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <TextField
@@ -878,7 +878,7 @@ export default function ComprehensiveMedicalForm() {
                   {...register('medicalHistory')}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -888,7 +888,7 @@ export default function ComprehensiveMedicalForm() {
                   {...register('surgicalHistory')}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -898,7 +898,7 @@ export default function ComprehensiveMedicalForm() {
                   {...register('currentMedications')}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -908,7 +908,7 @@ export default function ComprehensiveMedicalForm() {
                   {...register('medicationSideEffects')}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -918,7 +918,7 @@ export default function ComprehensiveMedicalForm() {
                   {...register('allergies')}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -937,7 +937,7 @@ export default function ComprehensiveMedicalForm() {
               Substance Use History (Optional)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <TextField
@@ -948,7 +948,7 @@ export default function ComprehensiveMedicalForm() {
                   {...register('tobaccoUsage')}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -958,7 +958,7 @@ export default function ComprehensiveMedicalForm() {
                   {...register('alcoholUsage')}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -977,7 +977,7 @@ export default function ComprehensiveMedicalForm() {
               Family History (Optional)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Typography variant="subtitle1" gutterBottom>
               Family Member 1
             </Typography>
@@ -990,7 +990,7 @@ export default function ComprehensiveMedicalForm() {
                   placeholder="e.g., Mother, Father, Sister"
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
@@ -998,7 +998,7 @@ export default function ComprehensiveMedicalForm() {
                   {...register('familyMember1NeuroConditions')}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
@@ -1021,7 +1021,7 @@ export default function ComprehensiveMedicalForm() {
                   placeholder="e.g., Mother, Father, Sister"
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
@@ -1029,7 +1029,7 @@ export default function ComprehensiveMedicalForm() {
                   {...register('familyMember2NeuroConditions')}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
@@ -1044,8 +1044,8 @@ export default function ComprehensiveMedicalForm() {
           {/* Important Notice */}
           <Alert severity="info" sx={{ mb: 4 }}>
             <Typography variant="body2">
-              <strong>Important:</strong> Please ensure you have obtained proper patient consent 
-              before submitting this information. All data will be handled in accordance with 
+              <strong>Important:</strong> Please ensure you have obtained proper patient consent
+              before submitting this information. All data will be handled in accordance with
               HIPAA regulations and our privacy policy. Only fields marked with * are required.
             </Typography>
           </Alert>
@@ -1068,4 +1068,4 @@ export default function ComprehensiveMedicalForm() {
       </Paper>
     </Container>
   );
-} 
+}
