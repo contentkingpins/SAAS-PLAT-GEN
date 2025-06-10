@@ -7,6 +7,12 @@ class WebSocketService {
   private store: any = { setConnected: () => {}, updateLead: () => {}, addLead: () => {}, setMetrics: () => {} };
 
   connect(token?: string) {
+    // Skip WebSocket connection in production until WebSocket server is available
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      console.log('WebSocket disabled in production - no WebSocket server available in serverless environment');
+      return;
+    }
+
     if (this.socket?.connected) {
       return;
     }
