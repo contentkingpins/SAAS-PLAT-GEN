@@ -30,4 +30,4 @@ frontend:
         - key: 'Referrer-Policy'
           value: 'strict-origin-when-cross-origin'
 
-# Deployment timestamp: 2024-06-09-19:45 - Force fresh deployment - API endpoints working locally (401 auth responses) 
+# Deployment timestamp: 2025-06-09-19:51 - FORCE DEPLOYMENT: Fixing persistent local routing conflicts - Production deployment should resolve vendorId vs id conflicts 
