@@ -150,22 +150,26 @@ export default function VendorDashboard() {
   });
 
   useEffect(() => {
-    fetchVendorData();
-  }, []);
+    if (user?.vendorId) {
+      fetchVendorData();
+    }
+  }, [user?.vendorId]);
 
   useEffect(() => {
-    if (tabValue === 1) {
+    if (tabValue === 1 && user?.vendorId) {
       fetchSubVendors();
     }
-  }, [tabValue]);
+  }, [tabValue, user?.vendorId]);
 
   const fetchVendorData = async () => {
+    if (!user?.vendorId) return;
+    
     try {
       setLoading(true);
       // Fetch leads and metrics
       const [leadsData, metricsData] = await Promise.all([
-        apiClient.get<Lead[]>(`/api/vendors/${user?.vendorId}/leads`),
-        apiClient.get<VendorMetrics>(`/api/vendors/${user?.vendorId}/metrics`),
+        apiClient.get<Lead[]>(`/api/vendors/${user.vendorId}/leads`),
+        apiClient.get<VendorMetrics>(`/api/vendors/${user.vendorId}/metrics`),
       ]);
       
       setLeads(leadsData);
@@ -174,7 +178,7 @@ export default function VendorDashboard() {
       // Check if this is a main vendor by trying to access downlines
       // Only main vendors can access this endpoint
       try {
-        await apiClient.get(`/api/vendors/${user?.vendorId}/downlines`);
+        await apiClient.get(`/api/vendors/${user.vendorId}/downlines`);
         setIsMainVendor(true); // If successful, it's a main vendor
       } catch (error: any) {
         // If we get a 403 about sub-vendors, then this is a sub-vendor
@@ -193,9 +197,11 @@ export default function VendorDashboard() {
   };
 
   const fetchSubVendors = async () => {
+    if (!user?.vendorId) return;
+    
     try {
       setDownlineLoading(true);
-      const data = await apiClient.get<SubVendor[]>(`/api/vendors/${user?.vendorId}/downlines`);
+      const data = await apiClient.get<SubVendor[]>(`/api/vendors/${user.vendorId}/downlines`);
       setSubVendors(data || []);
     } catch (error: any) {
       setError('Failed to fetch downline vendors: ' + error.message);
@@ -236,15 +242,17 @@ export default function VendorDashboard() {
   };
 
   const onSubmitDownline = async (data: DownlineVendorFormData) => {
+    if (!user?.vendorId) return;
+    
     try {
       setError(null);
       
       const downlineData = {
         ...data,
-        parentVendorId: user?.vendorId, // Set current vendor as parent
+        parentVendorId: user.vendorId, // Set current vendor as parent
       };
 
-      await apiClient.post(`/api/vendors/${user?.vendorId}/downlines`, downlineData);
+      await apiClient.post(`/api/vendors/${user.vendorId}/downlines`, downlineData);
       setSuccess('Downline vendor created successfully');
       setDialogOpen(false);
       fetchSubVendors(); // Refresh the list
