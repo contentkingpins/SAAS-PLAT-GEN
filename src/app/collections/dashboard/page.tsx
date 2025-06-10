@@ -69,8 +69,10 @@ export default function CollectionsDashboard() {
   });
 
   useEffect(() => {
-    loadCollectionsData();
-  }, []);
+    if (user?.id) {
+      loadCollectionsData();
+    }
+  }, [user?.id]);
 
     const loadCollectionsData = async () => {
     try {

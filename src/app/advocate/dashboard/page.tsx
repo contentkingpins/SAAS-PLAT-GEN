@@ -65,8 +65,10 @@ export default function AdvocateDashboard() {
   });
 
   useEffect(() => {
-    loadAdvocateData();
-  }, []);
+    if (user?.id) {
+      loadAdvocateData();
+    }
+  }, [user?.id]);
 
     const loadAdvocateData = async () => {
     try {
