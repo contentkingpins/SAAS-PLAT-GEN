@@ -1,15 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-
-// Simple auth check for now - will improve later
-async function verifyAdminAuth(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return { error: 'Unauthorized', status: 401 };
-  }
-  return { authenticated: true };
-}
+import { verifyAdminAuth } from '@/lib/auth/middleware';
 
 const vendorUpdateSchema = z.object({
   name: z.string().min(2).optional(),
