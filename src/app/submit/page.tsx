@@ -90,7 +90,7 @@ function SubmitFormContent() {
   const fetchVendor = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get<Vendor>(`/api/vendors/by-code/${vendorCode}`);
+      const response = await apiClient.get<Vendor>(`/vendors/by-code/${vendorCode}`);
       if (response && response.isActive) {
         setVendor(response);
       } else {
