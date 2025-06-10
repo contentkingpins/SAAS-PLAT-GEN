@@ -68,23 +68,23 @@ export default function AdvocateDashboard() {
     loadAdvocateData();
   }, []);
 
-  const loadAdvocateData = async () => {
+    const loadAdvocateData = async () => {
     try {
       setLoading(true);
-
+      
       // Get leads assigned to this advocate
-      const leadsResponse = await apiClient.get<Lead[]>(`/api/leads?advocateId=${user?.id}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`);
+      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(`/api/leads?advocateId=${user?.id}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`);
 
-      if (leadsResponse) {
-        setLeads(leadsResponse || []);
-
+      if (apiResponse?.success && apiResponse.data) {
+        setLeads(apiResponse.data);
+        
         // Calculate stats
-        const data = leadsResponse || [];
+        const data = apiResponse.data;
         setStats({
           totalAssigned: data.length,
           pendingReview: data.filter((l: Lead) => l.status === 'ADVOCATE_REVIEW').length,
           qualified: data.filter((l: Lead) => l.status === 'QUALIFIED').length,
-          completedToday: data.filter((l: Lead) =>
+          completedToday: data.filter((l: Lead) => 
             new Date(l.createdAt).toDateString() === new Date().toDateString()
           ).length,
         });

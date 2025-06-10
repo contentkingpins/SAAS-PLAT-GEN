@@ -72,18 +72,18 @@ export default function CollectionsDashboard() {
     loadCollectionsData();
   }, []);
 
-  const loadCollectionsData = async () => {
+    const loadCollectionsData = async () => {
     try {
       setLoading(true);
-
+      
       // Get leads in collections status
-      const leadsResponse = await apiClient.get<Lead[]>(`/api/leads?collectionsAgentId=${user?.id}&status=COLLECTIONS,SHIPPED`);
+      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(`/api/leads?collectionsAgentId=${user?.id}&status=COLLECTIONS,SHIPPED`);
 
-      if (leadsResponse) {
-        setLeads(leadsResponse || []);
-
+      if (apiResponse?.success && apiResponse.data) {
+        setLeads(apiResponse.data);
+        
         // Calculate stats
-        const data = leadsResponse || [];
+        const data = apiResponse.data;
         setStats({
           totalAssigned: data.length,
           pendingContact: data.filter((l: Lead) => !l.lastContactAttempt).length,
