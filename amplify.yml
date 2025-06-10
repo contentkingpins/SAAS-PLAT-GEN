@@ -1,4 +1,10 @@
 version: 1
+backend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci --legacy-peer-deps
+        - npx prisma generate
 frontend:
   phases:
     preBuild:
