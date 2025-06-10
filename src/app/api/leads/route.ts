@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { AlertService } from '@/lib/services/alertService';
+import { prisma } from '@/lib/prisma';
 
 declare global {
   var broadcastMBIAlert: ((alert: any) => void) | undefined;
   var broadcastNewLead: ((lead: any) => void) | undefined;
   var broadcastDashboardUpdate: ((update: any) => void) | undefined;
 }
-
-const prisma = new PrismaClient();
 
 // Helper function to generate unique MBI
 function generateMBI() {
