@@ -6,6 +6,31 @@ interface ApiError {
   code?: string;
 }
 
+// Interface for standardized API responses
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+// Login response interface
+interface LoginResponse {
+  success: boolean;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    isActive: boolean;
+    vendorId: string | null;
+    teamId: string | null;
+    vendor: any | null;
+    team: any | null;
+  };
+  token: string;
+}
+
 class ApiClient {
   private client: AxiosInstance;
 
@@ -49,7 +74,7 @@ class ApiClient {
         }
 
         const apiError: ApiError = {
-          message: (error.response?.data as any)?.message || error.message || 'An error occurred',
+          message: (error.response?.data as any)?.error || (error.response?.data as any)?.message || error.message || 'An error occurred',
           status: error.response?.status || 500,
           code: error.code,
         };
@@ -58,34 +83,65 @@ class ApiClient {
     );
   }
 
+  // Helper method to extract data from standardized API responses
+  private extractData<T>(responseData: any): T {
+    // Check if it's our new standardized format
+    if (responseData && typeof responseData === 'object' && 'success' in responseData) {
+      const apiResponse = responseData as ApiResponse<T>;
+      if (apiResponse.success && apiResponse.data !== undefined) {
+        return apiResponse.data;
+      } else if (!apiResponse.success) {
+        throw new Error(apiResponse.error || 'API request failed');
+      }
+    }
+    
+    // Fallback to returning the data as-is (for backward compatibility)
+    return responseData;
+  }
+
+  // Authentication method
+  async login(email: string, password: string): Promise<LoginResponse> {
+    const response = await this.client.post('/auth/login', { email, password });
+    const loginResponse = response.data as LoginResponse;
+    
+    if (loginResponse.success && loginResponse.token) {
+      // Store the token
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('authToken', loginResponse.token);
+      }
+    }
+    
+    return loginResponse;
+  }
+
   // GET request
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.get<T>(url, config);
-    return response.data;
+    const response = await this.client.get(url, config);
+    return this.extractData<T>(response.data);
   }
 
   // POST request
   async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.post<T>(url, data, config);
-    return response.data;
+    const response = await this.client.post(url, data, config);
+    return this.extractData<T>(response.data);
   }
 
   // PUT request
   async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.put<T>(url, data, config);
-    return response.data;
+    const response = await this.client.put(url, data, config);
+    return this.extractData<T>(response.data);
   }
 
   // PATCH request
   async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.patch<T>(url, data, config);
-    return response.data;
+    const response = await this.client.patch(url, data, config);
+    return this.extractData<T>(response.data);
   }
 
   // DELETE request
   async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.delete<T>(url, config);
-    return response.data;
+    const response = await this.client.delete(url, config);
+    return this.extractData<T>(response.data);
   }
 
   // File upload
@@ -105,10 +161,18 @@ class ApiClient {
       },
     };
 
-    const response = await this.client.post<T>(url, formData, config);
-    return response.data;
+    const response = await this.client.post(url, formData, config);
+    return this.extractData<T>(response.data);
   }
 }
 
 export const apiClient = new ApiClient();
-export type { ApiError }; 
+export type { ApiError, ApiResponse, LoginResponse };
+
+// Export test credentials for development
+export const TEST_CREDENTIALS = {
+  admin: { email: 'admin@healthcare.com', password: 'admin123' },
+  vendor: { email: 'vendor@healthcare.com', password: 'admin123' },
+  advocate: { email: 'advocate@healthcare.com', password: 'admin123' },
+  collections: { email: 'collections@healthcare.com', password: 'admin123' },
+}; 
