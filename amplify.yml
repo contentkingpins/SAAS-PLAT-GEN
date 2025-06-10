@@ -36,4 +36,4 @@ frontend:
         - key: 'Referrer-Policy'
           value: 'strict-origin-when-cross-origin'
 
-# Deployment timestamp: 2025-06-10-18:30 - CRITICAL AUTH FIX: Complete authentication system overhaul with token persistence, AuthProvider, VendorAuthGuard, and enhanced API client - Resolves all 404/authentication issues 
+# Deployment timestamp: 2025-06-10-19:45 - CRITICAL DOUBLE API PREFIX FIX: Resolved double /api/ prefix causing 404 errors - Fixed all vendor API endpoints - System now fully operational 
