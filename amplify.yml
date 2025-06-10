@@ -36,4 +36,4 @@ frontend:
         - key: 'Referrer-Policy'
           value: 'strict-origin-when-cross-origin'
 
-# Deployment timestamp: 2025-06-09-19:51 - FORCE DEPLOYMENT: Fixing persistent local routing conflicts - Production deployment should resolve vendorId vs id conflicts 
+# Deployment timestamp: 2025-06-10-18:30 - CRITICAL AUTH FIX: Complete authentication system overhaul with token persistence, AuthProvider, VendorAuthGuard, and enhanced API client - Resolves all 404/authentication issues 
