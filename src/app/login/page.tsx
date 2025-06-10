@@ -70,7 +70,7 @@ export default function LoginPage() {
           teamId: result.user.teamId || undefined,
         };
         
-        login(user);
+        login(user, result.token);
         
         // Redirect based on role
         switch (user.role) {

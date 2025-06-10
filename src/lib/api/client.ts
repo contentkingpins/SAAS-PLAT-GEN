@@ -51,6 +51,10 @@ class ApiClient {
           const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+            // Debug logging
+            console.log(`API Request: ${config.method?.toUpperCase()} ${config.url} with token`);
+          } else {
+            console.warn(`API Request: ${config.method?.toUpperCase()} ${config.url} WITHOUT token`);
           }
         } catch (error) {
           console.error('Auth error:', error);
@@ -62,10 +66,16 @@ class ApiClient {
 
     // Response interceptor for error handling
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        console.log(`API Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
+        return response;
+      },
       (error: AxiosError) => {
+        console.error(`API Error: ${error.response?.status || 'Network'} ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error.response?.data);
+        
         // Handle 401 (Unauthorized) errors
         if (error.response?.status === 401) {
+          console.warn('Authentication failed, clearing token and redirecting to login');
           // Clear token and redirect to login
           if (typeof window !== 'undefined') {
             localStorage.removeItem('authToken');

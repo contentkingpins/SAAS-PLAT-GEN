@@ -58,6 +58,7 @@ import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { VendorAuthGuard } from '@/components/auth/VendorAuthGuard';
 
 interface VendorMetrics {
   totalLeads: number;
@@ -306,7 +307,8 @@ export default function VendorDashboard() {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <VendorAuthGuard>
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* App Bar */}
       <AppBar position="static" elevation={1}>
         <Toolbar>
@@ -776,6 +778,7 @@ export default function VendorDashboard() {
           </DialogActions>
         </form>
       </Dialog>
-    </Box>
+      </Box>
+    </VendorAuthGuard>
   );
 } 

@@ -6,6 +6,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { AuthProvider } from './AuthProvider';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -107,8 +108,10 @@ export function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <CssBaseline />
-          {children}
+          <AuthProvider>
+            <CssBaseline />
+            {children}
+          </AuthProvider>
         </LocalizationProvider>
       </ThemeProvider>
     </QueryClientProvider>
