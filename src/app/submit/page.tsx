@@ -110,7 +110,7 @@ function SubmitFormContent() {
       setSubmitting(true);
       setError(null);
 
-      await apiClient.post('/api/leads/submit', {
+              await apiClient.post('/leads/submit', {
         ...data,
         vendorCode: vendor.code,
         vendorId: vendor.id,

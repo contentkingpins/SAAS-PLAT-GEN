@@ -55,7 +55,7 @@ export default function TestApiPage() {
     try {
       // Test 1: System Status
       try {
-        const statusResponse = await apiClient.get('/api/analytics/dashboard');
+        const statusResponse = await apiClient.get('/analytics/dashboard');
         updateTestResult('System Status Check', 'success', 'Backend system is operational', statusResponse);
       } catch (err: any) {
         updateTestResult('System Status Check', 'error', err.message);
@@ -83,7 +83,7 @@ export default function TestApiPage() {
 
       // Test 3: Get Users (Admin only)
       try {
-        const usersResponse = await apiClient.get('/api/admin/users');
+        const usersResponse = await apiClient.get('/admin/users');
         const userCount = Array.isArray(usersResponse) ? usersResponse.length : 0;
         updateTestResult('Get Users (Admin)', 'success', `Retrieved ${userCount} users`, usersResponse);
       } catch (err: any) {
@@ -92,7 +92,7 @@ export default function TestApiPage() {
 
       // Test 4: Get Vendors
       try {
-        const vendorsResponse = await apiClient.get('/api/admin/vendors');
+        const vendorsResponse = await apiClient.get('/admin/vendors');
         const vendorCount = Array.isArray(vendorsResponse) ? vendorsResponse.length : 0;
         updateTestResult('Get Vendors', 'success', `Retrieved ${vendorCount} vendors`, vendorsResponse);
       } catch (err: any) {
@@ -101,7 +101,7 @@ export default function TestApiPage() {
 
       // Test 5: Get Leads
       try {
-        const leadsResponse = await apiClient.get('/api/leads');
+        const leadsResponse = await apiClient.get('/leads');
         const leadCount = Array.isArray(leadsResponse) ? leadsResponse.length : 0;
         updateTestResult('Get Leads', 'success', `Retrieved ${leadCount} leads`, leadsResponse);
       } catch (err: any) {
@@ -110,7 +110,7 @@ export default function TestApiPage() {
 
       // Test 6: Dashboard Analytics
       try {
-        const analyticsResponse = await apiClient.get('/api/analytics/dashboard');
+        const analyticsResponse = await apiClient.get('/analytics/dashboard');
         updateTestResult('Dashboard Analytics', 'success', 'Analytics data retrieved', analyticsResponse);
       } catch (err: any) {
         updateTestResult('Dashboard Analytics', 'error', err.message);

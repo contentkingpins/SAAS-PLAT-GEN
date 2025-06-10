@@ -184,7 +184,7 @@ export function VendorManagement() {
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.get<Vendor[]>('/api/admin/vendors');
+      const data = await apiClient.get<Vendor[]>('/admin/vendors');
       setVendors(data || []);
       
       // Filter for parent vendors (no parentVendorId)
@@ -200,7 +200,7 @@ export function VendorManagement() {
   const fetchAllLeads = async () => {
     try {
       setLeadsLoading(true);
-      const data = await apiClient.get<Lead[]>('/api/admin/leads');
+      const data = await apiClient.get<Lead[]>('/admin/leads');
       setAllLeads(data || []);
     } catch (error: any) {
       setError('Failed to fetch leads: ' + error.message);
@@ -277,7 +277,7 @@ export function VendorManagement() {
         await apiClient.put(`/api/admin/vendors/${editingVendor.id}`, vendorData);
         setSuccess('Vendor updated successfully');
       } else {
-        await apiClient.post('/api/admin/vendors', vendorData);
+        await apiClient.post('/admin/vendors', vendorData);
         setSuccess('Vendor created successfully');
       }
       

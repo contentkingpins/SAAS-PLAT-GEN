@@ -280,7 +280,7 @@ export default function ComprehensiveMedicalForm() {
         testType: validatedTestType.toLowerCase(), // Use validated test type
       };
 
-      await apiClient.post('/api/leads/submit', submissionData);
+              await apiClient.post('/leads/submit', submissionData);
       setSuccess(true);
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to submit form. Please try again.';
