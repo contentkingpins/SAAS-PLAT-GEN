@@ -200,7 +200,7 @@ export interface DashboardMetrics {
 // Upload Types
 export interface FileUpload {
   id: string;
-  type: 'doctor_approval' | 'shipping_report' | 'kit_return';
+  type: 'doctor_approval' | 'shipping_report' | 'kit_return' | 'master_data';
   fileName: string;
   uploadedBy: string;
   uploadedAt: Date;

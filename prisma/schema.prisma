@@ -272,6 +272,7 @@ enum FileUploadType {
   DOCTOR_APPROVAL
   SHIPPING_REPORT
   KIT_RETURN
+  MASTER_DATA
 }
 
 model FileUpload {
