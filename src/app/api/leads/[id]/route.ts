@@ -207,8 +207,8 @@ export async function GET(
           conditions: updatedLead!.conditionsHistory,
         },
         
-        // Family history (parse JSON if available)
-        familyHistory: updatedLead!.familyHistory ? JSON.parse(updatedLead!.familyHistory as string) : null,
+        // Family history (already parsed by Prisma)
+        familyHistory: updatedLead!.familyHistory || null,
         
         vendorId: updatedLead!.vendorId,
         vendorCode: updatedLead!.vendorCode,
@@ -377,8 +377,8 @@ export async function PATCH(
           conditions: updatedLead.conditionsHistory,
         },
         
-        // Family history (parse JSON if available)
-        familyHistory: updatedLead.familyHistory ? JSON.parse(updatedLead.familyHistory as string) : null,
+        // Family history (already parsed by Prisma)
+        familyHistory: updatedLead.familyHistory || null,
         
         vendorId: updatedLead.vendorId,
         vendorCode: updatedLead.vendorCode,
