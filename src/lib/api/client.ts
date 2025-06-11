@@ -35,8 +35,13 @@ class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
+    // Force the base URL to always be '/api' since we're not using an external API
+    const baseURL = '/api';
+    
+    console.log('ApiClient baseURL:', baseURL); // Debug logging
+    
     this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_ENDPOINT || '/api',
+      baseURL: baseURL,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',

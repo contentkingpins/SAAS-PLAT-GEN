@@ -147,16 +147,31 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
       setLoading(true);
       setError(null);
       
+      console.log('Loading lead details for ID:', leadId);
+      console.log('Making API call to:', `leads/${leadId}`);
+      
       const response = await apiClient.get<{success: boolean; lead: LeadDetail}>(`leads/${leadId}`);
+      
+      console.log('API response received:', response);
       
       if (response.success && response.lead) {
         setLead(response.lead);
         setAdvocateDisposition(response.lead.advocateDisposition || '');
         setAdvocateNotes(response.lead.advocateNotes || '');
         setStatus(response.lead.status);
+        console.log('Lead details loaded successfully:', response.lead);
+      } else {
+        console.error('API response success is false or no lead data:', response);
+        setError('Failed to load lead details - invalid response format');
       }
     } catch (err: any) {
       console.error('Error loading lead details:', err);
+      console.error('Error details:', {
+        message: err.message,
+        status: err.status,
+        code: err.code,
+        stack: err.stack
+      });
       setError(err.message || 'Failed to load lead details');
     } finally {
       setLoading(false);
