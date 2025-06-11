@@ -19,7 +19,8 @@ import {
   Alert,
   Skeleton,
   Divider,
-  Button
+  Button,
+  Grid
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -100,7 +101,7 @@ interface Lead {
 }
 
 interface LeadSearchProps {
-  onLeadSelect?: (lead: Lead) => void;
+  onLeadSelect: (leadId: string, lead: Lead) => void;
   showActions?: boolean;
   placeholder?: string;
   autoFocus?: boolean;
@@ -163,7 +164,7 @@ export default function LeadSearch({
   const handleLeadClick = (lead: Lead) => {
     setSelectedLead(lead.id);
     if (onLeadSelect) {
-      onLeadSelect(lead);
+      onLeadSelect(lead.id, lead);
     }
   };
 
@@ -249,116 +250,109 @@ export default function LeadSearch({
               <Card 
                 key={lead.id} 
                 sx={{ 
-                  mb: 1, 
+                  mb: 2, 
                   cursor: 'pointer',
-                  border: selectedLead === lead.id ? 2 : 1,
-                  borderColor: selectedLead === lead.id ? 'primary.main' : 'divider',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: 3,
+                    borderColor: 'primary.main',
+                  }
                 }}
-                onClick={() => handleLeadClick(lead)}
+                onClick={() => onLeadSelect(lead.id, lead)}
               >
-                <CardContent sx={{ py: 2 }}>
-                  {/* Main Lead Info */}
-                  <Box display="flex" alignItems="center" justifyContent="space-between">
-                    <Box display="flex" alignItems="center" gap={2}>
-                      <Avatar sx={{ bgcolor: 'primary.main' }}>
-                        <PersonIcon />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6" component="div">
-                          {lead.fullName}
-                          {lead.isDuplicate && (
-                            <WarningIcon 
-                              color="warning" 
-                              sx={{ ml: 1, fontSize: 16 }} 
-                              titleAccess="Potential duplicate"
-                            />
-                          )}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          MBI: {lead.mbi} • {lead.vendor.name}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Chip 
-                        label={lead.statusLabel} 
-                        color={getStatusColor(lead.status)}
-                        size="small"
-                      />
-                      <IconButton 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleCardExpansion(lead.id);
-                        }}
-                        size="small"
-                      >
-                        {expandedCard === lead.id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                      </IconButton>
-                    </Box>
-                  </Box>
-
-                  {/* Quick Info */}
-                  <Box display="flex" gap={3} mt={1}>
-                    <Box display="flex" alignItems="center" gap={0.5}>
-                      <PhoneIcon fontSize="small" color="action" />
-                      <Typography variant="body2">{lead.formattedPhone}</Typography>
-                    </Box>
-                    <Box display="flex" alignItems="center" gap={0.5}>
-                      <CalendarIcon fontSize="small" color="action" />
-                      <Typography variant="body2">
-                        Age {lead.age} • {lead.quickInfo.daysSinceSubmission} days ago
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Expanded Details */}
-                  <Collapse in={expandedCard === lead.id}>
-                    <Divider sx={{ my: 2 }} />
-                    <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Contact Information
-                      </Typography>
-                      <Box display="flex" alignItems="center" gap={0.5} mb={1}>
-                        <LocationIcon fontSize="small" color="action" />
-                        <Typography variant="body2">{lead.address.full}</Typography>
-                      </Box>
-                      
-                      <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
-                        Assignment & Status
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {lead.quickInfo.currentAssignment}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Test Type: {lead.testType}
-                      </Typography>
-                      
-                      {lead.hasActiveAlerts && (
-                        <Alert severity="warning" sx={{ mt: 1 }}>
-                          {lead.activeAlerts.length} active alert{lead.activeAlerts.length > 1 ? 's' : ''}
-                        </Alert>
-                      )}
-
-                      {showActions && (
-                        <Box display="flex" gap={1} mt={2}>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<AssignmentIcon />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // Navigate to lead details or open action dialog
-                              console.log('View lead details:', lead.id);
-                            }}
-                          >
-                            View Details
-                          </Button>
+                <CardContent>
+                  <Grid container spacing={2} alignItems="center">
+                    <Grid item xs={12} sm={8}>
+                      <Box display="flex" alignItems="center" mb={1}>
+                        <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                          {lead.firstName[0]}{lead.lastName[0]}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h6" component="div">
+                            {lead.fullName}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            MBI: {lead.mbi} • {lead.vendor.name}
+                          </Typography>
                         </Box>
-                      )}
-                    </Box>
-                  </Collapse>
+                      </Box>
+                      
+                      <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
+                        <Box display="flex" alignItems="center">
+                          <PhoneIcon sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
+                          <Typography variant="body2">
+                            {lead.formattedPhone}
+                          </Typography>
+                        </Box>
+                        
+                        {lead.age && (
+                          <Typography variant="body2" color="text.secondary">
+                            Age {lead.age}
+                          </Typography>
+                        )}
+                        
+                        <Typography variant="body2" color="text.secondary">
+                          {lead.quickInfo.daysSinceSubmission} days ago
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={4}>
+                      <Box display="flex" flexDirection="column" alignItems="flex-end" gap={1}>
+                        <Chip
+                          label={lead.statusLabel}
+                          color={getStatusColor(lead.status)}
+                          size="small"
+                        />
+                        
+                        {lead.isDuplicate && (
+                          <Chip
+                            label="Duplicate"
+                            color="error"
+                            size="small"
+                            icon={<WarningIcon />}
+                          />
+                        )}
+                        
+                        {lead.hasActiveAlerts && (
+                          <Chip
+                            label={`${lead.activeAlerts.length} Alert${lead.activeAlerts.length > 1 ? 's' : ''}`}
+                            color="warning"
+                            size="small"
+                            icon={<WarningIcon />}
+                          />
+                        )}
+                        
+                        {showActions && (
+                          <Box display="flex" gap={1} mt={1}>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<PhoneIcon />}
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent card click
+                                window.open(`tel:${lead.phone}`, '_self');
+                              }}
+                            >
+                              Call
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="primary"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent card click
+                                onLeadSelect(lead.id, lead);
+                              }}
+                            >
+                              View Details
+                            </Button>
+                          </Box>
+                        )}
+                      </Box>
+                    </Grid>
+                  </Grid>
                 </CardContent>
               </Card>
             ))}

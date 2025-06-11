@@ -34,6 +34,7 @@ import useStore from '@/store/useStore';
 import { apiClient } from '@/lib/api/client';
 import { PortalLayout } from '@/components/layout/PortalLayout';
 import LeadSearch from '@/components/search/LeadSearch';
+import LeadDetailModal from '@/components/leads/LeadDetailModal';
 
 interface Lead {
   id: string;
@@ -84,6 +85,11 @@ export default function AdvocateDashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Modal state for detailed lead view
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  
   const [stats, setStats] = useState({
     totalAssigned: 0,
     pendingReview: 0,
@@ -129,10 +135,27 @@ export default function AdvocateDashboard() {
     setSelectedTab(newValue);
   };
 
-  const handleLeadSelect = (lead: any) => {
+  const handleLeadSelect = (leadId: string, lead: any) => {
     setSelectedLead(lead);
-    console.log('Selected lead:', lead);
-    // Here you could open a modal with lead details or navigate to lead page
+    setSelectedLeadId(leadId);
+    setModalOpen(true);
+    console.log('Opening lead details for:', lead.firstName, lead.lastName);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedLeadId(null);
+  };
+
+  const handleLeadUpdated = (updatedLead: any) => {
+    console.log('Lead updated:', updatedLead);
+    // Optionally refresh the leads list or update the selected lead
+    setSelectedLead(updatedLead);
+    
+    // If we're viewing assigned leads, refresh the list
+    if (selectedTab === 0) {
+      loadAdvocateData();
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -299,7 +322,11 @@ export default function AdvocateDashboard() {
                 </TableHead>
                 <TableBody>
                   {leads.map((lead) => (
-                    <TableRow key={lead.id}>
+                    <TableRow 
+                      key={lead.id}
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => handleLeadSelect(lead.id, lead)}
+                    >
                       <TableCell>
                         <Typography variant="body2" fontWeight="medium">
                           {lead.firstName} {lead.lastName}
@@ -329,8 +356,10 @@ export default function AdvocateDashboard() {
                         <Button
                           size="small"
                           variant="outlined"
-                          onClick={() => handleStartReview(lead.id)}
-                          disabled={lead.status !== 'ADVOCATE_REVIEW'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLeadSelect(lead.id, lead);
+                          }}
                         >
                           Review
                         </Button>
@@ -367,8 +396,8 @@ export default function AdvocateDashboard() {
                 
                 <LeadSearch 
                   onLeadSelect={handleLeadSelect}
-                  placeholder="Search by patient name, phone, MBI, or location..."
-                  autoFocus
+                  showActions={true}
+                  autoFocus={true}
                 />
               </CardContent>
             </Card>
@@ -406,7 +435,7 @@ export default function AdvocateDashboard() {
                   )}
 
                   <Alert severity="info" sx={{ mt: 2 }}>
-                    Lead found! You can now assist this existing patient.
+                    Click "View Details" to see full lead information and update status.
                   </Alert>
                 </CardContent>
               </Card>
@@ -436,6 +465,14 @@ export default function AdvocateDashboard() {
           </Grid>
         </Grid>
       </TabPanel>
+
+      {/* Lead Detail Modal */}
+      <LeadDetailModal
+        open={modalOpen}
+        leadId={selectedLeadId}
+        onClose={handleCloseModal}
+        onLeadUpdated={handleLeadUpdated}
+      />
     </PortalLayout>
   );
 }
