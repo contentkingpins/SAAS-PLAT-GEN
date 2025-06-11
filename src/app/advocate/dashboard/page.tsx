@@ -107,10 +107,17 @@ export default function AdvocateDashboard() {
     try {
       setLoading(true);
       
+      // Debug logging
+      console.log('🔍 Dashboard loading advocate data for user:', user);
+      console.log('🔍 Using user.id:', user?.id);
+      
       // Get leads assigned to this advocate
       const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(`leads?advocateId=${user?.id}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`);
 
+      console.log('🔍 API response for My Leads:', apiResponse);
+
       if (apiResponse?.success && apiResponse.data) {
+        console.log('🔍 Found leads assigned to advocate:', apiResponse.data.length);
         setLeads(apiResponse.data);
         
         // Calculate stats
@@ -123,8 +130,11 @@ export default function AdvocateDashboard() {
             new Date(l.createdAt).toDateString() === new Date().toDateString()
           ).length,
         });
+      } else {
+        console.log('🔍 No leads found or API failed:', apiResponse);
       }
     } catch (err: any) {
+      console.error('🔍 Error loading advocate data:', err);
       setError(err.message || 'Failed to load advocate data');
     } finally {
       setLoading(false);

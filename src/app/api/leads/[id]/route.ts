@@ -119,11 +119,15 @@ export async function GET(
 
     console.log('✅ Lead found successfully:', lead.firstName, lead.lastName);
 
-    // STRONG AUTO-ASSIGNMENT: Automatically assign lead to advocate when they open it
+    // STRONG AUTO-ASSIGNMENT: Assign lead to advocate if unassigned
     let assignmentMade = false;
     let assignmentMessage = '';
     
     if (authResult.user?.role === 'ADVOCATE') {
+      console.log('🔍 Advocate accessing lead. Auth user:', authResult.user);
+      console.log('🔍 Lead current advocateId:', lead.advocateId);
+      console.log('🔍 Auth user.userId:', authResult.user.userId);
+      
       if (!lead.advocateId) {
         // Lead is unassigned - assign it to current advocate
         const assignableStatuses = ['SUBMITTED', 'ADVOCATE_REVIEW'];
@@ -142,16 +146,19 @@ export async function GET(
           
           assignmentMade = true;
           assignmentMessage = 'Lead has been automatically assigned to you and moved to your "My Leads" tab.';
-          console.log('✅ Lead auto-assigned successfully to advocate:', authResult.user.userId);
+          console.log('✅ Lead auto-assigned successfully. AdvocateId set to:', authResult.user.userId);
         }
       } else if (lead.advocateId !== authResult.user.userId) {
         // Lead is assigned to a different advocate - deny access
         console.log('🚫 Access denied: Lead is assigned to different advocate');
+        console.log('🚫 Lead advocateId:', lead.advocateId, 'Auth userId:', authResult.user.userId);
         return NextResponse.json({
           success: false,
           error: 'This lead is already assigned to another advocate and is no longer available in the general pool.',
           assignedTo: lead.advocate ? `${lead.advocate.firstName} ${lead.advocate.lastName}` : 'Another advocate'
         }, { status: 403 });
+      } else {
+        console.log('✅ Advocate accessing their own assigned lead');
       }
       // If lead.advocateId === authResult.user.userId, they can access their own lead
     }

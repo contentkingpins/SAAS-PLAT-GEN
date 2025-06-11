@@ -202,6 +202,15 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
     }
   }, [lead]);
 
+  // Auto-update status when disposition changes
+  useEffect(() => {
+    if (disposition) {
+      const autoStatus = getStatusFromDisposition(disposition);
+      setStatus(autoStatus);
+      console.log('🔄 Status auto-updated to:', autoStatus, 'based on disposition:', disposition);
+    }
+  }, [disposition]);
+
   const loadLeadDetails = async () => {
     if (!leadId) return;
     
@@ -262,7 +271,7 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
       const updateData = {
         advocateDisposition: disposition,
         advocateNotes: advocateNotes,
-        advocateId: lead.advocateId || 'current_advocate_id', // This should be set from auth context
+        advocateId: user?.id || lead.advocateId, // Use actual user ID from store
         advocateReviewedAt: new Date().toISOString(),
         status: autoStatus, // Auto-set status based on disposition
         
