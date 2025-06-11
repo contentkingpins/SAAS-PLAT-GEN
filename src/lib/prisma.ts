@@ -5,11 +5,14 @@ declare global {
 }
 
 const createPrismaClient = () => {
+  // Use a dummy URL during build if DATABASE_URL is not available
+  const databaseUrl = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
+  
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: databaseUrl,
       },
     },
   });
