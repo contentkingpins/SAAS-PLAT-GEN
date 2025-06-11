@@ -67,13 +67,31 @@ export async function GET(request: NextRequest) {
       { state: { contains: query, mode: Prisma.QueryMode.insensitive } }
     );
 
+    // Build role-specific filters
+    let roleSpecificConditions: Prisma.LeadWhereInput = {};
+    
+    if (authResult.user?.role === 'ADVOCATE') {
+      // For advocates: only show unassigned leads OR leads assigned to them
+      roleSpecificConditions = {
+        OR: [
+          { advocateId: null }, // Unassigned leads
+          { advocateId: authResult.user.userId } // Leads assigned to current advocate
+        ]
+      };
+    }
+    // Admin and Collections can see all leads (no additional filtering)
+
     // Execute search
     const leads = await prisma.lead.findMany({
       where: {
-        OR: searchConditions
+        AND: [
+          { OR: searchConditions },
+          roleSpecificConditions
+        ]
       },
       take: limit,
       orderBy: [
+        { advocateId: 'asc' }, // Unassigned leads first
         { updatedAt: 'desc' },
         { createdAt: 'desc' }
       ],

@@ -119,27 +119,41 @@ export async function GET(
 
     console.log('✅ Lead found successfully:', lead.firstName, lead.lastName);
 
-    // Auto-assign lead to advocate if conditions are met
+    // STRONG AUTO-ASSIGNMENT: Automatically assign lead to advocate when they open it
     let assignmentMade = false;
-    if (authResult.user?.role === 'ADVOCATE' && !lead.advocateId) {
-      // Only auto-assign if lead is in a status that allows advocate assignment
-      const assignableStatuses = ['SUBMITTED', 'ADVOCATE_REVIEW'];
-      
-      if (assignableStatuses.includes(lead.status)) {
-        console.log('🎯 Auto-assigning lead to advocate:', authResult.user.userId);
+    let assignmentMessage = '';
+    
+    if (authResult.user?.role === 'ADVOCATE') {
+      if (!lead.advocateId) {
+        // Lead is unassigned - assign it to current advocate
+        const assignableStatuses = ['SUBMITTED', 'ADVOCATE_REVIEW'];
         
-        // Update lead with advocate assignment
-        await prisma.lead.update({
-          where: { id },
-          data: {
-            advocateId: authResult.user.userId,
-            status: 'ADVOCATE_REVIEW' // Ensure status is set to ADVOCATE_REVIEW
-          }
-        });
-        
-        assignmentMade = true;
-        console.log('✅ Lead auto-assigned successfully to advocate:', authResult.user.userId);
+        if (assignableStatuses.includes(lead.status)) {
+          console.log('🎯 AUTO-ASSIGNING unassigned lead to advocate:', authResult.user.userId);
+          
+          await prisma.lead.update({
+            where: { id },
+            data: {
+              advocateId: authResult.user.userId,
+              status: 'ADVOCATE_REVIEW',
+              advocateReviewedAt: new Date()
+            }
+          });
+          
+          assignmentMade = true;
+          assignmentMessage = 'Lead has been automatically assigned to you and moved to your "My Leads" tab.';
+          console.log('✅ Lead auto-assigned successfully to advocate:', authResult.user.userId);
+        }
+      } else if (lead.advocateId !== authResult.user.userId) {
+        // Lead is assigned to a different advocate - deny access
+        console.log('🚫 Access denied: Lead is assigned to different advocate');
+        return NextResponse.json({
+          success: false,
+          error: 'This lead is already assigned to another advocate and is no longer available in the general pool.',
+          assignedTo: lead.advocate ? `${lead.advocate.firstName} ${lead.advocate.lastName}` : 'Another advocate'
+        }, { status: 403 });
       }
+      // If lead.advocateId === authResult.user.userId, they can access their own lead
     }
 
     // Automatically check for alerts when lead is accessed
@@ -169,6 +183,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
       autoAssigned: assignmentMade, // Indicate if assignment was made during this request
+      assignmentMessage: assignmentMessage, // Message about assignment
       lead: {
         id: updatedLead!.id,
         mbi: updatedLead!.mbi,

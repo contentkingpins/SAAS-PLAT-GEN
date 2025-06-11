@@ -212,7 +212,7 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
       console.log('Loading lead details for ID:', leadId);
       console.log('Making API call to:', `leads/${leadId}`);
       
-      const response = await apiClient.get<{success: boolean; lead: LeadDetail}>(`leads/${leadId}`);
+      const response = await apiClient.get<{success: boolean; lead: LeadDetail; autoAssigned?: boolean; assignmentMessage?: string}>(`leads/${leadId}`);
       
       console.log('API response received:', response);
       
@@ -222,6 +222,15 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
         setAdvocateNotes(response.lead.advocateNotes || '');
         setStatus(response.lead.status);
         console.log('Lead details loaded successfully:', response.lead);
+        
+        // Show assignment message if lead was auto-assigned
+        if (response.autoAssigned && response.assignmentMessage) {
+          setSnackbar({
+            open: true,
+            message: response.assignmentMessage,
+            severity: 'success'
+          });
+        }
       } else {
         console.error('API response success is false or no lead data:', response);
         setError('Failed to load lead details - invalid response format');
@@ -685,60 +694,136 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                   <Grid item xs={12}>
                     <Card>
                       <CardContent>
-                        <Box display="flex" alignItems="center" mb={2}>
-                          <PersonIcon color="primary" sx={{ mr: 1 }} />
-                          <Typography variant="h6">Demographics</Typography>
+                        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                          <Box display="flex" alignItems="center">
+                            <PersonIcon color="primary" sx={{ mr: 1 }} />
+                            <Typography variant="h6">Demographics</Typography>
+                          </Box>
+                          <Button
+                            size="small"
+                            onClick={() => setEditMode(!editMode)}
+                            startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                          >
+                            {editMode ? 'Cancel' : 'Edit'}
+                          </Button>
                         </Box>
                         
                         <Grid container spacing={2}>
-                          {lead.middleInitial && (
-                            <Grid item xs={6} md={3}>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                Middle Initial
-                              </Typography>
-                              <Typography variant="body1">{lead.middleInitial}</Typography>
-                            </Grid>
-                          )}
-                          {lead.gender && (
-                            <Grid item xs={6} md={3}>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                Gender
-                              </Typography>
-                              <Typography variant="body1">{lead.gender}</Typography>
-                            </Grid>
-                          )}
-                          {lead.ethnicity && (
-                            <Grid item xs={6} md={3}>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                Ethnicity
-                              </Typography>
-                              <Typography variant="body1">{lead.ethnicity}</Typography>
-                            </Grid>
-                          )}
-                          {lead.maritalStatus && (
-                            <Grid item xs={6} md={3}>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                Marital Status
-                              </Typography>
-                              <Typography variant="body1">{lead.maritalStatus}</Typography>
-                            </Grid>
-                          )}
-                          {lead.height && (
-                            <Grid item xs={6} md={3}>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                Height
-                              </Typography>
-                              <Typography variant="body1">{lead.height}</Typography>
-                            </Grid>
-                          )}
-                          {lead.weight && (
-                            <Grid item xs={6} md={3}>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                Weight
-                              </Typography>
-                              <Typography variant="body1">{lead.weight}</Typography>
-                            </Grid>
-                          )}
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Middle Initial
+                            </Typography>
+                            {editMode ? (
+                              <TextField
+                                size="small"
+                                fullWidth
+                                value={editedLead.middleInitial}
+                                onChange={(e) => handleEditChange('middleInitial', e.target.value)}
+                                placeholder="MI"
+                              />
+                            ) : (
+                              <Typography variant="body1">{lead.middleInitial || 'N/A'}</Typography>
+                            )}
+                          </Grid>
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Gender
+                            </Typography>
+                            {editMode ? (
+                              <FormControl size="small" fullWidth>
+                                <Select
+                                  value={editedLead.gender || ''}
+                                  onChange={(e) => handleEditChange('gender', e.target.value)}
+                                >
+                                  <MenuItem value="Male">Male</MenuItem>
+                                  <MenuItem value="Female">Female</MenuItem>
+                                  <MenuItem value="Other">Other</MenuItem>
+                                  <MenuItem value="Prefer not to say">Prefer not to say</MenuItem>
+                                </Select>
+                              </FormControl>
+                            ) : (
+                              <Typography variant="body1">{lead.gender || 'N/A'}</Typography>
+                            )}
+                          </Grid>
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Ethnicity
+                            </Typography>
+                            {editMode ? (
+                              <FormControl size="small" fullWidth>
+                                <Select
+                                  value={editedLead.ethnicity || ''}
+                                  onChange={(e) => handleEditChange('ethnicity', e.target.value)}
+                                >
+                                  <MenuItem value="Hispanic or Latino">Hispanic or Latino</MenuItem>
+                                  <MenuItem value="Not Hispanic or Latino">Not Hispanic or Latino</MenuItem>
+                                  <MenuItem value="American Indian or Alaska Native">American Indian or Alaska Native</MenuItem>
+                                  <MenuItem value="Asian">Asian</MenuItem>
+                                  <MenuItem value="Black or African American">Black or African American</MenuItem>
+                                  <MenuItem value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</MenuItem>
+                                  <MenuItem value="White">White</MenuItem>
+                                  <MenuItem value="Two or More Races">Two or More Races</MenuItem>
+                                  <MenuItem value="Other">Other</MenuItem>
+                                  <MenuItem value="Prefer not to answer">Prefer not to answer</MenuItem>
+                                </Select>
+                              </FormControl>
+                            ) : (
+                              <Typography variant="body1">{lead.ethnicity || 'N/A'}</Typography>
+                            )}
+                          </Grid>
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Marital Status
+                            </Typography>
+                            {editMode ? (
+                              <FormControl size="small" fullWidth>
+                                <Select
+                                  value={editedLead.maritalStatus || ''}
+                                  onChange={(e) => handleEditChange('maritalStatus', e.target.value)}
+                                >
+                                  <MenuItem value="Single">Single</MenuItem>
+                                  <MenuItem value="Married">Married</MenuItem>
+                                  <MenuItem value="Divorced">Divorced</MenuItem>
+                                  <MenuItem value="Widowed">Widowed</MenuItem>
+                                  <MenuItem value="Separated">Separated</MenuItem>
+                                </Select>
+                              </FormControl>
+                            ) : (
+                              <Typography variant="body1">{lead.maritalStatus || 'N/A'}</Typography>
+                            )}
+                          </Grid>
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Height
+                            </Typography>
+                            {editMode ? (
+                              <TextField
+                                size="small"
+                                fullWidth
+                                value={editedLead.height}
+                                onChange={(e) => handleEditChange('height', e.target.value)}
+                                placeholder="5'8&quot;"
+                              />
+                            ) : (
+                              <Typography variant="body1">{lead.height || 'N/A'}</Typography>
+                            )}
+                          </Grid>
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Weight
+                            </Typography>
+                            {editMode ? (
+                              <TextField
+                                size="small"
+                                fullWidth
+                                value={editedLead.weight}
+                                onChange={(e) => handleEditChange('weight', e.target.value)}
+                                placeholder="150 lbs"
+                              />
+                            ) : (
+                              <Typography variant="body1">{lead.weight || 'N/A'}</Typography>
+                            )}
+                          </Grid>
                         </Grid>
                       </CardContent>
                     </Card>
@@ -752,28 +837,53 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                   <Grid item xs={12}>
                     <Card>
                       <CardContent>
-                        <Box display="flex" alignItems="center" mb={2}>
-                          <BusinessIcon color="primary" sx={{ mr: 1 }} />
-                          <Typography variant="h6">Insurance Information</Typography>
+                        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                          <Box display="flex" alignItems="center">
+                            <BusinessIcon color="primary" sx={{ mr: 1 }} />
+                            <Typography variant="h6">Insurance Information</Typography>
+                          </Box>
+                          <Button
+                            size="small"
+                            onClick={() => setEditMode(!editMode)}
+                            startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                          >
+                            {editMode ? 'Cancel' : 'Edit'}
+                          </Button>
                         </Box>
                         
                         <Grid container spacing={2}>
-                          {lead.insurance.primaryCompany && (
-                            <Grid item xs={12} md={6}>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                Primary Insurance Company
-                              </Typography>
-                              <Typography variant="body1">{lead.insurance.primaryCompany}</Typography>
-                            </Grid>
-                          )}
-                          {lead.insurance.primaryPolicyNumber && (
-                            <Grid item xs={12} md={6}>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                Policy Number
-                              </Typography>
-                              <Typography variant="body1">{lead.insurance.primaryPolicyNumber}</Typography>
-                            </Grid>
-                          )}
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Primary Insurance Company
+                            </Typography>
+                            {editMode ? (
+                              <TextField
+                                size="small"
+                                fullWidth
+                                value={editedLead.insurance?.primaryCompany || ''}
+                                onChange={(e) => handleEditChange('primaryCompany', e.target.value, 'insurance')}
+                                placeholder="Insurance Company Name"
+                              />
+                            ) : (
+                              <Typography variant="body1">{lead.insurance.primaryCompany || 'N/A'}</Typography>
+                            )}
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Policy Number
+                            </Typography>
+                            {editMode ? (
+                              <TextField
+                                size="small"
+                                fullWidth
+                                value={editedLead.insurance?.primaryPolicyNumber || ''}
+                                onChange={(e) => handleEditChange('primaryPolicyNumber', e.target.value, 'insurance')}
+                                placeholder="Policy Number"
+                              />
+                            ) : (
+                              <Typography variant="body1">{lead.insurance.primaryPolicyNumber || 'N/A'}</Typography>
+                            )}
+                          </Grid>
                         </Grid>
                       </CardContent>
                     </Card>
@@ -787,52 +897,97 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                   <Grid item xs={12}>
                     <Card>
                       <CardContent>
-                        <Box display="flex" alignItems="center" mb={2}>
-                          <LocalHospitalIcon color="primary" sx={{ mr: 1 }} />
-                          <Typography variant="h6">Medical History</Typography>
+                        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                          <Box display="flex" alignItems="center">
+                            <LocalHospitalIcon color="primary" sx={{ mr: 1 }} />
+                            <Typography variant="h6">Medical History</Typography>
+                          </Box>
+                          <Button
+                            size="small"
+                            onClick={() => setEditMode(!editMode)}
+                            startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                          >
+                            {editMode ? 'Cancel' : 'Edit'}
+                          </Button>
                         </Box>
                         
                         <Grid container spacing={2}>
-                          {lead.medicalHistory.past && (
-                            <Grid item xs={12}>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                Past Medical History
-                              </Typography>
+                          <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Past Medical History
+                            </Typography>
+                            {editMode ? (
+                              <TextField
+                                multiline
+                                rows={3}
+                                fullWidth
+                                value={editedLead.medicalHistory?.past || ''}
+                                onChange={(e) => handleEditChange('past', e.target.value, 'medicalHistory')}
+                                placeholder="Enter past medical history..."
+                              />
+                            ) : (
                               <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                                {lead.medicalHistory.past}
+                                {lead.medicalHistory.past || 'N/A'}
                               </Typography>
-                            </Grid>
-                          )}
-                          {lead.medicalHistory.surgical && (
-                            <Grid item xs={12}>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                Surgical History
-                              </Typography>
+                            )}
+                          </Grid>
+                          <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Surgical History
+                            </Typography>
+                            {editMode ? (
+                              <TextField
+                                multiline
+                                rows={3}
+                                fullWidth
+                                value={editedLead.medicalHistory?.surgical || ''}
+                                onChange={(e) => handleEditChange('surgical', e.target.value, 'medicalHistory')}
+                                placeholder="Enter surgical history..."
+                              />
+                            ) : (
                               <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                                {lead.medicalHistory.surgical}
+                                {lead.medicalHistory.surgical || 'N/A'}
                               </Typography>
-                            </Grid>
-                          )}
-                          {lead.medicalHistory.medications && (
-                            <Grid item xs={12}>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                Current Medications
-                              </Typography>
+                            )}
+                          </Grid>
+                          <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Current Medications
+                            </Typography>
+                            {editMode ? (
+                              <TextField
+                                multiline
+                                rows={3}
+                                fullWidth
+                                value={editedLead.medicalHistory?.medications || ''}
+                                onChange={(e) => handleEditChange('medications', e.target.value, 'medicalHistory')}
+                                placeholder="Enter current medications..."
+                              />
+                            ) : (
                               <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                                {lead.medicalHistory.medications}
+                                {lead.medicalHistory.medications || 'N/A'}
                               </Typography>
-                            </Grid>
-                          )}
-                          {lead.medicalHistory.conditions && (
-                            <Grid item xs={12}>
-                              <Typography variant="subtitle2" color="text.secondary">
-                                Medical Conditions
-                              </Typography>
+                            )}
+                          </Grid>
+                          <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Medical Conditions
+                            </Typography>
+                            {editMode ? (
+                              <TextField
+                                multiline
+                                rows={3}
+                                fullWidth
+                                value={editedLead.medicalHistory?.conditions || ''}
+                                onChange={(e) => handleEditChange('conditions', e.target.value, 'medicalHistory')}
+                                placeholder="Enter medical conditions..."
+                              />
+                            ) : (
                               <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                                {lead.medicalHistory.conditions}
+                                {lead.medicalHistory.conditions || 'N/A'}
                               </Typography>
-                            </Grid>
-                          )}
+                            )}
+                          </Grid>
                         </Grid>
                       </CardContent>
                     </Card>
