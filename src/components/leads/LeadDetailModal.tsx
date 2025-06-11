@@ -60,13 +60,14 @@ interface LeadDetail {
   dateOfBirth: string;
   phone: string;
   
+  // TODO: Uncomment after schema migration
   // Additional demographics
-  middleInitial?: string;
-  gender?: string;
-  ethnicity?: string;
-  maritalStatus?: string;
-  height?: string;
-  weight?: string;
+  // middleInitial?: string;
+  // gender?: string;
+  // ethnicity?: string;
+  // maritalStatus?: string;
+  // height?: string;
+  // weight?: string;
   
   address: {
     street: string;
@@ -75,26 +76,27 @@ interface LeadDetail {
     zipCode: string;
   };
   
+  // TODO: Uncomment after schema migration
   // Insurance information
-  insurance?: {
-    primaryCompany?: string;
-    primaryPolicyNumber?: string;
-  };
+  // insurance?: {
+  //   primaryCompany?: string;
+  //   primaryPolicyNumber?: string;
+  // };
   
   // Medical history
-  medicalHistory?: {
-    past?: string;
-    surgical?: string;
-    medications?: string;
-    conditions?: string;
-  };
+  // medicalHistory?: {
+  //   past?: string;
+  //   surgical?: string;
+  //   medications?: string;
+  //   conditions?: string;
+  // };
   
   // Family history
-  familyHistory?: Array<{
-    relation?: string;
-    conditions?: string;
-    ageOfDiagnosis?: string;
-  }>;
+  // familyHistory?: Array<{
+  //   relation?: string;
+  //   conditions?: string;
+  //   ageOfDiagnosis?: string;
+  // }>;
   
   vendorId: string;
   vendorCode: string;
@@ -491,8 +493,10 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
 
             {/* Comprehensive Form Data Sections */}
             
+            {/* TODO: Uncomment after schema migration is complete */}
+            
             {/* Demographics Section */}
-            {(lead.middleInitial || lead.gender || lead.ethnicity || lead.maritalStatus || lead.height || lead.weight) && (
+            {/* {(lead.middleInitial || lead.gender || lead.ethnicity || lead.maritalStatus || lead.height || lead.weight) && (
               <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid item xs={12}>
                   <Card>
@@ -556,10 +560,10 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                   </Card>
                 </Grid>
               </Grid>
-            )}
+            )} */}
 
             {/* Insurance Information */}
-            {lead.insurance && (lead.insurance.primaryCompany || lead.insurance.primaryPolicyNumber) && (
+            {/* {lead.insurance && (lead.insurance.primaryCompany || lead.insurance.primaryPolicyNumber) && (
               <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid item xs={12}>
                   <Card>
@@ -591,10 +595,10 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                   </Card>
                 </Grid>
               </Grid>
-            )}
+            )} */}
 
             {/* Medical History */}
-            {lead.medicalHistory && (lead.medicalHistory.past || lead.medicalHistory.surgical || lead.medicalHistory.medications || lead.medicalHistory.conditions) && (
+            {/* {lead.medicalHistory && (lead.medicalHistory.past || lead.medicalHistory.surgical || lead.medicalHistory.medications || lead.medicalHistory.conditions) && (
               <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid item xs={12}>
                   <Card>
@@ -650,10 +654,10 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                   </Card>
                 </Grid>
               </Grid>
-            )}
+            )} */}
 
             {/* Family History */}
-            {lead.familyHistory && lead.familyHistory.length > 0 && (
+            {/* {lead.familyHistory && lead.familyHistory.length > 0 && (
               <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid item xs={12}>
                   <Card>
@@ -701,7 +705,7 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                   </Card>
                 </Grid>
               </Grid>
-            )}
+            )} */}
 
             {/* Advocate Update Section */}
             <Grid item xs={12}>

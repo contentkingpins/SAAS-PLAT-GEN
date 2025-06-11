@@ -150,13 +150,14 @@ export async function GET(
         dateOfBirth: updatedLead!.dateOfBirth.toISOString(),
         phone: updatedLead!.phone,
         
+        // TODO: Add comprehensive form fields after schema migration
         // Additional demographics
-        middleInitial: updatedLead!.middleInitial,
-        gender: updatedLead!.gender,
-        ethnicity: updatedLead!.ethnicity,
-        maritalStatus: updatedLead!.maritalStatus,
-        height: updatedLead!.height,
-        weight: updatedLead!.weight,
+        // middleInitial: updatedLead!.middleInitial,
+        // gender: updatedLead!.gender,
+        // ethnicity: updatedLead!.ethnicity,
+        // maritalStatus: updatedLead!.maritalStatus,
+        // height: updatedLead!.height,
+        // weight: updatedLead!.weight,
         
         // Address
         address: {
@@ -166,22 +167,23 @@ export async function GET(
           zipCode: updatedLead!.zipCode,
         },
         
+        // TODO: Add after schema migration
         // Insurance information
-        insurance: {
-          primaryCompany: updatedLead!.primaryInsuranceCompany,
-          primaryPolicyNumber: updatedLead!.primaryPolicyNumber,
-        },
+        // insurance: {
+        //   primaryCompany: updatedLead!.primaryInsuranceCompany,
+        //   primaryPolicyNumber: updatedLead!.primaryPolicyNumber,
+        // },
         
         // Medical history
-        medicalHistory: {
-          past: updatedLead!.medicalHistory,
-          surgical: updatedLead!.surgicalHistory,
-          medications: updatedLead!.currentMedications,
-          conditions: updatedLead!.conditionsHistory,
-        },
+        // medicalHistory: {
+        //   past: updatedLead!.medicalHistory,
+        //   surgical: updatedLead!.surgicalHistory,
+        //   medications: updatedLead!.currentMedications,
+        //   conditions: updatedLead!.conditionsHistory,
+        // },
         
         // Family history (parse JSON if available)
-        familyHistory: updatedLead!.familyHistory ? JSON.parse(updatedLead!.familyHistory as string) : null,
+        // familyHistory: updatedLead!.familyHistory ? JSON.parse(updatedLead!.familyHistory as string) : null,
         
         vendorId: updatedLead!.vendorId,
         vendorCode: updatedLead!.vendorCode,
@@ -320,13 +322,14 @@ export async function PATCH(
         dateOfBirth: updatedLead.dateOfBirth.toISOString(),
         phone: updatedLead.phone,
         
+        // TODO: Add comprehensive form fields after schema migration
         // Additional demographics
-        middleInitial: updatedLead.middleInitial,
-        gender: updatedLead.gender,
-        ethnicity: updatedLead.ethnicity,
-        maritalStatus: updatedLead.maritalStatus,
-        height: updatedLead.height,
-        weight: updatedLead.weight,
+        // middleInitial: updatedLead.middleInitial,
+        // gender: updatedLead.gender,
+        // ethnicity: updatedLead.ethnicity,
+        // maritalStatus: updatedLead.maritalStatus,
+        // height: updatedLead.height,
+        // weight: updatedLead.weight,
         
         // Address
         address: {
@@ -336,22 +339,23 @@ export async function PATCH(
           zipCode: updatedLead.zipCode,
         },
         
+        // TODO: Add after schema migration
         // Insurance information
-        insurance: {
-          primaryCompany: updatedLead.primaryInsuranceCompany,
-          primaryPolicyNumber: updatedLead.primaryPolicyNumber,
-        },
+        // insurance: {
+        //   primaryCompany: updatedLead.primaryInsuranceCompany,
+        //   primaryPolicyNumber: updatedLead.primaryPolicyNumber,
+        // },
         
         // Medical history
-        medicalHistory: {
-          past: updatedLead.medicalHistory,
-          surgical: updatedLead.surgicalHistory,
-          medications: updatedLead.currentMedications,
-          conditions: updatedLead.conditionsHistory,
-        },
+        // medicalHistory: {
+        //   past: updatedLead.medicalHistory,
+        //   surgical: updatedLead.surgicalHistory,
+        //   medications: updatedLead.currentMedications,
+        //   conditions: updatedLead.conditionsHistory,
+        // },
         
         // Family history (parse JSON if available)
-        familyHistory: updatedLead.familyHistory ? JSON.parse(updatedLead.familyHistory as string) : null,
+        // familyHistory: updatedLead.familyHistory ? JSON.parse(updatedLead.familyHistory as string) : null,
         
         vendorId: updatedLead.vendorId,
         vendorCode: updatedLead.vendorCode,

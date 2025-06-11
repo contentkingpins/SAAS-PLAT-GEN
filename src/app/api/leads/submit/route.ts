@@ -163,13 +163,14 @@ export async function POST(request: NextRequest) {
         dateOfBirth: dateOfBirth, // Use the converted Date object
         phone: data.phone,
         
+        // TODO: Add comprehensive form fields after schema migration
         // Additional demographics
-        middleInitial: data.middleInitial || null,
-        gender: data.gender || null,
-        ethnicity: data.ethnicity || null,
-        maritalStatus: data.maritalStatus || null,
-        height: data.height || null,
-        weight: data.weight || null,
+        // middleInitial: data.middleInitial || undefined,
+        // gender: data.gender || undefined,
+        // ethnicity: data.ethnicity || undefined,
+        // maritalStatus: data.maritalStatus || undefined,
+        // height: data.height || undefined,
+        // weight: data.weight || undefined,
         
         // Address
         street: data.street || '',
@@ -177,18 +178,19 @@ export async function POST(request: NextRequest) {
         state: data.state || '',
         zipCode: data.zipCode || '',
         
+        // TODO: Add after schema migration
         // Insurance information
-        primaryInsuranceCompany: data.primaryInsuranceCompany || null,
-        primaryPolicyNumber: data.primaryPolicyNumber || null,
+        // primaryInsuranceCompany: data.primaryInsuranceCompany || undefined,
+        // primaryPolicyNumber: data.primaryPolicyNumber || undefined,
         
         // Medical history - extract from additionalData if present
-        medicalHistory: data.additionalData?.medicalHistory?.past || null,
-        surgicalHistory: data.additionalData?.medicalHistory?.surgical || null,
-        currentMedications: data.additionalData?.medicalHistory?.medications || null,
-        conditionsHistory: data.additionalData?.medicalHistory?.conditions || null,
+        // medicalHistory: data.additionalData?.medicalHistory?.past || undefined,
+        // surgicalHistory: data.additionalData?.medicalHistory?.surgical || undefined,
+        // currentMedications: data.additionalData?.medicalHistory?.medications || undefined,
+        // conditionsHistory: data.additionalData?.medicalHistory?.conditions || undefined,
         
         // Family history - store as JSON array
-        familyHistory: data.additionalData?.familyHistory ? JSON.stringify(data.additionalData.familyHistory) : null,
+        // familyHistory: data.additionalData?.familyHistory ? JSON.stringify(data.additionalData.familyHistory) : undefined,
         
         // Vendor tracking
         vendorId: vendor.id, // Use the vendor ID from the database lookup
