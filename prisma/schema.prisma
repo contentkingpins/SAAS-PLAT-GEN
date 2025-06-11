@@ -141,11 +141,32 @@ model Lead {
   dateOfBirth     DateTime
   phone           String
   
+  // Additional patient demographics
+  middleInitial   String?
+  gender          String?
+  ethnicity       String?
+  maritalStatus   String?
+  height          String?
+  weight          String?
+  
   // Address
   street          String
   city            String
   state           String
   zipCode         String
+  
+  // Insurance information
+  primaryInsuranceCompany String?
+  primaryPolicyNumber     String?
+  
+  // Medical history information
+  medicalHistory          String?   // Past medical history
+  surgicalHistory         String?   // Surgical history
+  currentMedications      String?   // Current medications
+  conditionsHistory       String?   // Medical conditions specific to test type
+  
+  // Family history information (JSON field to store array of family members)
+  familyHistory           Json?     // Array of {relation, conditions, ageOfDiagnosis}
   
   // Vendor tracking
   vendorId        String

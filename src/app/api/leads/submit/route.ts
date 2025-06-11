@@ -162,10 +162,35 @@ export async function POST(request: NextRequest) {
         lastName: data.lastName,
         dateOfBirth: dateOfBirth, // Use the converted Date object
         phone: data.phone,
+        
+        // Additional demographics
+        middleInitial: data.middleInitial || null,
+        gender: data.gender || null,
+        ethnicity: data.ethnicity || null,
+        maritalStatus: data.maritalStatus || null,
+        height: data.height || null,
+        weight: data.weight || null,
+        
+        // Address
         street: data.street || '',
         city: data.city || '',
         state: data.state || '',
         zipCode: data.zipCode || '',
+        
+        // Insurance information
+        primaryInsuranceCompany: data.primaryInsuranceCompany || null,
+        primaryPolicyNumber: data.primaryPolicyNumber || null,
+        
+        // Medical history - extract from additionalData if present
+        medicalHistory: data.additionalData?.medicalHistory?.past || null,
+        surgicalHistory: data.additionalData?.medicalHistory?.surgical || null,
+        currentMedications: data.additionalData?.medicalHistory?.medications || null,
+        conditionsHistory: data.additionalData?.medicalHistory?.conditions || null,
+        
+        // Family history - store as JSON array
+        familyHistory: data.additionalData?.familyHistory ? JSON.stringify(data.additionalData.familyHistory) : null,
+        
+        // Vendor tracking
         vendorId: vendor.id, // Use the vendor ID from the database lookup
         vendorCode: vendor.code,
         status: 'SUBMITTED',

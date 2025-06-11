@@ -149,12 +149,40 @@ export async function GET(
         lastName: updatedLead!.lastName,
         dateOfBirth: updatedLead!.dateOfBirth.toISOString(),
         phone: updatedLead!.phone,
+        
+        // Additional demographics
+        middleInitial: updatedLead!.middleInitial,
+        gender: updatedLead!.gender,
+        ethnicity: updatedLead!.ethnicity,
+        maritalStatus: updatedLead!.maritalStatus,
+        height: updatedLead!.height,
+        weight: updatedLead!.weight,
+        
+        // Address
         address: {
           street: updatedLead!.street,
           city: updatedLead!.city,
           state: updatedLead!.state,
           zipCode: updatedLead!.zipCode,
         },
+        
+        // Insurance information
+        insurance: {
+          primaryCompany: updatedLead!.primaryInsuranceCompany,
+          primaryPolicyNumber: updatedLead!.primaryPolicyNumber,
+        },
+        
+        // Medical history
+        medicalHistory: {
+          past: updatedLead!.medicalHistory,
+          surgical: updatedLead!.surgicalHistory,
+          medications: updatedLead!.currentMedications,
+          conditions: updatedLead!.conditionsHistory,
+        },
+        
+        // Family history (parse JSON if available)
+        familyHistory: updatedLead!.familyHistory ? JSON.parse(updatedLead!.familyHistory as string) : null,
+        
         vendorId: updatedLead!.vendorId,
         vendorCode: updatedLead!.vendorCode,
         subVendorId: updatedLead!.subVendorId,
@@ -291,12 +319,40 @@ export async function PATCH(
         lastName: updatedLead.lastName,
         dateOfBirth: updatedLead.dateOfBirth.toISOString(),
         phone: updatedLead.phone,
+        
+        // Additional demographics
+        middleInitial: updatedLead.middleInitial,
+        gender: updatedLead.gender,
+        ethnicity: updatedLead.ethnicity,
+        maritalStatus: updatedLead.maritalStatus,
+        height: updatedLead.height,
+        weight: updatedLead.weight,
+        
+        // Address
         address: {
           street: updatedLead.street,
           city: updatedLead.city,
           state: updatedLead.state,
           zipCode: updatedLead.zipCode,
         },
+        
+        // Insurance information
+        insurance: {
+          primaryCompany: updatedLead.primaryInsuranceCompany,
+          primaryPolicyNumber: updatedLead.primaryPolicyNumber,
+        },
+        
+        // Medical history
+        medicalHistory: {
+          past: updatedLead.medicalHistory,
+          surgical: updatedLead.surgicalHistory,
+          medications: updatedLead.currentMedications,
+          conditions: updatedLead.conditionsHistory,
+        },
+        
+        // Family history (parse JSON if available)
+        familyHistory: updatedLead.familyHistory ? JSON.parse(updatedLead.familyHistory as string) : null,
+        
         vendorId: updatedLead.vendorId,
         vendorCode: updatedLead.vendorCode,
         subVendorId: updatedLead.subVendorId,

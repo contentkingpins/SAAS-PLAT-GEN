@@ -27,6 +27,7 @@ import {
   ListItemText,
   ListItemIcon,
   IconButton,
+  FormHelperText,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -38,6 +39,8 @@ import {
   CheckCircle as CheckCircleIcon,
   Schedule as ScheduleIcon,
   Notes as NotesIcon,
+  LocalHospital as LocalHospitalIcon,
+  FamilyRestroom as FamilyRestroomIcon,
 } from '@mui/icons-material';
 import { apiClient } from '@/lib/api/client';
 import useStore from '@/store/useStore';
@@ -56,12 +59,43 @@ interface LeadDetail {
   lastName: string;
   dateOfBirth: string;
   phone: string;
+  
+  // Additional demographics
+  middleInitial?: string;
+  gender?: string;
+  ethnicity?: string;
+  maritalStatus?: string;
+  height?: string;
+  weight?: string;
+  
   address: {
     street: string;
     city: string;
     state: string;
     zipCode: string;
   };
+  
+  // Insurance information
+  insurance?: {
+    primaryCompany?: string;
+    primaryPolicyNumber?: string;
+  };
+  
+  // Medical history
+  medicalHistory?: {
+    past?: string;
+    surgical?: string;
+    medications?: string;
+    conditions?: string;
+  };
+  
+  // Family history
+  familyHistory?: Array<{
+    relation?: string;
+    conditions?: string;
+    ageOfDiagnosis?: string;
+  }>;
+  
   vendorId: string;
   vendorCode: string;
   subVendorId?: string;
@@ -454,6 +488,220 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                 </CardContent>
               </Card>
             </Grid>
+
+            {/* Comprehensive Form Data Sections */}
+            
+            {/* Demographics Section */}
+            {(lead.middleInitial || lead.gender || lead.ethnicity || lead.maritalStatus || lead.height || lead.weight) && (
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Box display="flex" alignItems="center" mb={2}>
+                        <PersonIcon color="primary" sx={{ mr: 1 }} />
+                        <Typography variant="h6">Demographics</Typography>
+                      </Box>
+                      
+                      <Grid container spacing={2}>
+                        {lead.middleInitial && (
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Middle Initial
+                            </Typography>
+                            <Typography variant="body1">{lead.middleInitial}</Typography>
+                          </Grid>
+                        )}
+                        {lead.gender && (
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Gender
+                            </Typography>
+                            <Typography variant="body1">{lead.gender}</Typography>
+                          </Grid>
+                        )}
+                        {lead.ethnicity && (
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Ethnicity
+                            </Typography>
+                            <Typography variant="body1">{lead.ethnicity}</Typography>
+                          </Grid>
+                        )}
+                        {lead.maritalStatus && (
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Marital Status
+                            </Typography>
+                            <Typography variant="body1">{lead.maritalStatus}</Typography>
+                          </Grid>
+                        )}
+                        {lead.height && (
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Height
+                            </Typography>
+                            <Typography variant="body1">{lead.height}</Typography>
+                          </Grid>
+                        )}
+                        {lead.weight && (
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Weight
+                            </Typography>
+                            <Typography variant="body1">{lead.weight}</Typography>
+                          </Grid>
+                        )}
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Insurance Information */}
+            {lead.insurance && (lead.insurance.primaryCompany || lead.insurance.primaryPolicyNumber) && (
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Box display="flex" alignItems="center" mb={2}>
+                        <BusinessIcon color="primary" sx={{ mr: 1 }} />
+                        <Typography variant="h6">Insurance Information</Typography>
+                      </Box>
+                      
+                      <Grid container spacing={2}>
+                        {lead.insurance.primaryCompany && (
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Primary Insurance Company
+                            </Typography>
+                            <Typography variant="body1">{lead.insurance.primaryCompany}</Typography>
+                          </Grid>
+                        )}
+                        {lead.insurance.primaryPolicyNumber && (
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Policy Number
+                            </Typography>
+                            <Typography variant="body1">{lead.insurance.primaryPolicyNumber}</Typography>
+                          </Grid>
+                        )}
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Medical History */}
+            {lead.medicalHistory && (lead.medicalHistory.past || lead.medicalHistory.surgical || lead.medicalHistory.medications || lead.medicalHistory.conditions) && (
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Box display="flex" alignItems="center" mb={2}>
+                        <LocalHospitalIcon color="primary" sx={{ mr: 1 }} />
+                        <Typography variant="h6">Medical History</Typography>
+                      </Box>
+                      
+                      <Grid container spacing={2}>
+                        {lead.medicalHistory.past && (
+                          <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Past Medical History
+                            </Typography>
+                            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                              {lead.medicalHistory.past}
+                            </Typography>
+                          </Grid>
+                        )}
+                        {lead.medicalHistory.surgical && (
+                          <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Surgical History
+                            </Typography>
+                            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                              {lead.medicalHistory.surgical}
+                            </Typography>
+                          </Grid>
+                        )}
+                        {lead.medicalHistory.medications && (
+                          <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Current Medications
+                            </Typography>
+                            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                              {lead.medicalHistory.medications}
+                            </Typography>
+                          </Grid>
+                        )}
+                        {lead.medicalHistory.conditions && (
+                          <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Medical Conditions
+                            </Typography>
+                            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                              {lead.medicalHistory.conditions}
+                            </Typography>
+                          </Grid>
+                        )}
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Family History */}
+            {lead.familyHistory && lead.familyHistory.length > 0 && (
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Box display="flex" alignItems="center" mb={2}>
+                        <FamilyRestroomIcon color="primary" sx={{ mr: 1 }} />
+                        <Typography variant="h6">Family History</Typography>
+                      </Box>
+                      
+                      <Grid container spacing={2}>
+                        {lead.familyHistory.map((family, index) => (
+                          family.relation && (
+                            <Grid item xs={12} key={index}>
+                              <Paper variant="outlined" sx={{ p: 2 }}>
+                                <Grid container spacing={2}>
+                                  <Grid item xs={12} md={4}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                      Relation
+                                    </Typography>
+                                    <Typography variant="body1">{family.relation}</Typography>
+                                  </Grid>
+                                  {family.conditions && (
+                                    <Grid item xs={12} md={6}>
+                                      <Typography variant="subtitle2" color="text.secondary">
+                                        Conditions
+                                      </Typography>
+                                      <Typography variant="body1">{family.conditions}</Typography>
+                                    </Grid>
+                                  )}
+                                  {family.ageOfDiagnosis && (
+                                    <Grid item xs={12} md={2}>
+                                      <Typography variant="subtitle2" color="text.secondary">
+                                        Age of Diagnosis
+                                      </Typography>
+                                      <Typography variant="body1">{family.ageOfDiagnosis}</Typography>
+                                    </Grid>
+                                  )}
+                                </Grid>
+                              </Paper>
+                            </Grid>
+                          )
+                        ))}
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            )}
 
             {/* Advocate Update Section */}
             <Grid item xs={12}>
