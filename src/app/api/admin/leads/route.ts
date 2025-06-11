@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    
+
     // Create new lead (for admin purposes)
     const lead = await prisma.lead.create({
       data: {
@@ -176,4 +176,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

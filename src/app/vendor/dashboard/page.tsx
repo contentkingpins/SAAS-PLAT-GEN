@@ -58,6 +58,8 @@ import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { VendorAuthGuard } from '@/components/auth/VendorAuthGuard';
+import { PortalLayout } from '@/components/layout/PortalLayout';
 
 interface VendorMetrics {
   totalLeads: number;
@@ -102,8 +104,8 @@ function TabPanel(props: TabPanelProps) {
 // Validation schema for creating downline vendors
 const downlineVendorSchema = z.object({
   name: z.string().min(2, 'Vendor name must be at least 2 characters'),
-  code: z.string().min(3, 'Vendor code must be at least 3 characters'),
-  staticCode: z.string().min(3, 'Static code must be at least 3 characters'),
+  code: z.string().min(3, 'Vendor code must be at least 3 characters').optional(),
+  staticCode: z.string().min(3, 'Static code must be at least 3 characters').optional(),
   isActive: z.boolean(),
 });
 
@@ -115,7 +117,7 @@ export default function VendorDashboard() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [tabValue, setTabValue] = useState(0);
   const [isMainVendor, setIsMainVendor] = useState(true); // Default to true since only main vendors can log in
-  
+
   // Lead Management State
   const [leads, setLeads] = useState<Lead[]>([]);
   const [metrics, setMetrics] = useState<VendorMetrics>({
@@ -163,22 +165,22 @@ export default function VendorDashboard() {
 
   const fetchVendorData = async () => {
     if (!user?.vendorId) return;
-    
+
     try {
       setLoading(true);
       // Fetch leads and metrics
       const [leadsData, metricsData] = await Promise.all([
-        apiClient.get<Lead[]>(`/api/vendors/${user.vendorId}/leads`),
-        apiClient.get<VendorMetrics>(`/api/vendors/${user.vendorId}/metrics`),
+        apiClient.get<Lead[]>(`/vendors/${user.vendorId}/leads`),
+        apiClient.get<VendorMetrics>(`/vendors/${user.vendorId}/metrics`),
       ]);
-      
+
       setLeads(leadsData);
       setMetrics(metricsData);
-      
+
       // Check if this is a main vendor by trying to access downlines
       // Only main vendors can access this endpoint
       try {
-        await apiClient.get(`/api/vendors/${user.vendorId}/downlines`);
+        await apiClient.get(`/vendors/${user.vendorId}/downlines`);
         setIsMainVendor(true); // If successful, it's a main vendor
       } catch (error: any) {
         // If we get a 403 about sub-vendors, then this is a sub-vendor
@@ -198,10 +200,10 @@ export default function VendorDashboard() {
 
   const fetchSubVendors = async () => {
     if (!user?.vendorId) return;
-    
+
     try {
       setDownlineLoading(true);
-      const data = await apiClient.get<SubVendor[]>(`/api/vendors/${user.vendorId}/downlines`);
+      const data = await apiClient.get<SubVendor[]>(`/vendors/${user.vendorId}/downlines`);
       setSubVendors(data || []);
     } catch (error: any) {
       setError('Failed to fetch downline vendors: ' + error.message);
@@ -243,16 +245,16 @@ export default function VendorDashboard() {
 
   const onSubmitDownline = async (data: DownlineVendorFormData) => {
     if (!user?.vendorId) return;
-    
+
     try {
       setError(null);
-      
+
       const downlineData = {
         ...data,
         parentVendorId: user.vendorId, // Set current vendor as parent
       };
 
-      await apiClient.post(`/api/vendors/${user.vendorId}/downlines`, downlineData);
+      await apiClient.post(`/vendors/${user.vendorId}/downlines`, downlineData);
       setSuccess('Downline vendor created successfully');
       setDialogOpen(false);
       fetchSubVendors(); // Refresh the list
@@ -274,7 +276,7 @@ export default function VendorDashboard() {
   const getSubVendorStats = (vendor: SubVendor) => {
     const totalLeads = vendor.leads?.length || 0;
     const activeUsers = vendor.users?.length || 0;
-    
+
     return { totalLeads, activeUsers };
   };
 
@@ -305,73 +307,37 @@ export default function VendorDashboard() {
     }
   };
 
+    const vendorIdInfo = (
+    <Typography variant="body2" color="rgba(255, 255, 255, 0.9)">
+      Vendor ID: <strong>{user?.vendorId || 'N/A'}</strong>
+    </Typography>
+  );
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* App Bar */}
-      <AppBar position="static" elevation={1}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Healthcare Lead Management - Vendor Portal
-          </Typography>
-          
-          <Typography variant="body2" sx={{ mr: 3 }}>
-            Vendor ID: <strong>{user?.vendorId || 'N/A'}</strong>
-          </Typography>
-
-          <IconButton
-            color="inherit"
-            onClick={(e) => setAnchorEl(e.currentTarget)}
-          >
-            <Avatar sx={{ bgcolor: 'secondary.main', width: 32, height: 32 }}>
-              {user?.firstName?.[0]}
-            </Avatar>
-          </IconButton>
-
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={() => setAnchorEl(null)}
-          >
-            <MenuItem disabled>
-              <AccountCircle sx={{ mr: 1 }} />
-              {user?.email}
-            </MenuItem>
-            <MenuItem onClick={handleLogout}>
-              <ExitToApp sx={{ mr: 1 }} />
-              Logout
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
-
-      {/* Main Content */}
-      <Box sx={{ flexGrow: 1, bgcolor: 'background.default' }}>
-        <Container maxWidth="xl" sx={{ py: 3 }}>
-          {/* Alerts */}
-          {error && (
-            <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          {success && (
-            <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>
-              {success}
-            </Alert>
-          )}
+    <VendorAuthGuard>
+      <PortalLayout
+        title="Healthcare Lead Management"
+        userRole="vendor"
+        additionalHeaderInfo={vendorIdInfo}
+        error={error}
+        success={success}
+        onErrorClose={() => setError(null)}
+        onSuccessClose={() => setSuccess(null)}
+      >
 
           {/* Tabs */}
           <Paper sx={{ mb: 3 }}>
             <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab 
-                icon={<Assignment />} 
-                iconPosition="start" 
-                label="Lead Management" 
+              <Tab
+                icon={<Assignment />}
+                iconPosition="start"
+                label="Lead Management"
               />
               {isMainVendor && (
-                <Tab 
-                  icon={<AccountTreeIcon />} 
-                  iconPosition="start" 
-                  label="Downline Management" 
+                <Tab
+                  icon={<AccountTreeIcon />}
+                  iconPosition="start"
+                  label="Downline Management"
                 />
               )}
             </Tabs>
@@ -646,17 +612,17 @@ export default function VendorDashboard() {
                             </TableCell>
                             <TableCell>
                               <Box display="flex" alignItems="center" gap={1}>
-                                <Link 
-                                  href={formLink} 
-                                  target="_blank" 
+                                <Link
+                                  href={formLink}
+                                  target="_blank"
                                   rel="noopener noreferrer"
                                   sx={{ fontSize: '0.75rem', maxWidth: '200px', wordBreak: 'break-all' }}
                                 >
                                   {formLink}
                                 </Link>
                                 <Tooltip title="Copy link">
-                                  <IconButton 
-                                    size="small" 
+                                  <IconButton
+                                    size="small"
                                     onClick={() => copyToClipboard(formLink)}
                                   >
                                     <LinkIcon fontSize="small" />
@@ -704,10 +670,8 @@ export default function VendorDashboard() {
             </Paper>
           </TabPanel>
           )}
-        </Container>
-      </Box>
 
-      {/* Create Downline Vendor Dialog */}
+        {/* Create Downline Vendor Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>
           Create New Downline Vendor
@@ -716,10 +680,10 @@ export default function VendorDashboard() {
           <DialogContent>
             <Box display="flex" flexDirection="column" gap={3}>
               <Alert severity="info">
-                You are creating a sub-vendor under your vendor account. 
+                You are creating a sub-vendor under your vendor account.
                 They will get their own unique form link for lead submissions.
               </Alert>
-              
+
               <TextField
                 label="Vendor Name"
                 fullWidth
@@ -727,24 +691,26 @@ export default function VendorDashboard() {
                 error={!!errors.name}
                 helperText={errors.name?.message}
               />
-              
+
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <TextField
-                    label="Vendor Code"
+                    label="Vendor Code (Optional)"
+                    placeholder="Auto-generated if left empty"
                     fullWidth
                     {...register('code')}
                     error={!!errors.code}
-                    helperText={errors.code?.message}
+                    helperText={errors.code?.message || "Will be auto-generated based on vendor name"}
                   />
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
-                    label="Static Code"
+                    label="Static Code (Optional)"
+                    placeholder="Auto-generated if left empty"
                     fullWidth
                     {...register('staticCode')}
                     error={!!errors.staticCode}
-                    helperText={errors.staticCode?.message}
+                    helperText={errors.staticCode?.message || "Will be auto-generated based on vendor name"}
                   />
                 </Grid>
               </Grid>
@@ -776,6 +742,7 @@ export default function VendorDashboard() {
           </DialogActions>
         </form>
       </Dialog>
-    </Box>
+      </PortalLayout>
+    </VendorAuthGuard>
   );
-} 
+}

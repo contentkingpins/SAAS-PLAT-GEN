@@ -18,10 +18,10 @@ export async function verifyAuth(request: NextRequest): Promise<{ user?: AuthUse
     }
 
     const token = authHeader.substring(7);
-    
+
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
-      
+
       const user: AuthUser = {
         userId: decoded.userId,
         email: decoded.email,
@@ -42,7 +42,7 @@ export async function verifyAuth(request: NextRequest): Promise<{ user?: AuthUse
 // Verify admin authentication
 export async function verifyAdminAuth(request: NextRequest): Promise<{ user?: AuthUser; error?: string; status: number }> {
   const authResult = await verifyAuth(request);
-  
+
   if (authResult.error) {
     return authResult;
   }
@@ -57,7 +57,7 @@ export async function verifyAdminAuth(request: NextRequest): Promise<{ user?: Au
 // Verify vendor authentication
 export async function verifyVendorAuth(request: NextRequest): Promise<{ user?: AuthUser; error?: string; status: number }> {
   const authResult = await verifyAuth(request);
-  
+
   if (authResult.error) {
     return authResult;
   }
@@ -69,10 +69,10 @@ export async function verifyVendorAuth(request: NextRequest): Promise<{ user?: A
   return authResult;
 }
 
-// Verify advocate authentication  
+// Verify advocate authentication
 export async function verifyAdvocateAuth(request: NextRequest): Promise<{ user?: AuthUser; error?: string; status: number }> {
   const authResult = await verifyAuth(request);
-  
+
   if (authResult.error) {
     return authResult;
   }
@@ -87,7 +87,7 @@ export async function verifyAdvocateAuth(request: NextRequest): Promise<{ user?:
 // Verify collections authentication
 export async function verifyCollectionsAuth(request: NextRequest): Promise<{ user?: AuthUser; error?: string; status: number }> {
   const authResult = await verifyAuth(request);
-  
+
   if (authResult.error) {
     return authResult;
   }
@@ -97,4 +97,4 @@ export async function verifyCollectionsAuth(request: NextRequest): Promise<{ use
   }
 
   return authResult;
-} 
+}

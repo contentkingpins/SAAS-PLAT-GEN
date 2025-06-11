@@ -60,7 +60,7 @@ interface Vendor {
 function SubmitFormContent() {
   const searchParams = useSearchParams();
   const vendorCode = searchParams?.get('vendor');
-  
+
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -90,7 +90,7 @@ function SubmitFormContent() {
   const fetchVendor = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get<Vendor>(`/api/vendors/by-code/${vendorCode}`);
+      const response = await apiClient.get<Vendor>(`/vendors/by-code/${vendorCode}`);
       if (response && response.isActive) {
         setVendor(response);
       } else {
@@ -110,7 +110,7 @@ function SubmitFormContent() {
       setSubmitting(true);
       setError(null);
 
-      await apiClient.post('/api/leads/submit', {
+              await apiClient.post('/leads/submit', {
         ...data,
         vendorCode: vendor.code,
         vendorId: vendor.id,
@@ -451,4 +451,4 @@ export default function SubmitPage() {
       <SubmitFormContent />
     </Suspense>
   );
-} 
+}

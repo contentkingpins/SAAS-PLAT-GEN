@@ -115,8 +115,8 @@ function TabPanel(props: TabPanelProps) {
 // Validation schema
 const vendorSchema = z.object({
   name: z.string().min(2, 'Vendor name must be at least 2 characters'),
-  code: z.string().min(3, 'Vendor code must be at least 3 characters'),
-  staticCode: z.string().min(3, 'Static code must be at least 3 characters'),
+  code: z.string().min(3, 'Vendor code must be at least 3 characters').optional(),
+  staticCode: z.string().min(3, 'Static code must be at least 3 characters').optional(),
   parentVendorId: z.string().optional(),
   isActive: z.boolean(),
 });
@@ -131,25 +131,25 @@ export function VendorManagement() {
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [leadsLoading, setLeadsLoading] = useState(false);
-  
+
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
-  
+
   // Pagination
   const [vendorPage, setVendorPage] = useState(0);
   const [vendorRowsPerPage, setVendorRowsPerPage] = useState(10);
   const [leadsPage, setLeadsPage] = useState(0);
   const [leadsRowsPerPage, setLeadsRowsPerPage] = useState(25);
-  
+
   // Filtering
   const [selectedVendor, setSelectedVendor] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
-  
+
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -184,9 +184,9 @@ export function VendorManagement() {
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.get<Vendor[]>('/api/admin/vendors');
+      const data = await apiClient.get<Vendor[]>('/admin/vendors');
       setVendors(data || []);
-      
+
       // Filter for parent vendors (no parentVendorId)
       const parents = (data || []).filter((v: Vendor) => !v.parentVendorId);
       setParentVendors(parents);
@@ -200,7 +200,7 @@ export function VendorManagement() {
   const fetchAllLeads = async () => {
     try {
       setLeadsLoading(true);
-      const data = await apiClient.get<Lead[]>('/api/admin/leads');
+      const data = await apiClient.get<Lead[]>('/admin/leads');
       setAllLeads(data || []);
     } catch (error: any) {
       setError('Failed to fetch leads: ' + error.message);
@@ -267,7 +267,7 @@ export function VendorManagement() {
   const onSubmit = async (data: VendorFormData) => {
     try {
       setError(null);
-      
+
       const vendorData = {
         ...data,
         parentVendorId: data.parentVendorId || null,
@@ -277,10 +277,10 @@ export function VendorManagement() {
         await apiClient.put(`/api/admin/vendors/${editingVendor.id}`, vendorData);
         setSuccess('Vendor updated successfully');
       } else {
-        await apiClient.post('/api/admin/vendors', vendorData);
+        await apiClient.post('/admin/vendors', vendorData);
         setSuccess('Vendor created successfully');
       }
-      
+
       setDialogOpen(false);
       fetchVendors();
     } catch (error: any) {
@@ -306,7 +306,7 @@ export function VendorManagement() {
     const totalLeads = vendor.leads?.length || 0;
     const activeUsers = vendor.users?.filter(u => u).length || 0;
     const subVendorCount = vendor.subVendors?.length || 0;
-    
+
     return { totalLeads, activeUsers, subVendorCount };
   };
 
@@ -344,7 +344,7 @@ export function VendorManagement() {
     if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      
+
       const fileName = `leads_export_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.csv`;
       link.setAttribute('download', fileName);
       link.style.visibility = 'hidden';
@@ -406,15 +406,15 @@ export function VendorManagement() {
       {/* Tabs */}
       <Paper sx={{ mb: 3 }}>
         <Tabs value={tabValue} onChange={handleTabChange}>
-          <Tab 
-            icon={<BusinessIcon />} 
-            iconPosition="start" 
-            label="Vendor Management" 
+          <Tab
+            icon={<BusinessIcon />}
+            iconPosition="start"
+            label="Vendor Management"
           />
-          <Tab 
-            icon={<AssignmentIcon />} 
-            iconPosition="start" 
-            label="All Leads & Reports" 
+          <Tab
+            icon={<AssignmentIcon />}
+            iconPosition="start"
+            label="All Leads & Reports"
           />
         </Tabs>
       </Paper>
@@ -522,17 +522,17 @@ export function VendorManagement() {
                         </TableCell>
                         <TableCell>
                           <Box display="flex" alignItems="center" gap={1}>
-                            <Link 
-                              href={formLink} 
-                              target="_blank" 
+                            <Link
+                              href={formLink}
+                              target="_blank"
                               rel="noopener noreferrer"
                               sx={{ fontSize: '0.75rem', maxWidth: '200px', wordBreak: 'break-all' }}
                             >
                               {formLink}
                             </Link>
                             <Tooltip title="Copy link">
-                              <IconButton 
-                                size="small" 
+                              <IconButton
+                                size="small"
                                 onClick={() => copyToClipboard(formLink)}
                               >
                                 <LinkIcon fontSize="small" />
@@ -895,21 +895,23 @@ export function VendorManagement() {
                 error={!!errors.name}
                 helperText={errors.name?.message}
               />
-              
+
               <Box display="flex" gap={2}>
                 <TextField
-                  label="Vendor Code"
+                  label="Vendor Code (Optional)"
+                  placeholder="Auto-generated if left empty"
                   fullWidth
                   {...register('code')}
                   error={!!errors.code}
-                  helperText={errors.code?.message}
+                  helperText={errors.code?.message || "Will be auto-generated based on vendor name"}
                 />
                 <TextField
-                  label="Static Code"
+                  label="Static Code (Optional)"
+                  placeholder="Auto-generated if left empty"
                   fullWidth
                   {...register('staticCode')}
                   error={!!errors.staticCode}
-                  helperText={errors.staticCode?.message}
+                  helperText={errors.staticCode?.message || "Will be auto-generated based on vendor name"}
                 />
               </Box>
 
@@ -997,4 +999,4 @@ export function VendorManagement() {
       </Dialog>
     </Box>
   );
-} 
+}

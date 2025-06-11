@@ -36,7 +36,7 @@ import { z } from 'zod';
 import { apiClient } from '@/lib/api/client';
 import MBIChecker from '@/components/forms/MBIChecker';
 
-// Comprehensive validation schema - only MBI and basic patient info required
+// Simplified validation schema - all important fields now required
 const comprehensiveLeadSchema = z.object({
   // Required fields (Basic Patient Info)
   mbi: z.string().min(11, 'MBI must be 11 characters').max(11, 'MBI must be 11 characters'),
@@ -44,74 +44,36 @@ const comprehensiveLeadSchema = z.object({
   lastName: z.string().min(2, 'Last name is required'),
   phone: z.string().regex(/^\d{10}$/, 'Phone must be 10 digits (numbers only)'),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
-  
-  // Optional fields
-  middleInitial: z.string().optional(),
-  primaryInsuranceCompany: z.string().optional(),
-  primaryPolicyNumber: z.string().optional(),
-  gender: z.string().optional(),
-  ethnicity: z.string().optional(),
-  maritalStatus: z.string().optional(),
-  height: z.string().optional(),
-  weight: z.string().optional(),
-  
-  // Address (optional)
-  street: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zipCode: z.string().optional(),
-  
-  // Primary Care Provider (optional)
-  primaryCareProviderName: z.string().optional(),
-  primaryCareProviderPhone: z.string().optional(),
-  primaryCareProviderAddress: z.string().optional(),
-  
-  // Health Assessment (optional)
-  generalHealth: z.string().optional(),
-  sleepHours: z.string().optional(),
-  exercise: z.string().optional(),
-  stressProblem: z.string().optional(),
-  specialDiet: z.string().optional(),
-  stressHandling: z.string().optional(),
-  socialSupport: z.string().optional(),
-  lifeSatisfaction: z.string().optional(),
-  
-  // Preventative Screenings (optional)
-  prostateScreening: z.boolean().optional(),
-  colonoscopy: z.boolean().optional(),
-  dexaScan: z.boolean().optional(),
-  colorectalScreening: z.boolean().optional(),
-  mammogram: z.boolean().optional(),
-  hivScreen: z.boolean().optional(),
-  papSmear: z.boolean().optional(),
-  
-  // Vaccinations (optional)
-  fluVaccination: z.boolean().optional(),
-  pneumococcalVaccination: z.boolean().optional(),
-  covidVaccination: z.boolean().optional(),
-  shinglesVaccination: z.boolean().optional(),
-  hepBVaccination: z.boolean().optional(),
-  
-  // Medical History (optional)
-  medicalHistory: z.string().optional(),
-  surgicalHistory: z.string().optional(),
-  currentMedications: z.string().optional(),
-  medicationSideEffects: z.string().optional(),
-  allergies: z.string().optional(),
-  neuroConditions: z.string().optional(),
-  
-  // Substance Use (optional)
-  tobaccoUsage: z.string().optional(),
-  alcoholUsage: z.string().optional(),
-  recreationalDrugUsage: z.string().optional(),
-  
-  // Family History (optional)
-  familyMember1Relation: z.string().optional(),
-  familyMember1NeuroConditions: z.string().optional(),
-  familyMember1AgeOfDiagnosis: z.string().optional(),
-  familyMember2Relation: z.string().optional(),
-  familyMember2NeuroConditions: z.string().optional(),
-  familyMember2AgeOfDiagnosis: z.string().optional(),
+
+  // Demographics - now required
+  middleInitial: z.string().optional(), // Keep optional
+  primaryInsuranceCompany: z.string().min(1, 'Primary insurance company is required'),
+  primaryPolicyNumber: z.string().min(1, 'Primary policy number is required'),
+  gender: z.string().min(1, 'Gender is required'),
+  ethnicity: z.string().min(1, 'Ethnicity is required'),
+  maritalStatus: z.string().min(1, 'Marital status is required'),
+  height: z.string().min(1, 'Height is required'),
+  weight: z.string().min(1, 'Weight is required'),
+
+  // Address - now required
+  street: z.string().min(1, 'Street address is required'),
+  city: z.string().min(1, 'City is required'),
+  state: z.string().min(1, 'State is required'),
+  zipCode: z.string().min(5, 'Zip code must be at least 5 digits'),
+
+  // Medical History - now required
+  medicalHistory: z.string().min(1, 'Medical history is required'),
+  surgicalHistory: z.string().min(1, 'Surgical history is required (enter "None" if no history)'),
+  currentMedications: z.string().min(1, 'Current medications are required (enter "None" if no medications)'),
+  conditionsHistory: z.string().min(1, 'Conditions history is required'),
+
+  // Family History - now required
+  familyMember1Relation: z.string().min(1, 'Family member 1 relation is required'),
+  familyMember1Conditions: z.string().min(1, 'Family member 1 conditions are required'),
+  familyMember1AgeOfDiagnosis: z.string().min(1, 'Family member 1 age of diagnosis is required'),
+  familyMember2Relation: z.string().min(1, 'Family member 2 relation is required'),
+  familyMember2Conditions: z.string().min(1, 'Family member 2 conditions are required'),
+  familyMember2AgeOfDiagnosis: z.string().min(1, 'Family member 2 age of diagnosis is required'),
 });
 
 type ComprehensiveLeadFormData = z.infer<typeof comprehensiveLeadSchema>;
@@ -127,13 +89,13 @@ interface Vendor {
 export default function ComprehensiveMedicalForm() {
   const params = useParams();
   const vendorCode = params?.vendorCode as string;
-  
+
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // MBI validation state
   const [mbiValidated, setMbiValidated] = useState(false);
   const [validatedMbi, setValidatedMbi] = useState<string>('');
@@ -144,6 +106,7 @@ export default function ComprehensiveMedicalForm() {
     handleSubmit,
     control,
     watch,
+    reset,
     formState: { errors, isValid },
   } = useForm<ComprehensiveLeadFormData>({
     resolver: zodResolver(comprehensiveLeadSchema),
@@ -162,7 +125,7 @@ export default function ComprehensiveMedicalForm() {
   const fetchVendor = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get<Vendor>(`/api/vendors/by-code/${vendorCode}`);
+      const response = await apiClient.get<Vendor>(`/vendors/by-code/${vendorCode}`);
       if (response && response.isActive) {
         setVendor(response);
       } else {
@@ -180,6 +143,37 @@ export default function ComprehensiveMedicalForm() {
     if (isValid && mbi && testType) {
       setValidatedMbi(mbi.replace(/-/g, '')); // Remove dashes for form
       setValidatedTestType(testType as 'IMMUNE' | 'NEURO');
+      
+      // Reset form when test type changes to clear any previous data
+      reset({
+        mbi: mbi.replace(/-/g, ''),
+        firstName: '',
+        lastName: '',
+        phone: '',
+        dateOfBirth: '',
+        middleInitial: '',
+        primaryInsuranceCompany: '',
+        primaryPolicyNumber: '',
+        gender: '',
+        ethnicity: '',
+        maritalStatus: '',
+        height: '',
+        weight: '',
+        street: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        medicalHistory: '',
+        surgicalHistory: '',
+        currentMedications: '',
+        conditionsHistory: '',
+        familyMember1Relation: '',
+        familyMember1Conditions: '',
+        familyMember1AgeOfDiagnosis: '',
+        familyMember2Relation: '',
+        familyMember2Conditions: '',
+        familyMember2AgeOfDiagnosis: '',
+      });
     }
   };
 
@@ -198,7 +192,7 @@ export default function ComprehensiveMedicalForm() {
         lastName: data.lastName,
         phone: data.phone,
         dateOfBirth: data.dateOfBirth,
-        
+
         // Optional demographic fields
         middleInitial: data.middleInitial || '',
         primaryInsuranceCompany: data.primaryInsuranceCompany || '',
@@ -208,83 +202,45 @@ export default function ComprehensiveMedicalForm() {
         maritalStatus: data.maritalStatus || '',
         height: data.height || '',
         weight: data.weight || '',
-        
+
         // Address
         street: data.street || '',
         city: data.city || '',
         state: data.state || '',
         zipCode: data.zipCode || '',
-        
-        // Include all other fields as additional data
+
+        // Include simplified medical data
         additionalData: {
-          primaryCareProvider: {
-            name: data.primaryCareProviderName || '',
-            phone: data.primaryCareProviderPhone || '',
-            address: data.primaryCareProviderAddress || '',
-          },
-          healthAssessment: {
-            generalHealth: data.generalHealth || '',
-            sleepHours: data.sleepHours || '',
-            exercise: data.exercise || '',
-            stressProblem: data.stressProblem || '',
-            specialDiet: data.specialDiet || '',
-            stressHandling: data.stressHandling || '',
-            socialSupport: data.socialSupport || '',
-            lifeSatisfaction: data.lifeSatisfaction || '',
-          },
-          screenings: {
-            prostate: data.prostateScreening || false,
-            colonoscopy: data.colonoscopy || false,
-            dexaScan: data.dexaScan || false,
-            colorectal: data.colorectalScreening || false,
-            mammogram: data.mammogram || false,
-            hivScreen: data.hivScreen || false,
-            papSmear: data.papSmear || false,
-          },
-          vaccinations: {
-            flu: data.fluVaccination || false,
-            pneumococcal: data.pneumococcalVaccination || false,
-            covid: data.covidVaccination || false,
-            shingles: data.shinglesVaccination || false,
-            hepB: data.hepBVaccination || false,
-          },
           medicalHistory: {
             past: data.medicalHistory || '',
             surgical: data.surgicalHistory || '',
             medications: data.currentMedications || '',
-            sideEffects: data.medicationSideEffects || '',
-            allergies: data.allergies || '',
-            neuro: data.neuroConditions || '',
-          },
-          substanceUse: {
-            tobacco: data.tobaccoUsage || '',
-            alcohol: data.alcoholUsage || '',
-            drugs: data.recreationalDrugUsage || '',
+            conditions: data.conditionsHistory || '', // Dynamic conditions field
           },
           familyHistory: [
             {
               relation: data.familyMember1Relation || '',
-              neuroConditions: data.familyMember1NeuroConditions || '',
+              conditions: data.familyMember1Conditions || '', // Dynamic conditions field
               ageOfDiagnosis: data.familyMember1AgeOfDiagnosis || '',
             },
             {
               relation: data.familyMember2Relation || '',
-              neuroConditions: data.familyMember2NeuroConditions || '',
+              conditions: data.familyMember2Conditions || '', // Dynamic conditions field
               ageOfDiagnosis: data.familyMember2AgeOfDiagnosis || '',
             },
           ],
         },
-        
+
         vendorCode: vendor.code,
         vendorId: vendor.id,
         testType: validatedTestType.toLowerCase(), // Use validated test type
       };
 
-      await apiClient.post('/api/leads/submit', submissionData);
+      await apiClient.post('/leads/submit', submissionData);
       setSuccess(true);
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to submit form. Please try again.';
-      
+
       if (errorMessage.includes('MBI already exists')) {
         setError('A patient with this MBI has already been submitted. Please check the MBI and try again.');
       } else if (errorMessage.includes('Invalid request data')) {
@@ -295,6 +251,11 @@ export default function ComprehensiveMedicalForm() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Helper function to get condition type label based on test type
+  const getConditionTypeLabel = () => {
+    return validatedTestType === 'IMMUNE' ? 'Immuno Conditions' : 'Neuro Conditions';
   };
 
   if (loading) {
@@ -326,18 +287,18 @@ export default function ComprehensiveMedicalForm() {
         <Paper elevation={3} sx={{ p: 6, textAlign: 'center' }}>
           <CheckCircleIcon sx={{ fontSize: 80, color: 'success.main', mb: 3 }} />
           <Typography variant="h4" gutterBottom color="success.main">
-            Medical Information Submitted Successfully!
+            Lead Submitted Successfully!
           </Typography>
           <Typography variant="h6" gutterBottom>
-            Thank you for completing the comprehensive medical intake form.
+            Thank you for completing the medical intake form.
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            Your information has been received and will be reviewed by our medical team.
-            You will be contacted within 24-48 hours regarding next steps.
+            The patient information has been successfully submitted and processed.
+            <strong> You may now transfer the call to our medical team.</strong>
           </Typography>
           <Alert severity="success" sx={{ mt: 3 }}>
-            <strong>Important:</strong> Please keep this confirmation for your records. 
-            Your submission has been processed and assigned a tracking number.
+            <strong>Next Steps:</strong> Please transfer the patient to our medical team for qualification review.
+            Keep this confirmation for your records.
           </Alert>
         </Paper>
       </Container>
@@ -358,7 +319,7 @@ export default function ComprehensiveMedicalForm() {
                     {vendor?.name}
                   </Typography>
                   <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                    Vendor Code: {vendor?.code} | Comprehensive Medical Intake Form
+                    Vendor Code: {vendor?.code} | Medical Intake Form ({validatedTestType})
                   </Typography>
                 </Box>
               </Box>
@@ -366,11 +327,10 @@ export default function ComprehensiveMedicalForm() {
           </Card>
 
           <Typography variant="h4" component="h1" gutterBottom>
-            Comprehensive Medical Intake Form
+            Medical Intake Form
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Please complete this comprehensive medical intake form. Fields marked with * are required.
-            All other information is optional but helps us provide better care.
+            Please complete this comprehensive medical intake form. All fields are required to ensure we have complete information for proper care coordination. Please enter "None" or "N/A" for any medical history questions that don't apply.
           </Typography>
         </Box>
 
@@ -381,7 +341,7 @@ export default function ComprehensiveMedicalForm() {
         )}
 
         {/* MBI Duplicate Checker */}
-        <MBIChecker 
+        <MBIChecker
           onValidationComplete={handleMBIValidation}
           defaultTestType="NEURO"
         />
@@ -395,7 +355,7 @@ export default function ComprehensiveMedicalForm() {
               Basic Patient Information (Required)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} md={4}>
                 <TextField
@@ -409,7 +369,7 @@ export default function ComprehensiveMedicalForm() {
                   sx={{ backgroundColor: 'success.light', opacity: 0.8 }}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
@@ -428,7 +388,7 @@ export default function ComprehensiveMedicalForm() {
                   inputProps={{ maxLength: 1 }}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
@@ -438,7 +398,7 @@ export default function ComprehensiveMedicalForm() {
                   helperText={errors.lastName?.message}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -446,10 +406,10 @@ export default function ComprehensiveMedicalForm() {
                   {...register('phone')}
                   error={!!errors.phone}
                   helperText={errors.phone?.message || '10 digits, numbers only'}
-                  placeholder="5551234567"
+                  placeholder="1234567890"
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -464,36 +424,39 @@ export default function ComprehensiveMedicalForm() {
             </Grid>
           </Box>
 
-          {/* Demographics - OPTIONAL */}
+          {/* Demographics - REQUIRED */}
           <Box mb={4}>
             <Typography variant="h6" gutterBottom color="primary">
-              Demographics (Optional)
+              Demographics (Required)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Primary Insurance Company"
+                  label="Primary Insurance Company *"
                   {...register('primaryInsuranceCompany')}
-                  placeholder="MEDICARE"
+                  error={!!errors.primaryInsuranceCompany}
+                  helperText={errors.primaryInsuranceCompany?.message}
                 />
               </Grid>
 
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Primary Policy #"
+                  label="Primary Policy # *"
                   {...register('primaryPolicyNumber')}
+                  error={!!errors.primaryPolicyNumber}
+                  helperText={errors.primaryPolicyNumber?.message}
                 />
               </Grid>
 
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth>
-                  <InputLabel>Gender</InputLabel>
+                <FormControl fullWidth error={!!errors.gender}>
+                  <InputLabel>Gender *</InputLabel>
                   <Select
-                    label="Gender"
+                    label="Gender *"
                     {...register('gender')}
                     defaultValue=""
                   >
@@ -502,22 +465,38 @@ export default function ComprehensiveMedicalForm() {
                     <MenuItem value="Other">Other</MenuItem>
                     <MenuItem value="Prefer not to say">Prefer not to say</MenuItem>
                   </Select>
+                  {errors.gender && <Typography variant="caption" color="error" sx={{ ml: 2 }}>{errors.gender.message}</Typography>}
                 </FormControl>
               </Grid>
 
               <Grid item xs={12} md={3}>
-                <TextField
-                  fullWidth
-                  label="Ethnicity"
-                  {...register('ethnicity')}
-                />
+                <FormControl fullWidth error={!!errors.ethnicity}>
+                  <InputLabel>Ethnicity *</InputLabel>
+                  <Select
+                    label="Ethnicity *"
+                    {...register('ethnicity')}
+                    defaultValue=""
+                  >
+                    <MenuItem value="Hispanic or Latino">Hispanic or Latino</MenuItem>
+                    <MenuItem value="Not Hispanic or Latino">Not Hispanic or Latino</MenuItem>
+                    <MenuItem value="American Indian or Alaska Native">American Indian or Alaska Native</MenuItem>
+                    <MenuItem value="Asian">Asian</MenuItem>
+                    <MenuItem value="Black or African American">Black or African American</MenuItem>
+                    <MenuItem value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</MenuItem>
+                    <MenuItem value="White">White</MenuItem>
+                    <MenuItem value="Two or More Races">Two or More Races</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
+                    <MenuItem value="Prefer not to answer">Prefer not to answer</MenuItem>
+                  </Select>
+                  {errors.ethnicity && <Typography variant="caption" color="error" sx={{ ml: 2 }}>{errors.ethnicity.message}</Typography>}
+                </FormControl>
               </Grid>
 
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth>
-                  <InputLabel>Marital Status</InputLabel>
+                <FormControl fullWidth error={!!errors.maritalStatus}>
+                  <InputLabel>Marital Status *</InputLabel>
                   <Select
-                    label="Marital Status"
+                    label="Marital Status *"
                     {...register('maritalStatus')}
                     defaultValue=""
                   >
@@ -527,457 +506,154 @@ export default function ComprehensiveMedicalForm() {
                     <MenuItem value="Widowed">Widowed</MenuItem>
                     <MenuItem value="Separated">Separated</MenuItem>
                   </Select>
+                  {errors.maritalStatus && <Typography variant="caption" color="error" sx={{ ml: 2 }}>{errors.maritalStatus.message}</Typography>}
                 </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={1.5}>
-                                 <TextField
-                   fullWidth
-                   label="Height"
-                   {...register('height')}
-                   placeholder="5'8"
-                 />
               </Grid>
 
               <Grid item xs={12} md={1.5}>
                 <TextField
                   fullWidth
-                  label="Weight (lbs)"
+                  label="Height *"
+                  {...register('height')}
+                  placeholder="5'8&quot;"
+                  error={!!errors.height}
+                  helperText={errors.height?.message}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={1.5}>
+                <TextField
+                  fullWidth
+                  label="Weight (lbs) *"
                   {...register('weight')}
-                  type="number"
+                  placeholder="150"
+                  error={!!errors.weight}
+                  helperText={errors.weight?.message}
                 />
               </Grid>
             </Grid>
           </Box>
 
-          {/* Address Information - OPTIONAL */}
+          {/* Address Information - REQUIRED */}
           <Box mb={4}>
             <Typography variant="h6" gutterBottom color="primary">
-              Address Information (Optional)
+              Address Information (Required)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Street Address"
+                  label="Street Address *"
                   {...register('street')}
                   placeholder="123 Main Street"
+                  error={!!errors.street}
+                  helperText={errors.street?.message}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="City"
+                  label="City *"
                   {...register('city')}
+                  error={!!errors.city}
+                  helperText={errors.city?.message}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
-                  label="State"
+                  label="State *"
                   {...register('state')}
                   placeholder="CA"
                   inputProps={{ maxLength: 2 }}
+                  error={!!errors.state}
+                  helperText={errors.state?.message}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
-                  label="Zip Code"
+                  label="Zip Code *"
                   {...register('zipCode')}
                   placeholder="12345"
-                  inputProps={{ maxLength: 5 }}
+                  inputProps={{ maxLength: 10 }}
+                  error={!!errors.zipCode}
+                  helperText={errors.zipCode?.message}
                 />
               </Grid>
             </Grid>
           </Box>
 
-          {/* Primary Healthcare Provider - OPTIONAL */}
+          {/* Medical History - REQUIRED */}
           <Box mb={4}>
             <Typography variant="h6" gutterBottom color="primary">
-              Primary Healthcare Provider Information (Optional)
+              Medical History (Required)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Primary Care Provider Name"
-                  {...register('primaryCareProviderName')}
-                />
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Primary Care Provider Phone"
-                  {...register('primaryCareProviderPhone')}
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Primary Care Address"
-                  {...register('primaryCareProviderAddress')}
-                />
-              </Grid>
-            </Grid>
-          </Box>
 
-          {/* Health Assessment - OPTIONAL */}
-          <Box mb={4}>
-            <Typography variant="h6" gutterBottom color="primary">
-              Health Assessment (Optional)
-            </Typography>
-            <Divider sx={{ mb: 3 }} />
-            
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>In general, would you say your health is</InputLabel>
-                  <Select
-                    label="In general, would you say your health is"
-                    {...register('generalHealth')}
-                    defaultValue=""
-                  >
-                    <MenuItem value="Excellent">Excellent</MenuItem>
-                    <MenuItem value="Very Good">Very Good</MenuItem>
-                    <MenuItem value="Good">Good</MenuItem>
-                    <MenuItem value="Fair">Fair</MenuItem>
-                    <MenuItem value="Poor">Poor</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="How many hours of sleep do you usually get each night?"
-                  {...register('sleepHours')}
-                  type="number"
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <FormControl component="fieldset">
-                  <FormLabel component="legend">Do you do moderate to strenuous exercise (brisk walk) for about 20 minutes for 3 or more days per week?</FormLabel>
-                  <Controller
-                    name="exercise"
-                    control={control}
-                    render={({ field }) => (
-                      <RadioGroup {...field} row>
-                        <FormControlLabel value="Yes" control={<Radio />} label="Yes" />
-                        <FormControlLabel value="No" control={<Radio />} label="No" />
-                      </RadioGroup>
-                    )}
-                  />
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>How often is stress a problem for you?</InputLabel>
-                  <Select
-                    label="How often is stress a problem for you?"
-                    {...register('stressProblem')}
-                    defaultValue=""
-                  >
-                    <MenuItem value="Never">Never</MenuItem>
-                    <MenuItem value="Rarely">Rarely</MenuItem>
-                    <MenuItem value="Sometimes">Sometimes</MenuItem>
-                    <MenuItem value="Often">Often</MenuItem>
-                    <MenuItem value="Always">Always</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <FormControl component="fieldset">
-                  <FormLabel component="legend">Are you on a special diet?</FormLabel>
-                  <Controller
-                    name="specialDiet"
-                    control={control}
-                    render={({ field }) => (
-                      <RadioGroup {...field} row>
-                        <FormControlLabel value="Yes" control={<Radio />} label="Yes" />
-                        <FormControlLabel value="No" control={<Radio />} label="No" />
-                      </RadioGroup>
-                    )}
-                  />
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>How well do you handle the stress in your life?</InputLabel>
-                  <Select
-                    label="How well do you handle the stress in your life?"
-                    {...register('stressHandling')}
-                    defaultValue=""
-                  >
-                    <MenuItem value="Very Well">Very Well</MenuItem>
-                    <MenuItem value="Well">Well</MenuItem>
-                    <MenuItem value="Moderately">Moderately</MenuItem>
-                    <MenuItem value="Poorly">Poorly</MenuItem>
-                    <MenuItem value="Very Poorly">Very Poorly</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>How often do you get the social and emotional support you need?</InputLabel>
-                  <Select
-                    label="How often do you get the social and emotional support you need?"
-                    {...register('socialSupport')}
-                    defaultValue=""
-                  >
-                    <MenuItem value="Always">Always</MenuItem>
-                    <MenuItem value="Usually">Usually</MenuItem>
-                    <MenuItem value="Sometimes">Sometimes</MenuItem>
-                    <MenuItem value="Rarely">Rarely</MenuItem>
-                    <MenuItem value="Never">Never</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>In general, how satisfied are you with your life?</InputLabel>
-                  <Select
-                    label="In general, how satisfied are you with your life?"
-                    {...register('lifeSatisfaction')}
-                    defaultValue=""
-                  >
-                    <MenuItem value="Very Satisfied">Very Satisfied</MenuItem>
-                    <MenuItem value="Satisfied">Satisfied</MenuItem>
-                    <MenuItem value="Neutral">Neutral</MenuItem>
-                    <MenuItem value="Dissatisfied">Dissatisfied</MenuItem>
-                    <MenuItem value="Very Dissatisfied">Very Dissatisfied</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </Box>
-
-          {/* Preventative Screenings - OPTIONAL */}
-          <Box mb={4}>
-            <Typography variant="h6" gutterBottom color="primary">
-              Preventative Screening: Have you had any of these screenings? (Optional)
-            </Typography>
-            <Divider sx={{ mb: 3 }} />
-            
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={<Checkbox {...register('prostateScreening')} />}
-                  label="Prostate"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={<Checkbox {...register('colonoscopy')} />}
-                  label="Colonoscopy"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={<Checkbox {...register('dexaScan')} />}
-                  label="Dexa Scan"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={<Checkbox {...register('colorectalScreening')} />}
-                  label="Colorectal screening (Fecal Bld)"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={<Checkbox {...register('mammogram')} />}
-                  label="Mammogram"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={<Checkbox {...register('hivScreen')} />}
-                  label="HIV screen"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={<Checkbox {...register('papSmear')} />}
-                  label="Pap Smear"
-                />
-              </Grid>
-            </Grid>
-          </Box>
-
-          {/* Vaccinations - OPTIONAL */}
-          <Box mb={4}>
-            <Typography variant="h6" gutterBottom color="primary">
-              Vaccinations: Have you had any of these? (Optional)
-            </Typography>
-            <Divider sx={{ mb: 3 }} />
-            
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={<Checkbox {...register('fluVaccination')} />}
-                  label="Flu vaccination"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={<Checkbox {...register('pneumococcalVaccination')} />}
-                  label="Pneumococcal vaccination"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={<Checkbox {...register('covidVaccination')} />}
-                  label="Covid vaccination"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={<Checkbox {...register('shinglesVaccination')} />}
-                  label="Shingles vaccination"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={<Checkbox {...register('hepBVaccination')} />}
-                  label="Hep B vaccination"
-                />
-              </Grid>
-            </Grid>
-          </Box>
-
-          {/* Medical History - OPTIONAL */}
-          <Box mb={4}>
-            <Typography variant="h6" gutterBottom color="primary">
-              Medical History (Optional)
-            </Typography>
-            <Divider sx={{ mb: 3 }} />
-            
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
                   multiline
                   rows={3}
-                  label="Patient Medical History (List all past medical history. List diagnosis, not symptoms.)"
+                  label="Patient Medical History * (List all past medical history. List diagnosis, not symptoms.)"
                   {...register('medicalHistory')}
+                  error={!!errors.medicalHistory}
+                  helperText={errors.medicalHistory?.message}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
                   multiline
                   rows={3}
-                  label="Past Surgical History (List all past surgical history)"
+                  label="Past Surgical History * (List all past surgical history, enter 'None' if no history)"
                   {...register('surgicalHistory')}
+                  error={!!errors.surgicalHistory}
+                  helperText={errors.surgicalHistory?.message}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
                   multiline
                   rows={3}
-                  label="Current Medications (List all current medications. Be specific.)"
+                  label="Current Medications * (List all current medications, enter 'None' if no medications)"
                   {...register('currentMedications')}
+                  error={!!errors.currentMedications}
+                  helperText={errors.currentMedications?.message}
                 />
               </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Medication Side Effects (List all medication with side effects experienced.)"
-                  {...register('medicationSideEffects')}
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Allergies (List all known allergies.)"
-                  {...register('allergies')}
-                />
-              </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
                   multiline
                   rows={3}
-                  label="Neuro Conditions"
-                  {...register('neuroConditions')}
+                  label={`${getConditionTypeLabel()} *`}
+                  {...register('conditionsHistory')}
+                  error={!!errors.conditionsHistory}
+                  helperText={errors.conditionsHistory?.message}
                 />
               </Grid>
             </Grid>
           </Box>
 
-          {/* Substance Use History - OPTIONAL */}
+          {/* Family History - REQUIRED */}
           <Box mb={4}>
             <Typography variant="h6" gutterBottom color="primary">
-              Substance Use History (Optional)
+              Family History (Required)
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Tobacco Usage History (List type of usage and frequency. If not obtained, write not obtained)"
-                  {...register('tobaccoUsage')}
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Alcohol Usage History (List type of usage and frequency. If not obtained, write not obtained)"
-                  {...register('alcoholUsage')}
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Recreational Drug Usage History (List type of usage and frequency. If not obtained, write not obtained)"
-                  {...register('recreationalDrugUsage')}
-                />
-              </Grid>
-            </Grid>
-          </Box>
 
-          {/* Family History - OPTIONAL */}
-          <Box mb={4}>
-            <Typography variant="h6" gutterBottom color="primary">
-              Family History (Optional)
-            </Typography>
-            <Divider sx={{ mb: 3 }} />
-            
             <Typography variant="subtitle1" gutterBottom>
               Family Member 1
             </Typography>
@@ -985,26 +661,32 @@ export default function ComprehensiveMedicalForm() {
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Family Member Relation to Patient"
+                  label="Family Member Relation to Patient *"
                   {...register('familyMember1Relation')}
                   placeholder="e.g., Mother, Father, Sister"
+                  error={!!errors.familyMember1Relation}
+                  helperText={errors.familyMember1Relation?.message}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Family Member Neuro Conditions"
-                  {...register('familyMember1NeuroConditions')}
+                  label={`Family Member ${getConditionTypeLabel()} *`}
+                  {...register('familyMember1Conditions')}
+                  error={!!errors.familyMember1Conditions}
+                  helperText={errors.familyMember1Conditions?.message}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Family Member Age of Diagnosis"
+                  label="Family Member Age of Diagnosis *"
                   {...register('familyMember1AgeOfDiagnosis')}
                   type="number"
+                  error={!!errors.familyMember1AgeOfDiagnosis}
+                  helperText={errors.familyMember1AgeOfDiagnosis?.message}
                 />
               </Grid>
             </Grid>
@@ -1012,30 +694,36 @@ export default function ComprehensiveMedicalForm() {
             <Typography variant="subtitle1" gutterBottom>
               Family Member 2
             </Typography>
-            <Grid container spacing={3}>
+            <Grid container spacing={3} mb={3}>
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Family Member Relation to Patient"
+                  label="Family Member Relation to Patient *"
                   {...register('familyMember2Relation')}
                   placeholder="e.g., Mother, Father, Sister"
+                  error={!!errors.familyMember2Relation}
+                  helperText={errors.familyMember2Relation?.message}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Family Member Neuro Conditions"
-                  {...register('familyMember2NeuroConditions')}
+                  label={`Family Member ${getConditionTypeLabel()} *`}
+                  {...register('familyMember2Conditions')}
+                  error={!!errors.familyMember2Conditions}
+                  helperText={errors.familyMember2Conditions?.message}
                 />
               </Grid>
-              
+
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Family Member Age of Diagnosis"
+                  label="Family Member Age of Diagnosis *"
                   {...register('familyMember2AgeOfDiagnosis')}
                   type="number"
+                  error={!!errors.familyMember2AgeOfDiagnosis}
+                  helperText={errors.familyMember2AgeOfDiagnosis?.message}
                 />
               </Grid>
             </Grid>
@@ -1044,9 +732,9 @@ export default function ComprehensiveMedicalForm() {
           {/* Important Notice */}
           <Alert severity="info" sx={{ mb: 4 }}>
             <Typography variant="body2">
-              <strong>Important:</strong> Please ensure you have obtained proper patient consent 
-              before submitting this information. All data will be handled in accordance with 
-              HIPAA regulations and our privacy policy. Only fields marked with * are required.
+              <strong>Important:</strong> Please ensure you have obtained proper patient consent
+              before submitting this information. All data will be handled in accordance with
+              HIPAA regulations and our privacy policy. All fields marked with * are required for complete patient care coordination.
             </Typography>
           </Alert>
 
@@ -1060,7 +748,7 @@ export default function ComprehensiveMedicalForm() {
               startIcon={submitting ? <CircularProgress size={20} /> : <AssignmentIcon />}
               sx={{ px: 6, py: 2 }}
             >
-              {submitting ? 'Submitting Medical Information...' : 'Submit Comprehensive Medical Form'}
+              {submitting ? 'Submitting Medical Information...' : `Submit ${validatedTestType} Medical Form`}
             </Button>
           </Box>
         </form>
@@ -1068,4 +756,4 @@ export default function ComprehensiveMedicalForm() {
       </Paper>
     </Container>
   );
-} 
+}

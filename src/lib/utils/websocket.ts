@@ -18,7 +18,7 @@ class WebSocketService {
     }
 
     const wsEndpoint = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'ws://localhost:3001';
-    
+
     this.socket = io(wsEndpoint, {
       auth: {
         token,
@@ -181,4 +181,4 @@ export function useWebSocket() {
     subscribeLead: wsService.subscribeLead.bind(wsService),
     unsubscribeLead: wsService.unsubscribeLead.bind(wsService),
   };
-} 
+}

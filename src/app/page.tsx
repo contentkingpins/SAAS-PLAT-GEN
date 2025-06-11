@@ -17,23 +17,23 @@ export default function Home() {
         textAlign: 'center',
         maxWidth: '500px'
       }}>
-        <h1 style={{ 
-          fontSize: '2.5rem', 
+        <h1 style={{
+          fontSize: '2.5rem',
           marginBottom: '1rem',
-          color: '#1976d2' 
+          color: '#1976d2'
         }}>
           Healthcare Lead Management
         </h1>
-        <p style={{ 
-          fontSize: '1.2rem', 
+        <p style={{
+          fontSize: '1.2rem',
           marginBottom: '2rem',
           color: '#666'
         }}>
           Enterprise Platform for Healthcare Leads
         </p>
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a 
-            href="/login" 
+          <a
+            href="/login"
             style={{
               padding: '0.75rem 2rem',
               backgroundColor: '#1976d2',
@@ -46,8 +46,8 @@ export default function Home() {
           >
             Login
           </a>
-          <a 
-            href="/admin/dashboard" 
+          <a
+            href="/admin/dashboard"
             style={{
               padding: '0.75rem 2rem',
               backgroundColor: '#fff',
@@ -69,4 +69,4 @@ export default function Home() {
       </div>
     </div>
   );
-} 
+}

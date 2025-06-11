@@ -1,7 +1,7 @@
 {
-  "name": "saas-plat-scripts",
+  "name": "saasplat-scripts",
   "version": "1.0.0",
-  "description": "Utility scripts for SAAS Platform",
+  "description": "Utility scripts for SaasPlat",
   "main": "index.js",
   "scripts": {
     "import-baseline": "node import-baseline-data.js"
@@ -11,6 +11,6 @@
   },
   "devDependencies": {},
   "keywords": ["healthcare", "mbi", "import"],
-  "author": "SAAS Platform Team",
+  "author": "SaasPlat Team",
   "license": "ISC"
 } 

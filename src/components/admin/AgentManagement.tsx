@@ -154,7 +154,7 @@ export function AgentManagement() {
         apiClient.get<Vendor[]>('/admin/vendors'),
         apiClient.get<Team[]>('/admin/teams'),
       ]);
-      
+
       setUsers(usersData);
       setVendors(vendorsData);
       setTeams(teamsData);
@@ -203,7 +203,7 @@ export function AgentManagement() {
   const onSubmit = async (data: UserFormData) => {
     try {
       setError(null);
-      
+
       const userData: any = {
         ...data,
         vendorId: data.vendorId || null,
@@ -223,7 +223,7 @@ export function AgentManagement() {
         await apiClient.post('/admin/users', userData);
         setSuccess('User created successfully');
       }
-      
+
       setDialogOpen(false);
       fetchData();
     } catch (error: any) {
@@ -267,11 +267,11 @@ export function AgentManagement() {
 
   const filteredUsers = users.filter(user => {
     const matchesRole = !roleFilter || user.role === roleFilter;
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     return matchesRole && matchesSearch;
   });
 
@@ -282,7 +282,7 @@ export function AgentManagement() {
     const advocates = users.filter(u => u.role === 'ADVOCATE').length;
     const collections = users.filter(u => u.role === 'COLLECTIONS').length;
     const vendors = users.filter(u => u.role === 'VENDOR').length;
-    
+
     return { totalUsers, activeUsers, admins, advocates, collections, vendors };
   };
 
@@ -547,7 +547,7 @@ export function AgentManagement() {
                   helperText={errors.lastName?.message}
                 />
               </Box>
-              
+
               <TextField
                 label="Email"
                 type="email"
@@ -688,4 +688,4 @@ export function AgentManagement() {
       </Dialog>
     </Box>
   );
-} 
+}

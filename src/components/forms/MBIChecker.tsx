@@ -56,7 +56,7 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
   const formatMBI = (value: string) => {
     // Remove all non-alphanumeric characters
     const cleaned = value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-    
+
     // Format as 1ABC-DEF-GH12
     if (cleaned.length <= 1) return cleaned;
     if (cleaned.length <= 4) return cleaned.slice(0, 1) + cleaned.slice(1);
@@ -68,7 +68,7 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
   const handleMBIChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatMBI(e.target.value);
     setMbi(formatted);
-    
+
     // Reset validation when MBI changes
     if (hasChecked) {
       setResult(null);
@@ -79,7 +79,7 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
 
   const handleTestTypeChange = (e: any) => {
     setTestType(e.target.value);
-    
+
     // Reset validation when test type changes
     if (hasChecked) {
       setResult(null);
@@ -108,14 +108,14 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to check MBI');
       }
 
       setResult(data);
       setHasChecked(true);
-      
+
       // Notify parent component
       const isValid = data.status === 'ALLOWED';
       onValidationComplete(isValid, mbi, testType);
@@ -130,7 +130,7 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
 
   const getStatusIcon = () => {
     if (!result) return <Search />;
-    
+
     switch (result.status) {
       case 'ALLOWED':
         return <CheckCircle color="success" />;
@@ -145,7 +145,7 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
 
   const getStatusColor = () => {
     if (!result) return 'info';
-    
+
     switch (result.status) {
       case 'ALLOWED':
         return 'success';
@@ -167,7 +167,7 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
             MBI Duplicate Checker
           </Typography>
         </Box>
-        
+
         <Typography variant="body2" color="text.secondary" mb={3}>
           Enter patient MBI to check for duplicates before filling out the form
         </Typography>
@@ -185,7 +185,7 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
               helperText={mbi.length > 0 && mbi.length < 11 ? 'MBI must be 11 characters' : ''}
             />
           </Grid>
-          
+
           <Grid item xs={12} md={3}>
             <FormControl fullWidth>
               <InputLabel>Test Type</InputLabel>
@@ -199,7 +199,7 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
               </Select>
             </FormControl>
           </Grid>
-          
+
           <Grid item xs={12} md={3}>
             <Button
               fullWidth
@@ -217,9 +217,9 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
         {result && (
           <Box mt={3}>
             <Divider sx={{ mb: 2 }} />
-            
-            <Alert 
-              severity={getStatusColor()} 
+
+            <Alert
+              severity={getStatusColor()}
               icon={getStatusIcon()}
               sx={{ mb: 2 }}
             >
@@ -238,10 +238,10 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
                     <CardContent sx={{ py: 2 }}>
                       <Grid container spacing={2} alignItems="center">
                         <Grid item xs={12} sm={3}>
-                          <Chip 
-                            label={lead.testType} 
-                            color="primary" 
-                            size="small" 
+                          <Chip
+                            label={lead.testType}
+                            color="primary"
+                            size="small"
                           />
                         </Grid>
                         <Grid item xs={12} sm={3}>
@@ -255,9 +255,9 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
                           </Typography>
                         </Grid>
                         <Grid item xs={12} sm={3}>
-                          <Chip 
-                            label={lead.status} 
-                            size="small" 
+                          <Chip
+                            label={lead.status}
+                            size="small"
                             variant="outlined"
                           />
                         </Grid>
@@ -288,4 +288,4 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
       </CardContent>
     </Card>
   );
-} 
+}

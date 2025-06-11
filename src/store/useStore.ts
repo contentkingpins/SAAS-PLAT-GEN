@@ -4,9 +4,11 @@ import { User, Lead, DashboardMetrics } from '@/types';
 
 interface AuthState {
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
-  login: (user: User) => void;
+  login: (user: User, token: string) => void;
   logout: () => void;
+  setToken: (token: string) => void;
 }
 
 interface LeadState {
@@ -42,9 +44,29 @@ const useStore = create<AppState>()(
       (set) => ({
         // Auth State
         user: null,
+        token: null,
         isAuthenticated: false,
-        login: (user) => set({ user, isAuthenticated: true }),
-        logout: () => set({ user: null, isAuthenticated: false }),
+        login: (user, token) => {
+          // Store token in localStorage for API client
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('authToken', token);
+          }
+          set({ user, token, isAuthenticated: true });
+        },
+        logout: () => {
+          // Clear token from localStorage
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('authToken');
+          }
+          set({ user: null, token: null, isAuthenticated: false });
+        },
+        setToken: (token) => {
+          // Update token in localStorage
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('authToken', token);
+          }
+          set({ token });
+        },
 
         // Lead State
         leads: [],
@@ -78,10 +100,14 @@ const useStore = create<AppState>()(
       }),
       {
         name: 'healthcare-storage',
-        partialize: (state) => ({ user: state.user }),
+        partialize: (state) => ({
+          user: state.user,
+          token: state.token,
+          isAuthenticated: state.isAuthenticated
+        }),
       }
     )
   )
 );
 
-export default useStore; 
+export default useStore;

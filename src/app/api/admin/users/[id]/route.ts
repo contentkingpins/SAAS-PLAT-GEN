@@ -66,7 +66,7 @@ export async function PUT(
 
     // Prepare update data
     const updateData: any = { ...validatedData };
-    
+
     // Hash password if provided
     if (validatedData.password) {
       updateData.password = await bcrypt.hash(validatedData.password, 12);
@@ -158,8 +158,8 @@ export async function DELETE(
 
     if (hasActiveLeads || hasActiveCallbacks) {
       return NextResponse.json(
-        { 
-          error: 'Cannot delete user with active leads or scheduled callbacks. Please reassign or complete them first.' 
+        {
+          error: 'Cannot delete user with active leads or scheduled callbacks. Please reassign or complete them first.'
         },
         { status: 400 }
       );
@@ -179,4 +179,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}

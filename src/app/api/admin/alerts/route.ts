@@ -12,9 +12,9 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');
-    
+
     const alerts = await AlertService.getAllActiveAlerts(limit);
-    
+
     return NextResponse.json({
       success: true,
       alerts: alerts,
@@ -27,4 +27,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

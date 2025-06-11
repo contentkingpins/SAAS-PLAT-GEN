@@ -33,11 +33,11 @@ function calculateAge(dateOfBirth: string): number {
   const birthDate = new Date(dateOfBirth);
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
-  
+
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
-  
+
   return age;
 }
 
@@ -59,7 +59,7 @@ function broadcastAlert(alert: any) {
 // Duplicate detection function using our existing algorithm
 async function checkForDuplicates(leadData: any) {
   const { firstName, lastName, dateOfBirth, phone, address } = leadData;
-  
+
   // Search for potential duplicates
   const potentialDuplicates = await prisma.lead.findMany({
     where: {
@@ -95,16 +95,16 @@ async function checkForDuplicates(leadData: any) {
   const duplicateResults = [];
 
   for (const duplicate of potentialDuplicates) {
-    const isExactMatch = 
+    const isExactMatch =
       duplicate.firstName.toLowerCase() === firstName.toLowerCase() &&
       duplicate.lastName.toLowerCase() === lastName.toLowerCase() &&
       duplicate.dateOfBirth.toISOString().split('T')[0] === new Date(dateOfBirth).toISOString().split('T')[0];
 
     const isPhoneMatch = duplicate.phone === phone;
-    
-    const isSimilarAddress = 
+
+    const isSimilarAddress =
       duplicate.street.toLowerCase().includes(address.street.toLowerCase()) ||
-      (duplicate.city.toLowerCase() === address.city.toLowerCase() && 
+      (duplicate.city.toLowerCase() === address.city.toLowerCase() &&
        duplicate.zipCode === address.zipCode);
 
     let severity: 'HIGH' | 'MEDIUM' | 'LOW' = 'MEDIUM';
@@ -127,7 +127,7 @@ async function checkForDuplicates(leadData: any) {
 
     if (criteria.length > 0) {
       message = `Potential duplicate found matching ${criteria.join(', ')} - ${duplicate.firstName} ${duplicate.lastName} from ${duplicate.vendor.name}`;
-      
+
       duplicateResults.push({
         severity,
         message,
@@ -417,4 +417,4 @@ export async function GET(request: NextRequest) {
   } finally {
     await prisma.$disconnect();
   }
-} 
+}
