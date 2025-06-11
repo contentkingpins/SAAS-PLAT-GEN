@@ -11,6 +11,8 @@ frontend:
       commands:
         - npm ci --legacy-peer-deps
         - npx prisma generate
+        - echo "Environment check - DATABASE_URL:" ${DATABASE_URL:0:30}...
+        - echo "Environment check - JWT_SECRET:" ${JWT_SECRET:0:10}...
     build:
       commands:
         - npm run build
@@ -36,4 +38,4 @@ frontend:
         - key: 'Referrer-Policy'
           value: 'strict-origin-when-cross-origin'
 
-# Deployment timestamp: 2025-06-10-23:59 - CRITICAL FIX: API routes configuration for Amplify serverless deployment 
+# Deployment timestamp: 2025-06-10T21:46 - CRITICAL FIX: Environment variable debugging and lead details API fix 

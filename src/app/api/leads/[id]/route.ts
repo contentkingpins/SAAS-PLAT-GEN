@@ -23,6 +23,29 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('=== LEAD DETAILS API ENDPOINT ===');
+    console.log('Lead ID:', params.id);
+    
+    // Debug environment variables
+    const envDebug = {
+      DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'MISSING',
+      DATABASE_URL_LENGTH: process.env.DATABASE_URL?.length || 0,
+      DATABASE_URL_PREFIX: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 30) + '...' : 'N/A',
+      JWT_SECRET: process.env.JWT_SECRET ? 'SET' : 'MISSING',
+      NODE_ENV: process.env.NODE_ENV
+    };
+    console.log('Environment variables:', envDebug);
+    
+    // Check if DATABASE_URL is available
+    if (!process.env.DATABASE_URL) {
+      console.error('❌ DATABASE_URL is not available!');
+      return NextResponse.json({
+        success: false,
+        error: 'Database configuration error - DATABASE_URL not found',
+        debug: envDebug
+      }, { status: 500 });
+    }
+    
     // Verify authentication first
     const authResult = await verifyAuth(request);
     if (authResult.error) {
@@ -36,6 +59,8 @@ export async function GET(
     }
 
     const { id } = params;
+    
+    console.log('✅ Environment check passed, attempting database query...');
 
     // Get the lead
     const lead = await prisma.lead.findUnique({
@@ -64,6 +89,8 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    console.log('✅ Lead found successfully:', lead.firstName, lead.lastName);
 
     // Automatically check for alerts when lead is accessed
     const alertResult = await AlertService.checkForDuplicateAlert(id);
@@ -140,9 +167,23 @@ export async function GET(
     });
 
   } catch (error: any) {
-    console.error('Error fetching lead:', error);
+    console.error('❌ Error in lead details API:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack?.substring(0, 500)
+    });
+    
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch lead' },
+      { 
+        success: false, 
+        error: error.message || 'Failed to fetch lead',
+        debug: {
+          DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'MISSING',
+          errorType: error.constructor.name,
+          errorCode: error.code
+        }
+      },
       { status: 500 }
     );
   }
