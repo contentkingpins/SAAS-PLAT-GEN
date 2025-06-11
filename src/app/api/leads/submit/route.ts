@@ -65,9 +65,7 @@ const leadSubmissionSchema = z.object({
       past: z.string().optional(),
       surgical: z.string().optional(),
       medications: z.string().optional(),
-      sideEffects: z.string().optional(),
-      allergies: z.string().optional(),
-      neuro: z.string().optional(),
+      conditions: z.string().optional(),
     }).optional(),
     substanceUse: z.object({
       tobacco: z.string().optional(),
@@ -76,7 +74,7 @@ const leadSubmissionSchema = z.object({
     }).optional(),
     familyHistory: z.array(z.object({
       relation: z.string().optional(),
-      neuroConditions: z.string().optional(),
+      conditions: z.string().optional(),
       ageOfDiagnosis: z.string().optional(),
     })).optional(),
   }).optional(),
@@ -85,10 +83,12 @@ const leadSubmissionSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('Lead submission request received:', { vendorCode: body.vendorCode, mbi: body.mbi, testType: body.testType });
 
     // Validate the request body
     const validationResult = leadSubmissionSchema.safeParse(body);
     if (!validationResult.success) {
+      console.error('Validation failed:', validationResult.error.flatten().fieldErrors);
       return NextResponse.json(
         {
           error: 'Invalid request data',
@@ -102,20 +102,24 @@ export async function POST(request: NextRequest) {
 
     // Verify vendor exists and is active
     const vendor = await prisma.vendor.findUnique({
-      where: { id: data.vendorId },
+      where: { code: data.vendorCode }, // Use vendorCode instead of vendorId for lookup
       select: { id: true, code: true, isActive: true }
     });
 
     if (!vendor) {
+      console.error('Vendor not found:', data.vendorCode);
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
     }
 
     if (!vendor.isActive) {
+      console.error('Vendor is inactive:', data.vendorCode);
       return NextResponse.json({ error: 'Vendor is inactive' }, { status: 403 });
     }
 
-    if (vendor.code !== data.vendorCode) {
-      return NextResponse.json({ error: 'Vendor code mismatch' }, { status: 400 });
+    // Validate that the vendorId matches the vendorCode (if provided)
+    if (data.vendorId && vendor.id !== data.vendorId) {
+      console.error('Vendor ID mismatch:', { provided: data.vendorId, actual: vendor.id });
+      return NextResponse.json({ error: 'Vendor code and ID mismatch' }, { status: 400 });
     }
 
     // Check for duplicate MBI
@@ -125,6 +129,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingLead) {
+      console.error('Duplicate MBI detected:', data.mbi);
       return NextResponse.json(
         {
           error: 'A lead with this MBI already exists',
@@ -137,25 +142,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Convert dateOfBirth string to Date object
+    const dateOfBirth = new Date(data.dateOfBirth);
+    
+    // Validate the date is valid
+    if (isNaN(dateOfBirth.getTime())) {
+      console.error('Invalid date of birth:', data.dateOfBirth);
+      return NextResponse.json(
+        { error: 'Invalid date of birth format' },
+        { status: 400 }
+      );
+    }
+
     // Create the lead with comprehensive data
     const lead = await prisma.lead.create({
       data: {
         mbi: data.mbi,
         firstName: data.firstName,
         lastName: data.lastName,
-        dateOfBirth: data.dateOfBirth,
+        dateOfBirth: dateOfBirth, // Use the converted Date object
         phone: data.phone,
         street: data.street || '',
         city: data.city || '',
         state: data.state || '',
         zipCode: data.zipCode || '',
-        vendorId: data.vendorId,
-        vendorCode: data.vendorCode,
+        vendorId: vendor.id, // Use the vendor ID from the database lookup
+        vendorCode: vendor.code,
         status: 'SUBMITTED',
         testType: data.testType ? (data.testType.toUpperCase() as 'IMMUNE' | 'NEURO') : 'NEURO',
         contactAttempts: 0,
-        // Store comprehensive data as JSON in a notes field or handle it differently
-        // For now, we'll store basic fields and log the additional data
       },
       include: {
         vendor: {
@@ -174,7 +189,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the lead creation for tracking
-    console.log(`New lead submitted: ${lead.id} by vendor ${vendor.code}`);
+    console.log(`✅ New lead submitted successfully: ${lead.id} by vendor ${vendor.code}`);
 
     return NextResponse.json({
       success: true,
@@ -188,7 +203,16 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error submitting lead:', error);
+    console.error('❌ Error submitting lead:', error);
+    
+    // More detailed error logging
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
 
     // Handle Prisma unique constraint violations
     if (error instanceof Error && error.message.includes('Unique constraint')) {
@@ -198,10 +222,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Handle Prisma database errors
+    if (error instanceof Error && error.message.includes('Prisma')) {
+      console.error('Database error:', error.message);
+      return NextResponse.json(
+        { error: 'Database error occurred. Please try again.' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Failed to submit lead. Please try again.' },
       { status: 500 }
     );
+  } finally {
+    // Ensure prisma connection is properly handled
+    await prisma.$disconnect();
   }
 }
 
@@ -249,5 +285,7 @@ export async function GET(request: NextRequest) {
       { error: 'Failed to fetch lead status' },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
