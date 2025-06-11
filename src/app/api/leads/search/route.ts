@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { verifyAuth } from '@/lib/auth/middleware';
 
 // GET /api/leads/search - Search leads for agents/advocates
 export async function GET(request: NextRequest) {
   try {
+    // Verify authentication first
+    const authResult = await verifyAuth(request);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    // Only allow ADMIN, ADVOCATE, and COLLECTIONS agents to search leads
+    const allowedRoles = ['ADMIN', 'ADVOCATE', 'COLLECTIONS'];
+    if (!allowedRoles.includes(authResult.user?.role || '')) {
+      return NextResponse.json({ error: 'Access denied. Search requires advocate, collections, or admin role.' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q')?.trim();
     const limit = parseInt(searchParams.get('limit') || '10');
