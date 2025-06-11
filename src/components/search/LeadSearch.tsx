@@ -124,17 +124,12 @@ export default function LeadSearch({
       setLoading(true);
       setError(null);
       
-      const response = await apiClient.get<{
-        success: boolean;
-        data: Lead[];
-        meta: any;
-      }>(`/leads/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
-
-      if (response.success) {
-        setResults(response.data);
-      } else {
-        setError('Search failed. Please try again.');
-      }
+      // apiClient.get() already extracts the data from {success: true, data: [...]}
+      const leads = await apiClient.get<Lead[]>(`/leads/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
+      
+      console.log('Search results received:', leads);
+      setResults(leads || []);
+      
     } catch (err: any) {
       console.error('Search error:', err);
       setError(err.message || 'Search failed. Please try again.');
