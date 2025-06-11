@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { AlertService } from '../../../../lib/services/alertService';
-
-const prisma = new PrismaClient();
+import { verifyAuth } from '@/lib/auth/middleware';
 
 // Validation schema for lead updates
 const leadUpdateSchema = z.object({
@@ -24,6 +23,18 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Verify authentication first
+    const authResult = await verifyAuth(request);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    // Only allow ADMIN, ADVOCATE, and COLLECTIONS to view lead details
+    const allowedRoles = ['ADMIN', 'ADVOCATE', 'COLLECTIONS'];
+    if (!allowedRoles.includes(authResult.user?.role || '')) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
     const { id } = params;
 
     // Get the lead
@@ -143,6 +154,18 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Verify authentication first
+    const authResult = await verifyAuth(request);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    // Only allow ADMIN, ADVOCATE, and COLLECTIONS to update leads
+    const allowedRoles = ['ADMIN', 'ADVOCATE', 'COLLECTIONS'];
+    if (!allowedRoles.includes(authResult.user?.role || '')) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
     const { id } = params;
     const body = await request.json();
     const validatedData = leadUpdateSchema.parse(body);

@@ -24,15 +24,15 @@ import {
 } from '@mui/material';
 import {
   Search as SearchIcon,
+  Clear as ClearIcon,
   Person as PersonIcon,
   Phone as PhoneIcon,
-  LocationOn as LocationIcon,
-  CalendarToday as CalendarIcon,
-  Clear as ClearIcon,
+  Warning as WarningIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Assignment as AssignmentIcon,
-  Warning as WarningIcon
+  LocationOn as LocationIcon,
+  CalendarToday as CalendarIcon,
 } from '@mui/icons-material';
 import { apiClient } from '@/lib/api/client';
 
@@ -326,17 +326,6 @@ export default function LeadSearch({
                         
                         {showActions && (
                           <Box display="flex" gap={1} mt={1}>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<PhoneIcon />}
-                              onClick={(e) => {
-                                e.stopPropagation(); // Prevent card click
-                                window.open(`tel:${lead.phone}`, '_self');
-                              }}
-                            >
-                              Call
-                            </Button>
                             <Button
                               size="small"
                               variant="contained"
