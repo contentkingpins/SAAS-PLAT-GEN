@@ -1,6 +1,5 @@
-import { PrismaClient, LeadAlert, AlertType, AlertSeverity } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { LeadAlert, AlertType, AlertSeverity } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export interface AlertResult {
   leadId: string;
