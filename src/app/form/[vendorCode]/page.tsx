@@ -470,13 +470,26 @@ export default function ComprehensiveMedicalForm() {
               </Grid>
 
               <Grid item xs={12} md={3}>
-                <TextField
-                  fullWidth
-                  label="Ethnicity *"
-                  {...register('ethnicity')}
-                  error={!!errors.ethnicity}
-                  helperText={errors.ethnicity?.message}
-                />
+                <FormControl fullWidth error={!!errors.ethnicity}>
+                  <InputLabel>Ethnicity *</InputLabel>
+                  <Select
+                    label="Ethnicity *"
+                    {...register('ethnicity')}
+                    defaultValue=""
+                  >
+                    <MenuItem value="Hispanic or Latino">Hispanic or Latino</MenuItem>
+                    <MenuItem value="Not Hispanic or Latino">Not Hispanic or Latino</MenuItem>
+                    <MenuItem value="American Indian or Alaska Native">American Indian or Alaska Native</MenuItem>
+                    <MenuItem value="Asian">Asian</MenuItem>
+                    <MenuItem value="Black or African American">Black or African American</MenuItem>
+                    <MenuItem value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</MenuItem>
+                    <MenuItem value="White">White</MenuItem>
+                    <MenuItem value="Two or More Races">Two or More Races</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
+                    <MenuItem value="Prefer not to answer">Prefer not to answer</MenuItem>
+                  </Select>
+                  {errors.ethnicity && <Typography variant="caption" color="error" sx={{ ml: 2 }}>{errors.ethnicity.message}</Typography>}
+                </FormControl>
               </Grid>
 
               <Grid item xs={12} md={3}>
