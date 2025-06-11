@@ -36,7 +36,7 @@ import { z } from 'zod';
 import { apiClient } from '@/lib/api/client';
 import MBIChecker from '@/components/forms/MBIChecker';
 
-// Simplified validation schema - removed unwanted sections
+// Simplified validation schema - removed substance abuse history
 const comprehensiveLeadSchema = z.object({
   // Required fields (Basic Patient Info)
   mbi: z.string().min(11, 'MBI must be 11 characters').max(11, 'MBI must be 11 characters'),
@@ -66,11 +66,6 @@ const comprehensiveLeadSchema = z.object({
   surgicalHistory: z.string().optional(),
   currentMedications: z.string().optional(),
   conditionsHistory: z.string().optional(), // Dynamic field for neuro/immuno conditions
-
-  // Substance Use (optional)
-  tobaccoUsage: z.string().optional(),
-  alcoholUsage: z.string().optional(),
-  recreationalDrugUsage: z.string().optional(),
 
   // Family History (optional)
   familyMember1Relation: z.string().optional(),
@@ -172,9 +167,6 @@ export default function ComprehensiveMedicalForm() {
         surgicalHistory: '',
         currentMedications: '',
         conditionsHistory: '',
-        tobaccoUsage: '',
-        alcoholUsage: '',
-        recreationalDrugUsage: '',
         familyMember1Relation: '',
         familyMember1Conditions: '',
         familyMember1AgeOfDiagnosis: '',
@@ -224,11 +216,6 @@ export default function ComprehensiveMedicalForm() {
             surgical: data.surgicalHistory || '',
             medications: data.currentMedications || '',
             conditions: data.conditionsHistory || '', // Dynamic conditions field
-          },
-          substanceUse: {
-            tobacco: data.tobaccoUsage || '',
-            alcohol: data.alcoholUsage || '',
-            drugs: data.recreationalDrugUsage || '',
           },
           familyHistory: [
             {
@@ -300,18 +287,18 @@ export default function ComprehensiveMedicalForm() {
         <Paper elevation={3} sx={{ p: 6, textAlign: 'center' }}>
           <CheckCircleIcon sx={{ fontSize: 80, color: 'success.main', mb: 3 }} />
           <Typography variant="h4" gutterBottom color="success.main">
-            Medical Information Submitted Successfully!
+            Lead Submitted Successfully!
           </Typography>
           <Typography variant="h6" gutterBottom>
             Thank you for completing the medical intake form.
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            Your information has been received and will be reviewed by our medical team.
-            You will be contacted within 24-48 hours regarding next steps.
+            The patient information has been successfully submitted and processed.
+            <strong> You may now transfer the call to our medical team.</strong>
           </Typography>
           <Alert severity="success" sx={{ mt: 3 }}>
-            <strong>Important:</strong> Please keep this confirmation for your records.
-            Your submission has been processed and assigned a tracking number.
+            <strong>Next Steps:</strong> Please transfer the patient to our medical team for qualification review.
+            Keep this confirmation for your records.
           </Alert>
         </Paper>
       </Container>
@@ -615,46 +602,6 @@ export default function ComprehensiveMedicalForm() {
                   rows={3}
                   label={getConditionTypeLabel()}
                   {...register('conditionsHistory')}
-                />
-              </Grid>
-            </Grid>
-          </Box>
-
-          {/* Substance Use History - OPTIONAL */}
-          <Box mb={4}>
-            <Typography variant="h6" gutterBottom color="primary">
-              Substance Use History (Optional)
-            </Typography>
-            <Divider sx={{ mb: 3 }} />
-
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Tobacco Usage History (List type of usage and frequency. If not obtained, write not obtained)"
-                  {...register('tobaccoUsage')}
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Alcohol Usage History (List type of usage and frequency. If not obtained, write not obtained)"
-                  {...register('alcoholUsage')}
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Recreational Drug Usage History (List type of usage and frequency. If not obtained, write not obtained)"
-                  {...register('recreationalDrugUsage')}
                 />
               </Grid>
             </Grid>
