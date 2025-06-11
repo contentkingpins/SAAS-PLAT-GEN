@@ -79,7 +79,7 @@ export default function CollectionsDashboard() {
       setLoading(true);
       
       // Get leads in collections status
-      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(`/api/leads?collectionsAgentId=${user?.id}&status=COLLECTIONS,SHIPPED`);
+      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(`leads?collectionsAgentId=${user?.id}&status=COLLECTIONS,SHIPPED`);
 
       if (apiResponse?.success && apiResponse.data) {
         setLeads(apiResponse.data);
@@ -127,7 +127,7 @@ export default function CollectionsDashboard() {
 
   const handleMarkCompleted = async (leadId: string) => {
     try {
-      await apiClient.patch(`/api/leads/${leadId}`, {
+      await apiClient.patch(`leads/${leadId}`, {
         status: 'KIT_COMPLETED',
         collectionsDisposition: 'KIT_COMPLETED',
       });

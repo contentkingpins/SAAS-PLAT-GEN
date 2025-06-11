@@ -38,13 +38,19 @@ import { apiClient } from '@/lib/api/client';
 // Custom debounce hook
 function useDebounce<T extends (...args: any[]) => any>(callback: T, delay: number) {
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const callbackRef = useRef(callback);
+  
+  // Update callback ref when callback changes
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
 
   return useCallback((...args: Parameters<T>) => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    timeoutRef.current = setTimeout(() => callback(...args), delay);
-  }, [callback, delay]);
+    timeoutRef.current = setTimeout(() => callbackRef.current(...args), delay);
+  }, [delay]); // Only depend on delay, not callback
 }
 
 interface Lead {
@@ -114,7 +120,7 @@ export default function LeadSearch({
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
   // Search function
-  const performSearch = async (searchQuery: string) => {
+  const performSearch = useCallback(async (searchQuery: string) => {
     if (searchQuery.length < 2) {
       setResults([]);
       return;
@@ -125,7 +131,7 @@ export default function LeadSearch({
       setError(null);
       
       // apiClient.get() already extracts the data from {success: true, data: [...]}
-      const leads = await apiClient.get<Lead[]>(`/leads/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
+      const leads = await apiClient.get<Lead[]>(`leads/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
       
       console.log('Search results received:', leads);
       setResults(leads || []);
@@ -136,7 +142,7 @@ export default function LeadSearch({
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // No dependencies needed since we're not using external variables
 
   // Debounced search function
   const debouncedSearch = useDebounce(performSearch, 300);
@@ -144,7 +150,7 @@ export default function LeadSearch({
   // Effect to trigger search when query changes
   useEffect(() => {
     debouncedSearch(query);
-  }, [query, debouncedSearch]);
+  }, [query]); // Only depend on query, not debouncedSearch
 
   const handleClearSearch = () => {
     setQuery('');

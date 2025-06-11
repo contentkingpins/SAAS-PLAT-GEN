@@ -102,7 +102,7 @@ export default function AdvocateDashboard() {
       setLoading(true);
       
       // Get leads assigned to this advocate
-      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(`/api/leads?advocateId=${user?.id}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`);
+      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(`leads?advocateId=${user?.id}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`);
 
       if (apiResponse?.success && apiResponse.data) {
         setLeads(apiResponse.data);
