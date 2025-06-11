@@ -28,6 +28,7 @@ import {
   ListItemIcon,
   IconButton,
   FormHelperText,
+  Snackbar,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -41,6 +42,8 @@ import {
   Notes as NotesIcon,
   LocalHospital as LocalHospitalIcon,
   FamilyRestroom as FamilyRestroomIcon,
+  Edit as EditIcon,
+  Cancel as CancelIcon,
 } from '@mui/icons-material';
 import { apiClient } from '@/lib/api/client';
 import useStore from '@/store/useStore';
@@ -160,19 +163,44 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
   const { user } = useStore();
   const [lead, setLead] = useState<LeadDetail | null>(null);
   const [loading, setLoading] = useState(false);
-  const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Form state for updates
-  const [advocateDisposition, setAdvocateDisposition] = useState('');
+  const [disposition, setDisposition] = useState('');
   const [advocateNotes, setAdvocateNotes] = useState('');
   const [status, setStatus] = useState('');
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error'
+  });
+
+  // Add state for editing fields
+  const [editMode, setEditMode] = useState(false);
+  const [editedLead, setEditedLead] = useState<any>({});
 
   useEffect(() => {
     if (open && leadId) {
       loadLeadDetails();
     }
   }, [open, leadId]);
+
+  useEffect(() => {
+    if (lead) {
+      setEditedLead({
+        firstName: lead.firstName,
+        lastName: lead.lastName,
+        phone: lead.phone,
+        middleInitial: lead.middleInitial || '',
+        gender: lead.gender || '',
+        ethnicity: lead.ethnicity || '',
+        maritalStatus: lead.maritalStatus || '',
+        height: lead.height || '',
+        weight: lead.weight || '',
+        address: { ...lead.address },
+        insurance: lead.insurance ? { ...lead.insurance } : {},
+        medicalHistory: lead.medicalHistory ? { ...lead.medicalHistory } : {},
+      });
+    }
+  }, [lead]);
 
   const loadLeadDetails = async () => {
     if (!leadId) return;
@@ -190,7 +218,7 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
       
       if (response.success && response.lead) {
         setLead(response.lead);
-        setAdvocateDisposition(response.lead.advocateDisposition || '');
+        setDisposition(response.lead.advocateDisposition || '');
         setAdvocateNotes(response.lead.advocateNotes || '');
         setStatus(response.lead.status);
         console.log('Lead details loaded successfully:', response.lead);
@@ -212,37 +240,85 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
     }
   };
 
-  const handleUpdateLead = async () => {
-    if (!lead || !user?.id) return;
+  const handleUpdate = async () => {
+    if (!lead) return;
 
     try {
-      setUpdating(true);
-      setError(null);
+      setLoading(true);
+      console.log('Updating lead with disposition:', disposition);
 
+      // Automatically determine status based on disposition
+      const autoStatus = getStatusFromDisposition(disposition);
+      
       const updateData = {
-        advocateDisposition: advocateDisposition || undefined,
-        advocateNotes: advocateNotes || undefined,
-        status,
-        advocateId: user.id,
+        advocateDisposition: disposition,
+        advocateNotes: advocateNotes,
+        advocateId: lead.advocateId || 'current_advocate_id', // This should be set from auth context
         advocateReviewedAt: new Date().toISOString(),
+        status: autoStatus, // Auto-set status based on disposition
+        
+        // Include edited lead data if in edit mode
+        ...(editMode && {
+          firstName: editedLead.firstName,
+          lastName: editedLead.lastName,
+          phone: editedLead.phone,
+          middleInitial: editedLead.middleInitial,
+          gender: editedLead.gender,
+          ethnicity: editedLead.ethnicity,
+          maritalStatus: editedLead.maritalStatus,
+          height: editedLead.height,
+          weight: editedLead.weight,
+          street: editedLead.address?.street,
+          city: editedLead.address?.city,
+          state: editedLead.address?.state,
+          zipCode: editedLead.address?.zipCode,
+          primaryInsuranceCompany: editedLead.insurance?.primaryCompany,
+          primaryPolicyNumber: editedLead.insurance?.primaryPolicyNumber,
+          medicalHistory: editedLead.medicalHistory?.past,
+          surgicalHistory: editedLead.medicalHistory?.surgical,
+          currentMedications: editedLead.medicalHistory?.medications,
+          conditionsHistory: editedLead.medicalHistory?.conditions,
+        })
       };
 
-      const response = await apiClient.patch<{success: boolean; lead: LeadDetail}>(`leads/${lead.id}`, updateData);
+      console.log('Update payload:', updateData);
+
+      const response = await apiClient.patch(`/leads/${lead.id}`, updateData) as { success: boolean; lead: LeadDetail };
       
-      if (response.success && response.lead) {
-        setLead(response.lead);
-        onLeadUpdated?.(response.lead);
+      if (response.success) {
+        console.log('✅ Lead updated successfully');
+        setStatus(autoStatus);
         
-        // Show success and close modal
-        setTimeout(() => {
-          onClose();
-        }, 1000);
+        // Refresh the lead data
+        await loadLeadDetails();
+        
+        // Exit edit mode
+        setEditMode(false);
+        
+        // Call the callback if provided
+        if (onLeadUpdated) {
+          onLeadUpdated(response.lead);
+        }
+
+        // Show success snackbar
+        setSnackbar({
+          open: true,
+          message: 'Lead updated successfully',
+          severity: 'success'
+        });
       }
-    } catch (err: any) {
-      console.error('Error updating lead:', err);
-      setError(err.message || 'Failed to update lead');
+    } catch (error: any) {
+      console.error('❌ Error updating lead:', error);
+      setError(error.message || 'Failed to update lead');
+
+      // Show error snackbar
+      setSnackbar({
+        open: true,
+        message: 'Failed to update lead',
+        severity: 'error'
+      });
     } finally {
-      setUpdating(false);
+      setLoading(false);
     }
   };
 
@@ -283,512 +359,623 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
     return age;
   };
 
+  const handleEditChange = (field: string, value: string, section?: string) => {
+    if (section) {
+      setEditedLead((prev: any) => ({
+        ...prev,
+        [section]: {
+          ...prev[section],
+          [field]: value
+        }
+      }));
+    } else {
+      setEditedLead((prev: any) => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+  };
+
+  // Map disposition to status automatically
+  const getStatusFromDisposition = (disposition: string): string => {
+    switch (disposition) {
+      case 'DOESNT_QUALIFY':
+      case 'PATIENT_DECLINED':
+      case 'DUPE':
+        return 'QUALIFIED'; // Negative results, marked as processed
+      case 'CONNECTED_TO_COMPLIANCE':
+        return 'SENT_TO_CONSULT'; // Positive result, send to next stage
+      case 'COMPLIANCE_ISSUE':
+      case 'CALL_BACK':
+      case 'CALL_DROPPED':
+      default:
+        return 'ADVOCATE_REVIEW'; // Still needs advocate attention
+    }
+  };
+
   if (!open) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h5">
-            Lead Details {lead && `- ${lead.firstName} ${lead.lastName}`}
-          </Typography>
-          <IconButton onClick={onClose}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        {loading && (
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-            <CircularProgress />
+    <>
+      <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h5">
+              Lead Details {lead && `- ${lead.firstName} ${lead.lastName}`}
+            </Typography>
+            <IconButton onClick={onClose}>
+              <CloseIcon />
+            </IconButton>
           </Box>
-        )}
+        </DialogTitle>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+        <DialogContent>
+          {loading && (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+              <CircularProgress />
+            </Box>
+          )}
 
-        {lead && (
-          <Grid container spacing={3}>
-            {/* Patient Information */}
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <PersonIcon color="primary" sx={{ mr: 1 }} />
-                    <Typography variant="h6">Patient Information</Typography>
-                  </Box>
-                  
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Full Name
-                      </Typography>
-                      <Typography variant="body1" fontWeight="medium">
-                        {lead.firstName} {lead.lastName}
-                      </Typography>
-                    </Grid>
-                    
-                    <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        MBI
-                      </Typography>
-                      <Typography variant="body1" fontFamily="monospace">
-                        {lead.mbi}
-                      </Typography>
-                    </Grid>
-                    
-                    <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Age
-                      </Typography>
-                      <Typography variant="body1">
-                        {calculateAge(lead.dateOfBirth)} years old
-                      </Typography>
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Date of Birth
-                      </Typography>
-                      <Typography variant="body1">
-                        {new Date(lead.dateOfBirth).toLocaleDateString()}
-                      </Typography>
-                    </Grid>
-                    
-                    <Grid item xs={12}>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          {lead && (
+            <Grid container spacing={3}>
+              {/* Patient Information */}
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardContent>
+                    <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
                       <Box display="flex" alignItems="center">
-                        <PhoneIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                        <Typography variant="body1">
-                          {formatPhone(lead.phone)}
-                        </Typography>
+                        <PersonIcon color="primary" sx={{ mr: 1 }} />
+                        <Typography variant="h6">Patient Information</Typography>
                       </Box>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Address Information */}
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <LocationIcon color="primary" sx={{ mr: 1 }} />
-                    <Typography variant="h6">Address</Typography>
-                  </Box>
-                  
-                  <Typography variant="body1">
-                    {lead.address.street}<br />
-                    {lead.address.city}, {lead.address.state} {lead.address.zipCode}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Vendor & Test Information */}
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <BusinessIcon color="primary" sx={{ mr: 1 }} />
-                    <Typography variant="h6">Vendor Information</Typography>
-                  </Box>
-                  
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Vendor
-                      </Typography>
-                      <Typography variant="body1" fontWeight="medium">
-                        {lead.vendor.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Code: {lead.vendor.code}
-                      </Typography>
-                    </Grid>
+                      <Button
+                        size="small"
+                        onClick={() => setEditMode(!editMode)}
+                        startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                      >
+                        {editMode ? 'Cancel' : 'Edit'}
+                      </Button>
+                    </Box>
                     
-                    {lead.testType && (
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          MBI
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {lead.mbi}
+                        </Typography>
+                      </Grid>
+                      
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Full Name
+                        </Typography>
+                        {editMode ? (
+                          <Box display="flex" gap={1}>
+                            <TextField
+                              size="small"
+                              value={editedLead.firstName}
+                              onChange={(e) => handleEditChange('firstName', e.target.value)}
+                              placeholder="First Name"
+                            />
+                            <TextField
+                              size="small"
+                              value={editedLead.lastName}
+                              onChange={(e) => handleEditChange('lastName', e.target.value)}
+                              placeholder="Last Name"
+                            />
+                          </Box>
+                        ) : (
+                          <Typography variant="body1" fontWeight="medium">
+                            {lead.firstName} {lead.middleInitial} {lead.lastName}
+                          </Typography>
+                        )}
+                      </Grid>
+                      
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Date of Birth
+                        </Typography>
+                        <Typography variant="body1">
+                          {formatDate(lead.dateOfBirth)} (Age: {calculateAge(lead.dateOfBirth)})
+                        </Typography>
+                      </Grid>
+                      
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Phone
+                        </Typography>
+                        {editMode ? (
+                          <TextField
+                            size="small"
+                            fullWidth
+                            value={editedLead.phone}
+                            onChange={(e) => handleEditChange('phone', e.target.value)}
+                          />
+                        ) : (
+                          <Typography variant="body1">
+                            {formatPhone(lead.phone)}
+                          </Typography>
+                        )}
+                      </Grid>
+                      
                       <Grid item xs={12}>
                         <Typography variant="subtitle2" color="text.secondary">
-                          Test Type
+                          Address
+                        </Typography>
+                        {editMode ? (
+                          <Grid container spacing={1}>
+                            <Grid item xs={12}>
+                              <TextField
+                                size="small"
+                                fullWidth
+                                value={editedLead.address?.street || ''}
+                                onChange={(e) => handleEditChange('street', e.target.value, 'address')}
+                                placeholder="Street Address"
+                              />
+                            </Grid>
+                            <Grid item xs={4}>
+                              <TextField
+                                size="small"
+                                fullWidth
+                                value={editedLead.address?.city || ''}
+                                onChange={(e) => handleEditChange('city', e.target.value, 'address')}
+                                placeholder="City"
+                              />
+                            </Grid>
+                            <Grid item xs={4}>
+                              <TextField
+                                size="small"
+                                fullWidth
+                                value={editedLead.address?.state || ''}
+                                onChange={(e) => handleEditChange('state', e.target.value, 'address')}
+                                placeholder="State"
+                              />
+                            </Grid>
+                            <Grid item xs={4}>
+                              <TextField
+                                size="small"
+                                fullWidth
+                                value={editedLead.address?.zipCode || ''}
+                                onChange={(e) => handleEditChange('zipCode', e.target.value, 'address')}
+                                placeholder="ZIP Code"
+                              />
+                            </Grid>
+                          </Grid>
+                        ) : (
+                          <Typography variant="body1">
+                            {lead.address.street}<br />
+                            {lead.address.city}, {lead.address.state} {lead.address.zipCode}
+                          </Typography>
+                        )}
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Address Information */}
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardContent>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <LocationIcon color="primary" sx={{ mr: 1 }} />
+                      <Typography variant="h6">Address</Typography>
+                    </Box>
+                    
+                    <Typography variant="body1">
+                      {lead.address.street}<br />
+                      {lead.address.city}, {lead.address.state} {lead.address.zipCode}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Vendor & Test Information */}
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardContent>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <BusinessIcon color="primary" sx={{ mr: 1 }} />
+                      <Typography variant="h6">Vendor Information</Typography>
+                    </Box>
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Vendor
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {lead.vendor.name}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Code: {lead.vendor.code}
+                        </Typography>
+                      </Grid>
+                      
+                      {lead.testType && (
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Test Type
+                          </Typography>
+                          <Chip 
+                            label={lead.testType} 
+                            color="info" 
+                            size="small" 
+                          />
+                        </Grid>
+                      )}
+                      
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Submitted
+                        </Typography>
+                        <Typography variant="body2">
+                          {formatDate(lead.createdAt)}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Status & Alerts */}
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardContent>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <ScheduleIcon color="primary" sx={{ mr: 1 }} />
+                      <Typography variant="h6">Status & Alerts</Typography>
+                    </Box>
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Current Status
                         </Typography>
                         <Chip 
-                          label={lead.testType} 
-                          color="info" 
-                          size="small" 
+                          label={status.replace('_', ' ')} 
+                          color={getStatusColor(status)}
+                          size="medium"
                         />
                       </Grid>
-                    )}
-                    
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Submitted
-                      </Typography>
-                      <Typography variant="body2">
-                        {formatDate(lead.createdAt)}
-                      </Typography>
+                      
+                      {lead.isDuplicate && (
+                        <Grid item xs={12}>
+                          <Chip 
+                            label="Duplicate Lead" 
+                            color="error" 
+                            icon={<WarningIcon />}
+                          />
+                        </Grid>
+                      )}
+                      
+                      {lead.alerts.length > 0 && (
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Active Alerts
+                          </Typography>
+                          {lead.alerts.map((alert) => (
+                            <Alert 
+                              key={alert.id} 
+                              severity={alert.severity.toLowerCase() as any}
+                              sx={{ mb: 1 }}
+                            >
+                              {alert.message}
+                            </Alert>
+                          ))}
+                        </Grid>
+                      )}
                     </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
 
-            {/* Status & Alerts */}
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <ScheduleIcon color="primary" sx={{ mr: 1 }} />
-                    <Typography variant="h6">Status & Alerts</Typography>
+              {/* Comprehensive Form Data Sections */}
+              
+              {/* Demographics Section */}
+              {(lead.middleInitial || lead.gender || lead.ethnicity || lead.maritalStatus || lead.height || lead.weight) && (
+                <Grid container spacing={3} sx={{ mb: 3 }}>
+                  <Grid item xs={12}>
+                    <Card>
+                      <CardContent>
+                        <Box display="flex" alignItems="center" mb={2}>
+                          <PersonIcon color="primary" sx={{ mr: 1 }} />
+                          <Typography variant="h6">Demographics</Typography>
+                        </Box>
+                        
+                        <Grid container spacing={2}>
+                          {lead.middleInitial && (
+                            <Grid item xs={6} md={3}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Middle Initial
+                              </Typography>
+                              <Typography variant="body1">{lead.middleInitial}</Typography>
+                            </Grid>
+                          )}
+                          {lead.gender && (
+                            <Grid item xs={6} md={3}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Gender
+                              </Typography>
+                              <Typography variant="body1">{lead.gender}</Typography>
+                            </Grid>
+                          )}
+                          {lead.ethnicity && (
+                            <Grid item xs={6} md={3}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Ethnicity
+                              </Typography>
+                              <Typography variant="body1">{lead.ethnicity}</Typography>
+                            </Grid>
+                          )}
+                          {lead.maritalStatus && (
+                            <Grid item xs={6} md={3}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Marital Status
+                              </Typography>
+                              <Typography variant="body1">{lead.maritalStatus}</Typography>
+                            </Grid>
+                          )}
+                          {lead.height && (
+                            <Grid item xs={6} md={3}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Height
+                              </Typography>
+                              <Typography variant="body1">{lead.height}</Typography>
+                            </Grid>
+                          )}
+                          {lead.weight && (
+                            <Grid item xs={6} md={3}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Weight
+                              </Typography>
+                              <Typography variant="body1">{lead.weight}</Typography>
+                            </Grid>
+                          )}
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              )}
+
+              {/* Insurance Information */}
+              {lead.insurance && (lead.insurance.primaryCompany || lead.insurance.primaryPolicyNumber) && (
+                <Grid container spacing={3} sx={{ mb: 3 }}>
+                  <Grid item xs={12}>
+                    <Card>
+                      <CardContent>
+                        <Box display="flex" alignItems="center" mb={2}>
+                          <BusinessIcon color="primary" sx={{ mr: 1 }} />
+                          <Typography variant="h6">Insurance Information</Typography>
+                        </Box>
+                        
+                        <Grid container spacing={2}>
+                          {lead.insurance.primaryCompany && (
+                            <Grid item xs={12} md={6}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Primary Insurance Company
+                              </Typography>
+                              <Typography variant="body1">{lead.insurance.primaryCompany}</Typography>
+                            </Grid>
+                          )}
+                          {lead.insurance.primaryPolicyNumber && (
+                            <Grid item xs={12} md={6}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Policy Number
+                              </Typography>
+                              <Typography variant="body1">{lead.insurance.primaryPolicyNumber}</Typography>
+                            </Grid>
+                          )}
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              )}
+
+              {/* Medical History */}
+              {lead.medicalHistory && (lead.medicalHistory.past || lead.medicalHistory.surgical || lead.medicalHistory.medications || lead.medicalHistory.conditions) && (
+                <Grid container spacing={3} sx={{ mb: 3 }}>
+                  <Grid item xs={12}>
+                    <Card>
+                      <CardContent>
+                        <Box display="flex" alignItems="center" mb={2}>
+                          <LocalHospitalIcon color="primary" sx={{ mr: 1 }} />
+                          <Typography variant="h6">Medical History</Typography>
+                        </Box>
+                        
+                        <Grid container spacing={2}>
+                          {lead.medicalHistory.past && (
+                            <Grid item xs={12}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Past Medical History
+                              </Typography>
+                              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                                {lead.medicalHistory.past}
+                              </Typography>
+                            </Grid>
+                          )}
+                          {lead.medicalHistory.surgical && (
+                            <Grid item xs={12}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Surgical History
+                              </Typography>
+                              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                                {lead.medicalHistory.surgical}
+                              </Typography>
+                            </Grid>
+                          )}
+                          {lead.medicalHistory.medications && (
+                            <Grid item xs={12}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Current Medications
+                              </Typography>
+                              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                                {lead.medicalHistory.medications}
+                              </Typography>
+                            </Grid>
+                          )}
+                          {lead.medicalHistory.conditions && (
+                            <Grid item xs={12}>
+                              <Typography variant="subtitle2" color="text.secondary">
+                                Medical Conditions
+                              </Typography>
+                              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                                {lead.medicalHistory.conditions}
+                              </Typography>
+                            </Grid>
+                          )}
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              )}
+
+              {/* Family History */}
+              {lead.familyHistory && lead.familyHistory.length > 0 && (
+                <Grid container spacing={3} sx={{ mb: 3 }}>
+                  <Grid item xs={12}>
+                    <Card>
+                      <CardContent>
+                        <Box display="flex" alignItems="center" mb={2}>
+                          <FamilyRestroomIcon color="primary" sx={{ mr: 1 }} />
+                          <Typography variant="h6">Family History</Typography>
+                        </Box>
+                        
+                        <Grid container spacing={2}>
+                          {lead.familyHistory.map((family, index) => (
+                            family.relation && (
+                              <Grid item xs={12} key={index}>
+                                <Paper variant="outlined" sx={{ p: 2 }}>
+                                  <Grid container spacing={2}>
+                                    <Grid item xs={12} md={4}>
+                                      <Typography variant="subtitle2" color="text.secondary">
+                                        Relation
+                                      </Typography>
+                                      <Typography variant="body1">{family.relation}</Typography>
+                                    </Grid>
+                                    {family.conditions && (
+                                      <Grid item xs={12} md={6}>
+                                        <Typography variant="subtitle2" color="text.secondary">
+                                          Conditions
+                                        </Typography>
+                                        <Typography variant="body1">{family.conditions}</Typography>
+                                      </Grid>
+                                    )}
+                                    {family.ageOfDiagnosis && (
+                                      <Grid item xs={12} md={2}>
+                                        <Typography variant="subtitle2" color="text.secondary">
+                                          Age of Diagnosis
+                                        </Typography>
+                                        <Typography variant="body1">{family.ageOfDiagnosis}</Typography>
+                                      </Grid>
+                                    )}
+                                  </Grid>
+                                </Paper>
+                              </Grid>
+                            )
+                          ))}
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              )}
+
+              {/* Advocate Update Section */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3 }}>
+                  <Box display="flex" alignItems="center" mb={3}>
+                    <NotesIcon color="primary" sx={{ mr: 1 }} />
+                    <Typography variant="h6">Advocate Review</Typography>
                   </Box>
                   
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Current Status
-                      </Typography>
-                      <Chip 
-                        label={status.replace('_', ' ')} 
-                        color={getStatusColor(status)}
-                        size="medium"
-                      />
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={4}>
+                      <FormControl fullWidth>
+                        <InputLabel>Disposition</InputLabel>
+                        <Select
+                          value={disposition}
+                          onChange={(e) => setDisposition(e.target.value)}
+                          label="Disposition"
+                        >
+                          <MenuItem value="">
+                            <em>No Disposition</em>
+                          </MenuItem>
+                          {ADVOCATE_DISPOSITIONS.map((disposition) => (
+                            <MenuItem key={disposition.value} value={disposition.value}>
+                              {disposition.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </Grid>
                     
-                    {lead.isDuplicate && (
-                      <Grid item xs={12}>
+                    <Grid item xs={12} md={4}>
+                      {disposition && (
                         <Chip 
-                          label="Duplicate Lead" 
-                          color="error" 
-                          icon={<WarningIcon />}
+                          label={ADVOCATE_DISPOSITIONS.find(d => d.value === disposition)?.label}
+                          color={ADVOCATE_DISPOSITIONS.find(d => d.value === disposition)?.color as any}
                         />
-                      </Grid>
-                    )}
+                      )}
+                    </Grid>
                     
-                    {lead.alerts.length > 0 && (
-                      <Grid item xs={12}>
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                          Active Alerts
-                        </Typography>
-                        {lead.alerts.map((alert) => (
-                          <Alert 
-                            key={alert.id} 
-                            severity={alert.severity.toLowerCase() as any}
-                            sx={{ mb: 1 }}
-                          >
-                            {alert.message}
-                          </Alert>
-                        ))}
-                      </Grid>
-                    )}
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Comprehensive Form Data Sections */}
-            
-            {/* Demographics Section */}
-            {(lead.middleInitial || lead.gender || lead.ethnicity || lead.maritalStatus || lead.height || lead.weight) && (
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                <Grid item xs={12}>
-                  <Card>
-                    <CardContent>
-                      <Box display="flex" alignItems="center" mb={2}>
-                        <PersonIcon color="primary" sx={{ mr: 1 }} />
-                        <Typography variant="h6">Demographics</Typography>
-                      </Box>
-                      
-                      <Grid container spacing={2}>
-                        {lead.middleInitial && (
-                          <Grid item xs={6} md={3}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              Middle Initial
-                            </Typography>
-                            <Typography variant="body1">{lead.middleInitial}</Typography>
-                          </Grid>
-                        )}
-                        {lead.gender && (
-                          <Grid item xs={6} md={3}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              Gender
-                            </Typography>
-                            <Typography variant="body1">{lead.gender}</Typography>
-                          </Grid>
-                        )}
-                        {lead.ethnicity && (
-                          <Grid item xs={6} md={3}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              Ethnicity
-                            </Typography>
-                            <Typography variant="body1">{lead.ethnicity}</Typography>
-                          </Grid>
-                        )}
-                        {lead.maritalStatus && (
-                          <Grid item xs={6} md={3}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              Marital Status
-                            </Typography>
-                            <Typography variant="body1">{lead.maritalStatus}</Typography>
-                          </Grid>
-                        )}
-                        {lead.height && (
-                          <Grid item xs={6} md={3}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              Height
-                            </Typography>
-                            <Typography variant="body1">{lead.height}</Typography>
-                          </Grid>
-                        )}
-                        {lead.weight && (
-                          <Grid item xs={6} md={3}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              Weight
-                            </Typography>
-                            <Typography variant="body1">{lead.weight}</Typography>
-                          </Grid>
-                        )}
-                      </Grid>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            )}
-
-            {/* Insurance Information */}
-            {lead.insurance && (lead.insurance.primaryCompany || lead.insurance.primaryPolicyNumber) && (
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                <Grid item xs={12}>
-                  <Card>
-                    <CardContent>
-                      <Box display="flex" alignItems="center" mb={2}>
-                        <BusinessIcon color="primary" sx={{ mr: 1 }} />
-                        <Typography variant="h6">Insurance Information</Typography>
-                      </Box>
-                      
-                      <Grid container spacing={2}>
-                        {lead.insurance.primaryCompany && (
-                          <Grid item xs={12} md={6}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              Primary Insurance Company
-                            </Typography>
-                            <Typography variant="body1">{lead.insurance.primaryCompany}</Typography>
-                          </Grid>
-                        )}
-                        {lead.insurance.primaryPolicyNumber && (
-                          <Grid item xs={12} md={6}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              Policy Number
-                            </Typography>
-                            <Typography variant="body1">{lead.insurance.primaryPolicyNumber}</Typography>
-                          </Grid>
-                        )}
-                      </Grid>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            )}
-
-            {/* Medical History */}
-            {lead.medicalHistory && (lead.medicalHistory.past || lead.medicalHistory.surgical || lead.medicalHistory.medications || lead.medicalHistory.conditions) && (
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                <Grid item xs={12}>
-                  <Card>
-                    <CardContent>
-                      <Box display="flex" alignItems="center" mb={2}>
-                        <LocalHospitalIcon color="primary" sx={{ mr: 1 }} />
-                        <Typography variant="h6">Medical History</Typography>
-                      </Box>
-                      
-                      <Grid container spacing={2}>
-                        {lead.medicalHistory.past && (
-                          <Grid item xs={12}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              Past Medical History
-                            </Typography>
-                            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                              {lead.medicalHistory.past}
-                            </Typography>
-                          </Grid>
-                        )}
-                        {lead.medicalHistory.surgical && (
-                          <Grid item xs={12}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              Surgical History
-                            </Typography>
-                            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                              {lead.medicalHistory.surgical}
-                            </Typography>
-                          </Grid>
-                        )}
-                        {lead.medicalHistory.medications && (
-                          <Grid item xs={12}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              Current Medications
-                            </Typography>
-                            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                              {lead.medicalHistory.medications}
-                            </Typography>
-                          </Grid>
-                        )}
-                        {lead.medicalHistory.conditions && (
-                          <Grid item xs={12}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              Medical Conditions
-                            </Typography>
-                            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                              {lead.medicalHistory.conditions}
-                            </Typography>
-                          </Grid>
-                        )}
-                      </Grid>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            )}
-
-            {/* Family History */}
-            {lead.familyHistory && lead.familyHistory.length > 0 && (
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                <Grid item xs={12}>
-                  <Card>
-                    <CardContent>
-                      <Box display="flex" alignItems="center" mb={2}>
-                        <FamilyRestroomIcon color="primary" sx={{ mr: 1 }} />
-                        <Typography variant="h6">Family History</Typography>
-                      </Box>
-                      
-                      <Grid container spacing={2}>
-                        {lead.familyHistory.map((family, index) => (
-                          family.relation && (
-                            <Grid item xs={12} key={index}>
-                              <Paper variant="outlined" sx={{ p: 2 }}>
-                                <Grid container spacing={2}>
-                                  <Grid item xs={12} md={4}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                      Relation
-                                    </Typography>
-                                    <Typography variant="body1">{family.relation}</Typography>
-                                  </Grid>
-                                  {family.conditions && (
-                                    <Grid item xs={12} md={6}>
-                                      <Typography variant="subtitle2" color="text.secondary">
-                                        Conditions
-                                      </Typography>
-                                      <Typography variant="body1">{family.conditions}</Typography>
-                                    </Grid>
-                                  )}
-                                  {family.ageOfDiagnosis && (
-                                    <Grid item xs={12} md={2}>
-                                      <Typography variant="subtitle2" color="text.secondary">
-                                        Age of Diagnosis
-                                      </Typography>
-                                      <Typography variant="body1">{family.ageOfDiagnosis}</Typography>
-                                    </Grid>
-                                  )}
-                                </Grid>
-                              </Paper>
-                            </Grid>
-                          )
-                        ))}
-                      </Grid>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            )}
-
-            {/* Advocate Update Section */}
-            <Grid item xs={12}>
-              <Paper sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" mb={3}>
-                  <NotesIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="h6">Advocate Review</Typography>
-                </Box>
-                
-                <Grid container spacing={3}>
-                  <Grid item xs={12} md={4}>
-                    <FormControl fullWidth>
-                      <InputLabel>Status</InputLabel>
-                      <Select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        label="Status"
-                      >
-                        {STATUS_OPTIONS.map((option) => (
-                          <MenuItem key={option.value} value={option.value}>
-                            {option.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  
-                  <Grid item xs={12} md={4}>
-                    <FormControl fullWidth>
-                      <InputLabel>Disposition</InputLabel>
-                      <Select
-                        value={advocateDisposition}
-                        onChange={(e) => setAdvocateDisposition(e.target.value)}
-                        label="Disposition"
-                      >
-                        <MenuItem value="">
-                          <em>No Disposition</em>
-                        </MenuItem>
-                        {ADVOCATE_DISPOSITIONS.map((disposition) => (
-                          <MenuItem key={disposition.value} value={disposition.value}>
-                            {disposition.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  
-                  <Grid item xs={12} md={4}>
-                    {advocateDisposition && (
-                      <Chip 
-                        label={ADVOCATE_DISPOSITIONS.find(d => d.value === advocateDisposition)?.label}
-                        color={ADVOCATE_DISPOSITIONS.find(d => d.value === advocateDisposition)?.color as any}
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="Advocate Notes"
+                        value={advocateNotes}
+                        onChange={(e) => setAdvocateNotes(e.target.value)}
+                        placeholder="Add notes about your review, call details, or patient interaction..."
                       />
-                    )}
+                    </Grid>
                   </Grid>
-                  
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={3}
-                      label="Advocate Notes"
-                      value={advocateNotes}
-                      onChange={(e) => setAdvocateNotes(e.target.value)}
-                      placeholder="Add notes about your review, call details, or patient interaction..."
-                    />
-                  </Grid>
-                </Grid>
-              </Paper>
+                </Paper>
+              </Grid>
             </Grid>
-          </Grid>
-        )}
-      </DialogContent>
+          )}
+        </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose} disabled={updating}>
-          Cancel
-        </Button>
-        <Button 
-          onClick={handleUpdateLead} 
-          variant="contained" 
-          disabled={updating || !lead}
-          startIcon={updating ? <CircularProgress size={20} /> : <CheckCircleIcon />}
+        <DialogActions>
+          <Button onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleUpdate} 
+            variant="contained" 
+            disabled={loading || !lead}
+            startIcon={loading ? <CircularProgress size={20} /> : <CheckCircleIcon />}
+          >
+            {loading ? 'Updating...' : 'Update Lead'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for success/error messages */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
         >
-          {updating ? 'Updating...' : 'Update Lead'}
-        </Button>
-      </DialogActions>
-    </Dialog>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 } 

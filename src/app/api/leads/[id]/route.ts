@@ -15,6 +15,33 @@ const leadUpdateSchema = z.object({
   collectionsAgentId: z.string().optional(),
   collectionsDisposition: z.enum(['NO_ANSWER', 'SCHEDULED_CALLBACK', 'KIT_COMPLETED']).optional(),
   collectionsNotes: z.string().optional(),
+  
+  // Editable patient information fields
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  phone: z.string().optional(),
+  middleInitial: z.string().optional(),
+  gender: z.string().optional(),
+  ethnicity: z.string().optional(),
+  maritalStatus: z.string().optional(),
+  height: z.string().optional(),
+  weight: z.string().optional(),
+  
+  // Address fields
+  street: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
+  
+  // Insurance fields
+  primaryInsuranceCompany: z.string().optional(),
+  primaryPolicyNumber: z.string().optional(),
+  
+  // Medical history fields
+  medicalHistory: z.string().optional(),
+  surgicalHistory: z.string().optional(),
+  currentMedications: z.string().optional(),
+  conditionsHistory: z.string().optional(),
 }).partial();
 
 // GET /api/leads/[id] - Get lead with alert checking
