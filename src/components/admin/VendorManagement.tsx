@@ -115,8 +115,8 @@ function TabPanel(props: TabPanelProps) {
 // Validation schema
 const vendorSchema = z.object({
   name: z.string().min(2, 'Vendor name must be at least 2 characters'),
-  code: z.string().min(3, 'Vendor code must be at least 3 characters'),
-  staticCode: z.string().min(3, 'Static code must be at least 3 characters'),
+  code: z.string().min(3, 'Vendor code must be at least 3 characters').optional(),
+  staticCode: z.string().min(3, 'Static code must be at least 3 characters').optional(),
   parentVendorId: z.string().optional(),
   isActive: z.boolean(),
 });
@@ -898,18 +898,20 @@ export function VendorManagement() {
 
               <Box display="flex" gap={2}>
                 <TextField
-                  label="Vendor Code"
+                  label="Vendor Code (Optional)"
+                  placeholder="Auto-generated if left empty"
                   fullWidth
                   {...register('code')}
                   error={!!errors.code}
-                  helperText={errors.code?.message}
+                  helperText={errors.code?.message || "Will be auto-generated based on vendor name"}
                 />
                 <TextField
-                  label="Static Code"
+                  label="Static Code (Optional)"
+                  placeholder="Auto-generated if left empty"
                   fullWidth
                   {...register('staticCode')}
                   error={!!errors.staticCode}
-                  helperText={errors.staticCode?.message}
+                  helperText={errors.staticCode?.message || "Will be auto-generated based on vendor name"}
                 />
               </Box>
 

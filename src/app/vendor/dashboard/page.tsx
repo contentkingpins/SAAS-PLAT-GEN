@@ -104,8 +104,8 @@ function TabPanel(props: TabPanelProps) {
 // Validation schema for creating downline vendors
 const downlineVendorSchema = z.object({
   name: z.string().min(2, 'Vendor name must be at least 2 characters'),
-  code: z.string().min(3, 'Vendor code must be at least 3 characters'),
-  staticCode: z.string().min(3, 'Static code must be at least 3 characters'),
+  code: z.string().min(3, 'Vendor code must be at least 3 characters').optional(),
+  staticCode: z.string().min(3, 'Static code must be at least 3 characters').optional(),
   isActive: z.boolean(),
 });
 
@@ -695,20 +695,22 @@ export default function VendorDashboard() {
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <TextField
-                    label="Vendor Code"
+                    label="Vendor Code (Optional)"
+                    placeholder="Auto-generated if left empty"
                     fullWidth
                     {...register('code')}
                     error={!!errors.code}
-                    helperText={errors.code?.message}
+                    helperText={errors.code?.message || "Will be auto-generated based on vendor name"}
                   />
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
-                    label="Static Code"
+                    label="Static Code (Optional)"
+                    placeholder="Auto-generated if left empty"
                     fullWidth
                     {...register('staticCode')}
                     error={!!errors.staticCode}
-                    helperText={errors.staticCode?.message}
+                    helperText={errors.staticCode?.message || "Will be auto-generated based on vendor name"}
                   />
                 </Grid>
               </Grid>
