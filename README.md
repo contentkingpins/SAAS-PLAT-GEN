@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Healthcare Lead Management Platform
 
-## Getting Started
+A comprehensive healthcare lead management system with vendor portals, patient lead tracking, and multi-role dashboards.
 
-First, run the development server:
+## Features
+
+- **Vendor Portal**: Submit and track healthcare leads
+- **Admin Dashboard**: Manage vendors, leads, and system oversight
+- **Advocate Portal**: Review and qualify leads for compliance
+- **Collections Portal**: Handle collections and product shipping
+- **Lead Search**: Real-time search for existing patient records (authentication fix deployed)
+
+## Authentication & Security
+
+- JWT-based authentication with role-based access control
+- Secure API endpoints with proper authorization verification
+- Lead search restricted to ADMIN, ADVOCATE, and COLLECTIONS roles
+
+## Tech Stack
+
+- **Frontend**: Next.js 14, React, Material-UI
+- **Backend**: Next.js API Routes, Prisma ORM
+- **Database**: PostgreSQL
+- **Deployment**: AWS Amplify
+- **Authentication**: JWT with bcrypt password hashing
+
+## Quick Start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit `http://localhost:3000` to access the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Search Functionality
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Agents can now search for existing leads by:
+- Patient name (first/last)
+- Phone number (any format)
+- MBI (Medicare Beneficiary Identifier)
+- City or state
 
-## Learn More
+This enables call center operators to quickly find existing patient records when answering calls.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+*Last Updated: June 2025 - Authentication fixes deployed*
