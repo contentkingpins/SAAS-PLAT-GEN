@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { TestType } from '@prisma/client';
 
 // Validation schema for comprehensive lead submission
 const leadSubmissionSchema = z.object({
@@ -13,22 +14,24 @@ const leadSubmissionSchema = z.object({
   vendorCode: z.string().min(1, 'Vendor code is required'),
   vendorId: z.string().min(1, 'Vendor ID is required'),
 
-  // Optional basic fields
+  // Demographics - now required (except middleInitial)
   middleInitial: z.string().optional(),
-  primaryInsuranceCompany: z.string().optional(),
-  primaryPolicyNumber: z.string().optional(),
-  gender: z.string().optional(),
-  ethnicity: z.string().optional(),
-  maritalStatus: z.string().optional(),
-  height: z.string().optional(),
-  weight: z.string().optional(),
-  street: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zipCode: z.string().optional(),
+  primaryInsuranceCompany: z.string().min(1, 'Primary insurance company is required'),
+  primaryPolicyNumber: z.string().min(1, 'Primary policy number is required'),
+  gender: z.string().min(1, 'Gender is required'),
+  ethnicity: z.string().min(1, 'Ethnicity is required'),
+  maritalStatus: z.string().min(1, 'Marital status is required'),
+  height: z.string().min(1, 'Height is required'),
+  weight: z.string().min(1, 'Weight is required'),
+  
+  // Address - now required
+  street: z.string().min(1, 'Street address is required'),
+  city: z.string().min(1, 'City is required'),
+  state: z.string().min(1, 'State is required'),
+  zipCode: z.string().min(5, 'Zip code is required'),
   testType: z.enum(['immune', 'neuro']).optional(),
 
-  // Additional comprehensive data (optional)
+  // Additional comprehensive data - now required for medical history
   additionalData: z.object({
     primaryCareProvider: z.object({
       name: z.string().optional(),
@@ -62,22 +65,22 @@ const leadSubmissionSchema = z.object({
       hepB: z.boolean().optional(),
     }).optional(),
     medicalHistory: z.object({
-      past: z.string().optional(),
-      surgical: z.string().optional(),
-      medications: z.string().optional(),
-      conditions: z.string().optional(),
-    }).optional(),
+      past: z.string().min(1, 'Medical history is required'),
+      surgical: z.string().min(1, 'Surgical history is required'),
+      medications: z.string().min(1, 'Current medications are required'),
+      conditions: z.string().min(1, 'Conditions history is required'),
+    }),
     substanceUse: z.object({
       tobacco: z.string().optional(),
       alcohol: z.string().optional(),
       drugs: z.string().optional(),
     }).optional(),
     familyHistory: z.array(z.object({
-      relation: z.string().optional(),
-      conditions: z.string().optional(),
-      ageOfDiagnosis: z.string().optional(),
-    })).optional(),
-  }).optional(),
+      relation: z.string().min(1, 'Family member relation is required'),
+      conditions: z.string().min(1, 'Family member conditions are required'),
+      ageOfDiagnosis: z.string().min(1, 'Family member age of diagnosis is required'),
+    })).min(2, 'At least 2 family members are required'),
+  }),
 });
 
 export async function POST(request: NextRequest) {
@@ -154,22 +157,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the lead with comprehensive data
-    const lead = await prisma.lead.create({
+    // Create the lead
+    const newLead = await prisma.lead.create({
       data: {
         mbi: data.mbi,
         firstName: data.firstName,
         lastName: data.lastName,
-        dateOfBirth: dateOfBirth, // Use the converted Date object
+        middleInitial: data.middleInitial || '',
+        dateOfBirth: new Date(data.dateOfBirth),
         phone: data.phone,
         
-        // Additional demographics
-        middleInitial: data.middleInitial || undefined,
-        gender: data.gender || undefined,
-        ethnicity: data.ethnicity || undefined,
-        maritalStatus: data.maritalStatus || undefined,
-        height: data.height || undefined,
-        weight: data.weight || undefined,
+        // Demographics
+        gender: data.gender || '',
+        ethnicity: data.ethnicity || '',
+        maritalStatus: data.maritalStatus || '',
+        height: data.height || '',
+        weight: data.weight || '',
         
         // Address
         street: data.street || '',
@@ -177,52 +180,62 @@ export async function POST(request: NextRequest) {
         state: data.state || '',
         zipCode: data.zipCode || '',
         
-        // Insurance information
-        primaryInsuranceCompany: data.primaryInsuranceCompany || undefined,
-        primaryPolicyNumber: data.primaryPolicyNumber || undefined,
+        // Insurance
+        primaryInsuranceCompany: data.primaryInsuranceCompany || '',
+        primaryPolicyNumber: data.primaryPolicyNumber || '',
         
-        // Medical history - extract from additionalData if present
-        medicalHistory: data.additionalData?.medicalHistory?.past || undefined,
-        surgicalHistory: data.additionalData?.medicalHistory?.surgical || undefined,
-        currentMedications: data.additionalData?.medicalHistory?.medications || undefined,
-        conditionsHistory: data.additionalData?.medicalHistory?.conditions || undefined,
+        // Medical history
+        medicalHistory: data.additionalData?.medicalHistory?.past || '',
+        surgicalHistory: data.additionalData?.medicalHistory?.surgical || '',
+        currentMedications: data.additionalData?.medicalHistory?.medications || '',
+        conditionsHistory: data.additionalData?.medicalHistory?.conditions || '',
         
-        // Family history - store as JSON array
-        familyHistory: data.additionalData?.familyHistory ? JSON.stringify(data.additionalData.familyHistory) : undefined,
+        // Family history as JSON
+        familyHistory: data.additionalData?.familyHistory || [],
         
-        // Vendor tracking
-        vendorId: vendor.id, // Use the vendor ID from the database lookup
+        // Vendor info
+        vendorId: vendor.id,
         vendorCode: vendor.code,
+        subVendorId: null,
+        
+        // Status and type
         status: 'SUBMITTED',
-        testType: data.testType ? (data.testType.toUpperCase() as 'IMMUNE' | 'NEURO') : 'NEURO',
+        testType: data.testType ? (data.testType.toUpperCase() as TestType) : null,
+        
+        // Alert tracking
+        isDuplicate: false,
+        hasActiveAlerts: false,
+        
+        // Initialize counts
         contactAttempts: 0,
       },
-      include: {
-        vendor: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          }
-        }
-      }
+      select: {
+        id: true,
+        mbi: true,
+        firstName: true,
+        lastName: true,
+        status: true,
+        testType: true,
+        vendorCode: true,
+        createdAt: true,
+      },
     });
 
     // Log additional comprehensive data for future processing
     if (data.additionalData) {
-      console.log(`Comprehensive data for lead ${lead.id}:`, JSON.stringify(data.additionalData, null, 2));
+      console.log(`Comprehensive data for lead ${newLead.id}:`, JSON.stringify(data.additionalData, null, 2));
     }
 
     // Log the lead creation for tracking
-    console.log(`✅ New lead submitted successfully: ${lead.id} by vendor ${vendor.code}`);
+    console.log(`✅ New lead submitted successfully: ${newLead.id} by vendor ${vendor.code}`);
 
     return NextResponse.json({
       success: true,
       data: {
-        id: lead.id,
-        status: lead.status,
-        createdAt: lead.createdAt,
-        vendor: lead.vendor
+        id: newLead.id,
+        status: newLead.status,
+        createdAt: newLead.createdAt,
+        vendor: newLead.vendorCode
       },
       message: 'Lead submitted successfully'
     });
