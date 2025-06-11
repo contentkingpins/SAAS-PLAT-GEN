@@ -123,7 +123,8 @@ export default function AdminDashboard() {
       // Get JWT token from localStorage
       const token = localStorage.getItem('authToken');
       if (!token) {
-        throw new Error('Authentication token not found');
+        const errorMsg = 'Authentication token not found';
+        throw { message: errorMsg };
       }
 
       // Determine upload endpoint based on type
@@ -142,7 +143,8 @@ export default function AdminDashboard() {
           endpoint = '/api/admin/uploads/master-data';
           break;
         default:
-          throw new Error('Invalid upload type');
+          const invalidTypeMsg = 'Invalid upload type';
+          throw { message: invalidTypeMsg };
       }
 
       const response = await fetch(endpoint, {
@@ -156,7 +158,8 @@ export default function AdminDashboard() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Upload failed');
+        const failureMsg = result.error || 'Upload failed';
+        throw { message: failureMsg };
       }
 
       // Update success state
@@ -182,17 +185,21 @@ export default function AdminDashboard() {
         setResultsDialog(true);
       }
 
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error && typeof error === 'object' && 'message' in error 
+        ? (error as { message: string }).message 
+        : 'Unknown error occurred';
+      
       // Update error state
       setUploadStates(prev => ({
         ...prev,
-        [uploadType]: { loading: false, message: error.message, error: true }
+        [uploadType]: { loading: false, message: errorMessage, error: true }
       }));
 
       // Show error message
       setSnackbar({
         open: true,
-        message: `Upload failed: ${error.message}`,
+        message: `Upload failed: ${errorMessage}`,
         severity: 'error'
       });
     }
