@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { AlertService } from '../../../../lib/services/alertService';
+import { AlertService } from '@/lib/services/alertService';
 import { verifyAuth } from '@/lib/auth/middleware';
 
 // Validation schema for lead updates
