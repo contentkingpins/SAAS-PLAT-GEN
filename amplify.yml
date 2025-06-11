@@ -36,4 +36,4 @@ frontend:
         - key: 'Referrer-Policy'
           value: 'strict-origin-when-cross-origin'
 
-# Deployment timestamp: 2025-06-10-23:59 - ALL PORTALS FIXED: Resolved ALL remaining double API prefix issues - Admin, Advocate, Collections, Vendor portals fully operational - Complete system deployment 
+# Deployment timestamp: 2025-06-10-23:59 - CRITICAL FIX: API routes configuration for Amplify serverless deployment 

@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
   images: {
     unoptimized: true
+  },
+  experimental: {
+    outputFileTracingRoot: undefined,
   },
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
