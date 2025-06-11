@@ -24,7 +24,7 @@ export DATABASE_URL="postgresql://username:password@your-rds-endpoint.amazonaws.
 
 ### Example format:
 ```
-postgresql://saas_user:your_password@saas-plat-db.cluster-xyz.us-east-1.rds.amazonaws.com:5432/saas_platform
+postgresql://saas_user:your_password@saasplat-db.cluster-xyz.us-east-1.rds.amazonaws.com:5432/saasplat
 ```
 
 ## Running the Import

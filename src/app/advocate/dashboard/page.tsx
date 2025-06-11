@@ -2,42 +2,39 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Box,
   Container,
-  Typography,
+  Grid,
   Card,
   CardContent,
-  Grid,
-  Button,
-  Chip,
+  Typography,
+  Box,
+  Alert,
+  Tab,
+  Tabs,
+  Paper,
+  Divider,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Alert,
+  Chip,
+  Button,
   CircularProgress,
-  AppBar,
-  Toolbar,
-  IconButton,
-  Menu,
-  MenuItem,
-  Avatar,
 } from '@mui/material';
-import { 
-  Phone, 
-  Assignment, 
-  CheckCircle, 
+import {
+  Assignment as AssignmentIcon,
+  Search as SearchIcon,
+  Phone,
+  CheckCircle,
   Warning,
-  AccountCircle,
-  ExitToApp,
-  Settings,
 } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
 import useStore from '@/store/useStore';
 import { apiClient } from '@/lib/api/client';
+import { PortalLayout } from '@/components/layout/PortalLayout';
+import LeadSearch from '@/components/search/LeadSearch';
+import LeadDetailModal from '@/components/leads/LeadDetailModal';
 
 interface Lead {
   id: string;
@@ -49,15 +46,50 @@ interface Lead {
   isDuplicate: boolean;
   hasActiveAlerts: boolean;
   createdAt: string;
+  vendor: {
+    name: string;
+    code: string;
+  };
+}
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`advocate-tabpanel-${index}`}
+      aria-labelledby={`advocate-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
 }
 
 export default function AdvocateDashboard() {
-  const router = useRouter();
-  const { user, logout } = useStore();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const { user } = useStore();
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Modal state for detailed lead view
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  
   const [stats, setStats] = useState({
     totalAssigned: 0,
     pendingReview: 0,
@@ -66,30 +98,30 @@ export default function AdvocateDashboard() {
   });
 
   useEffect(() => {
-    loadAdvocateData();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      logout();
-      router.push('/login');
-    } catch (error) {
-      console.error('Error signing out:', error);
+    if (user?.id) {
+      loadAdvocateData();
     }
-  };
+  }, [user?.id]);
 
   const loadAdvocateData = async () => {
     try {
       setLoading(true);
       
+      // Debug logging
+      console.log('🔍 Dashboard loading advocate data for user:', user);
+      console.log('🔍 Using user.id:', user?.id);
+      
       // Get leads assigned to this advocate
-      const leadsResponse = await apiClient.get<Lead[]>(`/api/leads?advocateId=${user?.id}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`);
+      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(`leads?advocateId=${user?.id}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`);
 
-      if (leadsResponse) {
-        setLeads(leadsResponse || []);
+      console.log('🔍 API response for My Leads:', apiResponse);
+
+      if (apiResponse?.success && apiResponse.data) {
+        console.log('🔍 Found leads assigned to advocate:', apiResponse.data.length);
+        setLeads(apiResponse.data);
         
         // Calculate stats
-        const data = leadsResponse || [];
+        const data = apiResponse.data;
         setStats({
           totalAssigned: data.length,
           pendingReview: data.filter((l: Lead) => l.status === 'ADVOCATE_REVIEW').length,
@@ -98,11 +130,41 @@ export default function AdvocateDashboard() {
             new Date(l.createdAt).toDateString() === new Date().toDateString()
           ).length,
         });
+      } else {
+        console.log('🔍 No leads found or API failed:', apiResponse);
       }
     } catch (err: any) {
+      console.error('🔍 Error loading advocate data:', err);
       setError(err.message || 'Failed to load advocate data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setSelectedTab(newValue);
+  };
+
+  const handleLeadSelect = (leadId: string, lead: any) => {
+    setSelectedLead(lead);
+    setSelectedLeadId(leadId);
+    setModalOpen(true);
+    console.log('Opening lead details for:', lead.firstName, lead.lastName);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedLeadId(null);
+  };
+
+  const handleLeadUpdated = (updatedLead: any) => {
+    console.log('Lead updated:', updatedLead);
+    // Optionally refresh the leads list or update the selected lead
+    setSelectedLead(updatedLead);
+    
+    // If we're viewing assigned leads, refresh the list
+    if (selectedTab === 0) {
+      loadAdvocateData();
     }
   };
 
@@ -116,82 +178,70 @@ export default function AdvocateDashboard() {
   };
 
   const handleStartReview = (leadId: string) => {
-    // Navigate to lead review page (implement as needed)
     console.log('Starting review for lead:', leadId);
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
+      <PortalLayout
+        title="Healthcare Lead Management"
+        userRole="advocate"
+        subtitle="Advocate Dashboard"
+      >
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+          <CircularProgress />
+        </Box>
+      </PortalLayout>
     );
   }
 
+  const welcomeMessage = `Welcome back, ${user?.firstName}! Review and qualify leads for compliance.`;
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* App Bar */}
-      <AppBar position="static" elevation={1}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Healthcare Lead Management - Advocate Portal
-          </Typography>
+    <PortalLayout
+      title="Healthcare Lead Management"
+      userRole="advocate"
+      subtitle="Advocate Dashboard"
+      error={error}
+      onErrorClose={() => setError(null)}
+    >
+      <Box mb={3}>
+        <Typography variant="body1" color="text.secondary">
+          {welcomeMessage}
+        </Typography>
+      </Box>
 
-          <IconButton
-            color="inherit"
-            onClick={(e) => setAnchorEl(e.currentTarget)}
-          >
-            <Avatar sx={{ bgcolor: 'secondary.main', width: 32, height: 32 }}>
-              {user?.firstName?.[0]}
-            </Avatar>
-          </IconButton>
+      {/* Tab Navigation */}
+      <Paper sx={{ mb: 3 }}>
+        <Tabs 
+          value={selectedTab} 
+          onChange={handleTabChange}
+          sx={{ borderBottom: 1, borderColor: 'divider' }}
+        >
+          <Tab 
+            icon={<AssignmentIcon />} 
+            label="My Leads" 
+            id="advocate-tab-0"
+            aria-controls="advocate-tabpanel-0"
+          />
+          <Tab 
+            icon={<SearchIcon />} 
+            label="Search Leads" 
+            id="advocate-tab-1"
+            aria-controls="advocate-tabpanel-1"
+          />
+        </Tabs>
+      </Paper>
 
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={() => setAnchorEl(null)}
-          >
-            <MenuItem disabled>
-              <AccountCircle sx={{ mr: 1 }} />
-              {user?.email}
-            </MenuItem>
-            <MenuItem onClick={() => setAnchorEl(null)}>
-              <Settings sx={{ mr: 1 }} />
-              Settings
-            </MenuItem>
-            <MenuItem onClick={handleLogout}>
-              <ExitToApp sx={{ mr: 1 }} />
-              Logout
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
-
-      {/* Main Content */}
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-        {/* Header */}
-        <Box mb={4}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Advocate Dashboard
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Welcome back, {user?.firstName}! Review and qualify leads for compliance.
-          </Typography>
-        </Box>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-
-        {/* Stats Cards */}
+      {/* Tab Panels */}
+      <TabPanel value={selectedTab} index={0}>
+        {/* Original Dashboard Content */}
         <Grid container spacing={3} mb={4}>
           <Grid item xs={12} sm={6} md={3}>
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center">
-                  <Assignment color="primary" sx={{ mr: 2 }} />
+                  <AssignmentIcon color="primary" sx={{ mr: 2 }} />
                   <Box>
                     <Typography color="text.secondary" gutterBottom>
                       Total Assigned
@@ -266,7 +316,7 @@ export default function AdvocateDashboard() {
             <Typography variant="h6" gutterBottom>
               Assigned Leads
             </Typography>
-            
+
             <TableContainer component={Paper} elevation={0}>
               <Table>
                 <TableHead>
@@ -282,7 +332,11 @@ export default function AdvocateDashboard() {
                 </TableHead>
                 <TableBody>
                   {leads.map((lead) => (
-                    <TableRow key={lead.id}>
+                    <TableRow 
+                      key={lead.id}
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => handleLeadSelect(lead.id, lead)}
+                    >
                       <TableCell>
                         <Typography variant="body2" fontWeight="medium">
                           {lead.firstName} {lead.lastName}
@@ -312,8 +366,10 @@ export default function AdvocateDashboard() {
                         <Button
                           size="small"
                           variant="outlined"
-                          onClick={() => handleStartReview(lead.id)}
-                          disabled={lead.status !== 'ADVOCATE_REVIEW'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLeadSelect(lead.id, lead);
+                          }}
                         >
                           Review
                         </Button>
@@ -333,7 +389,100 @@ export default function AdvocateDashboard() {
             )}
           </CardContent>
         </Card>
-      </Container>
-    </Box>
+      </TabPanel>
+
+      <TabPanel value={selectedTab} index={1}>
+        {/* New Search Functionality */}
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Search Existing Leads
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  When answering calls, search for existing patient records by name, phone, MBI, or location.
+                </Typography>
+                
+                <LeadSearch 
+                  onLeadSelect={handleLeadSelect}
+                  showActions={true}
+                  autoFocus={true}
+                />
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            {selectedLead && (
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Selected Lead
+                  </Typography>
+                  <Divider sx={{ mb: 2 }} />
+                  
+                  <Typography variant="subtitle2" gutterBottom>
+                    {selectedLead.fullName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    MBI: {selectedLead.mbi}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Phone: {selectedLead.formattedPhone}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Status: {selectedLead.statusLabel}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Vendor: {selectedLead.vendor.name}
+                  </Typography>
+                  
+                  {selectedLead.address && (
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Address: {selectedLead.address.full}
+                    </Typography>
+                  )}
+
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    Click "View Details" to see full lead information and update status.
+                  </Alert>
+                </CardContent>
+              </Card>
+            )}
+
+            {!selectedLead && (
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Quick Search Tips
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" component="div">
+                    • Start typing patient's name
+                    <br />
+                    • Enter phone number (any format)
+                    <br />
+                    • Search by MBI if available
+                    <br />
+                    • Try city or state name
+                    <br />
+                    <br />
+                    Results appear instantly as you type.
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
+          </Grid>
+        </Grid>
+      </TabPanel>
+
+      {/* Lead Detail Modal */}
+      <LeadDetailModal
+        open={modalOpen}
+        leadId={selectedLeadId}
+        onClose={handleCloseModal}
+        onLeadUpdated={handleLeadUpdated}
+      />
+    </PortalLayout>
   );
-} 
+}

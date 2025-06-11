@@ -22,4 +22,4 @@ if (process.env.NODE_ENV !== 'production') {
   globalThis.prisma = prisma;
 }
 
-export { prisma }; 
+export { prisma };

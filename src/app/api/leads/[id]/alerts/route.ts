@@ -70,7 +70,7 @@ export async function POST(
 
     // Acknowledge the alert
     const success = await AlertService.acknowledgeAlert(
-      validatedData.alertId, 
+      validatedData.alertId,
       validatedData.agentId
     );
 
@@ -89,10 +89,10 @@ export async function POST(
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Validation failed', 
-          details: error.errors 
+        {
+          success: false,
+          error: 'Validation failed',
+          details: error.errors
         },
         { status: 400 }
       );
@@ -104,4 +104,4 @@ export async function POST(
       { status: 500 }
     );
   }
-} 
+}

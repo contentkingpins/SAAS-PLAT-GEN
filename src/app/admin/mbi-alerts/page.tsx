@@ -34,8 +34,8 @@ const MBIAlertPage: React.FC = () => {
             🚨 MBI Alert System - Real-time Dashboard
           </Typography>
           <Typography variant="subtitle1">
-            Monitor duplicate Medicare Beneficiary Identifier (MBI) alerts in real-time. 
-            This system automatically detects potential duplicate patients and broadcasts 
+            Monitor duplicate Medicare Beneficiary Identifier (MBI) alerts in real-time.
+            This system automatically detects potential duplicate patients and broadcasts
             alerts instantly to all connected administrators and advocates.
           </Typography>
         </Paper>
@@ -46,4 +46,4 @@ const MBIAlertPage: React.FC = () => {
   );
 };
 
-export default MBIAlertPage; 
+export default MBIAlertPage;

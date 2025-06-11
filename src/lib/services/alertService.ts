@@ -1,6 +1,5 @@
-import { PrismaClient, LeadAlert, AlertType, AlertSeverity } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { LeadAlert, AlertType, AlertSeverity } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export interface AlertResult {
   leadId: string;
@@ -91,8 +90,8 @@ export class AlertService {
           // Update lead flags
           await prisma.lead.update({
             where: { id: leadId },
-            data: { 
-              hasActiveAlerts: true 
+            data: {
+              hasActiveAlerts: true
             }
           });
         }
@@ -355,4 +354,4 @@ export class AlertService {
       throw error;
     }
   }
-} 
+}

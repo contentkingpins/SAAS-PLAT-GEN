@@ -1,0 +1,61 @@
+
+> healthcare-lead-platform@1.0.0 build
+> next build
+
+  ▲ Next.js 14.2.29
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/26) ...
+   Generating static pages (6/26) 
+   Generating static pages (12/26) 
+   Generating static pages (19/26) 
+ ✓ Generating static pages (26/26)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    139 B          87.5 kB
+├ ○ /_not-found                          876 B          88.3 kB
+├ ○ /admin/dashboard                     125 kB          384 kB
+├ ○ /admin/mbi-alerts                    11.1 kB         164 kB
+├ ○ /advocate/dashboard                  3.85 kB         176 kB
+├ ƒ /api/admin/alerts                    0 B                0 B
+├ ƒ /api/admin/alerts/bulk-check         0 B                0 B
+├ ƒ /api/admin/leads                     0 B                0 B
+├ ƒ /api/admin/teams                     0 B                0 B
+├ ƒ /api/admin/uploads/historical-data   0 B                0 B
+├ ƒ /api/admin/users                     0 B                0 B
+├ ƒ /api/admin/users/[id]                0 B                0 B
+├ ƒ /api/admin/vendors                   0 B                0 B
+├ ƒ /api/admin/vendors/[id]              0 B                0 B
+├ ƒ /api/analytics/dashboard             0 B                0 B
+├ ƒ /api/auth/login                      0 B                0 B
+├ ƒ /api/auth/setup                      0 B                0 B
+├ ƒ /api/leads                           0 B                0 B
+├ ƒ /api/leads/[id]                      0 B                0 B
+├ ƒ /api/leads/[id]/alerts               0 B                0 B
+├ ƒ /api/leads/check-mbi-duplicate       0 B                0 B
+├ ƒ /api/leads/submit                    0 B                0 B
+├ ƒ /api/vendors/[id]/downlines          0 B                0 B
+├ ƒ /api/vendors/[id]/leads              0 B                0 B
+├ ƒ /api/vendors/[id]/metrics            0 B                0 B
+├ ƒ /api/vendors/by-code/[code]          0 B                0 B
+├ ○ /collections/dashboard               4.28 kB         177 kB
+├ ƒ /form/[vendorCode]                   12.6 kB         215 kB
+├ ○ /login                               4.84 kB         202 kB
+├ ○ /submit                              8.49 kB         205 kB
+├ ○ /test-api                            3.06 kB         179 kB
+└ ○ /vendor/dashboard                    5.27 kB         248 kB
++ First Load JS shared by all            87.4 kB
+  ├ chunks/117-b834b8ddfd214810.js       31.8 kB
+  ├ chunks/fd9d1056-c20810330bf4120a.js  53.6 kB
+  └ other shared chunks (total)          2 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
