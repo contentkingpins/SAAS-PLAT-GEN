@@ -92,6 +92,29 @@ export async function GET(
 
     console.log('✅ Lead found successfully:', lead.firstName, lead.lastName);
 
+    // Auto-assign lead to advocate if conditions are met
+    let assignmentMade = false;
+    if (authResult.user?.role === 'ADVOCATE' && !lead.advocateId) {
+      // Only auto-assign if lead is in a status that allows advocate assignment
+      const assignableStatuses = ['SUBMITTED', 'ADVOCATE_REVIEW'];
+      
+      if (assignableStatuses.includes(lead.status)) {
+        console.log('🎯 Auto-assigning lead to advocate:', authResult.user.userId);
+        
+        // Update lead with advocate assignment
+        await prisma.lead.update({
+          where: { id },
+          data: {
+            advocateId: authResult.user.userId,
+            status: 'ADVOCATE_REVIEW' // Ensure status is set to ADVOCATE_REVIEW
+          }
+        });
+        
+        assignmentMade = true;
+        console.log('✅ Lead auto-assigned successfully to advocate:', authResult.user.userId);
+      }
+    }
+
     // Automatically check for alerts when lead is accessed
     const alertResult = await AlertService.checkForDuplicateAlert(id);
 
@@ -118,6 +141,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
+      autoAssigned: assignmentMade, // Indicate if assignment was made during this request
       lead: {
         id: updatedLead!.id,
         mbi: updatedLead!.mbi,
