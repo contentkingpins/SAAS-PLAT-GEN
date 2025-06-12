@@ -4,13 +4,19 @@ applications:
       phases:
         preBuild:
           commands:
+            - echo "Node version:" && node --version
+            - echo "NPM version:" && npm --version
             - npm config set fetch-retries 3
             - npm config set fetch-retry-mintimeout 10000
             - npm config set fetch-retry-maxtimeout 60000
             - npm ci --legacy-peer-deps --prefer-offline
+            - npx prisma generate
         build:
           commands:
+            - echo "Starting Next.js build..."
+            - export SKIP_ENV_VALIDATION=true
             - npm run build
+            - echo "Build completed successfully"
       artifacts:
         baseDirectory: .next
         files:
