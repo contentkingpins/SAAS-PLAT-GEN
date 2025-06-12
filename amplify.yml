@@ -19,6 +19,5 @@ applications:
         paths:
           - node_modules/**/*
           - .next/cache/**/*
-    appRoot: /
 
 # Deployment timestamp: 2025-06-10T21:46 - CRITICAL FIX: Environment variable debugging and lead details API fix 
