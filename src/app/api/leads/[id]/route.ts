@@ -42,6 +42,9 @@ const leadUpdateSchema = z.object({
   surgicalHistory: z.string().optional(),
   currentMedications: z.string().optional(),
   conditionsHistory: z.string().optional(),
+  
+  // Family history field (JSON)
+  familyHistory: z.any().optional(),
 }).partial();
 
 // GET /api/leads/[id] - Get lead with alert checking
@@ -492,12 +495,12 @@ export async function PATCH(
         phone: updatedLead.phone,
         
         // Additional demographics
-        middleInitial: updatedLead.middleInitial,
-        gender: updatedLead.gender,
-        ethnicity: updatedLead.ethnicity,
-        maritalStatus: updatedLead.maritalStatus,
-        height: updatedLead.height,
-        weight: updatedLead.weight,
+        middleInitial: updatedLead.middleInitial || null,
+        gender: updatedLead.gender || null,
+        ethnicity: updatedLead.ethnicity || null,
+        maritalStatus: updatedLead.maritalStatus || null,
+        height: updatedLead.height || null,
+        weight: updatedLead.weight || null,
         
         // Address
         address: {
@@ -509,16 +512,16 @@ export async function PATCH(
         
         // Insurance information
         insurance: {
-          primaryCompany: updatedLead.primaryInsuranceCompany,
-          primaryPolicyNumber: updatedLead.primaryPolicyNumber,
+          primaryCompany: updatedLead.primaryInsuranceCompany || null,
+          primaryPolicyNumber: updatedLead.primaryPolicyNumber || null,
         },
         
         // Medical history
         medicalHistory: {
-          past: updatedLead.medicalHistory,
-          surgical: updatedLead.surgicalHistory,
-          medications: updatedLead.currentMedications,
-          conditions: updatedLead.conditionsHistory,
+          past: updatedLead.medicalHistory || null,
+          surgical: updatedLead.surgicalHistory || null,
+          medications: updatedLead.currentMedications || null,
+          conditions: updatedLead.conditionsHistory || null,
         },
         
         // Family history (already parsed by Prisma)

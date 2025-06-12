@@ -175,7 +175,52 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
 
   // Add state for editing fields
   const [editMode, setEditMode] = useState(false);
-  const [editedLead, setEditedLead] = useState<any>({});
+  const [editedLead, setEditedLead] = useState<{
+    firstName: string;
+    lastName: string;
+    phone: string;
+    middleInitial: string;
+    gender: string;
+    ethnicity: string;
+    maritalStatus: string;
+    height: string;
+    weight: string;
+    address?: {
+      street: string;
+      city: string;
+      state: string;
+      zipCode: string;
+    };
+    insurance?: {
+      primaryCompany?: string;
+      primaryPolicyNumber?: string;
+    };
+    medicalHistory?: {
+      past?: string;
+      surgical?: string;
+      medications?: string;
+      conditions?: string;
+    };
+    familyHistory?: Array<{
+      relation: string;
+      conditions: string;
+      ageOfDiagnosis: string;
+    }>;
+  }>({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    middleInitial: '',
+    gender: '',
+    ethnicity: '',
+    maritalStatus: '',
+    height: '',
+    weight: '',
+    address: { street: '', city: '', state: '', zipCode: '' },
+    insurance: {},
+    medicalHistory: {},
+    familyHistory: [{ relation: '', conditions: '', ageOfDiagnosis: '' }],
+  });
 
   useEffect(() => {
     if (open && leadId) {
@@ -198,6 +243,7 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
         address: { ...lead.address },
         insurance: lead.insurance ? { ...lead.insurance } : {},
         medicalHistory: lead.medicalHistory ? { ...lead.medicalHistory } : {},
+        familyHistory: lead.familyHistory ? [...lead.familyHistory] : [{ relation: '', conditions: '', ageOfDiagnosis: '' }],
       });
     }
   }, [lead]);
@@ -296,6 +342,7 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
           surgicalHistory: editedLead.medicalHistory?.surgical,
           currentMedications: editedLead.medicalHistory?.medications,
           conditionsHistory: editedLead.medicalHistory?.conditions,
+          familyHistory: editedLead.familyHistory,
         })
       };
 
@@ -409,6 +456,30 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
       default:
         return 'ADVOCATE_REVIEW'; // Still needs advocate attention
     }
+  };
+
+  // Add helpers for family history editing
+  const addFamilyMember = () => {
+    setEditedLead(prev => ({
+      ...prev,
+      familyHistory: [...(prev.familyHistory || []), { relation: '', conditions: '', ageOfDiagnosis: '' }]
+    }));
+  };
+
+  const removeFamilyMember = (index: number) => {
+    setEditedLead(prev => ({
+      ...prev,
+      familyHistory: prev.familyHistory?.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateFamilyMember = (index: number, field: string, value: string) => {
+    setEditedLead(prev => ({
+      ...prev,
+      familyHistory: prev.familyHistory?.map((member, i) => 
+        i === index ? { ...member, [field]: value } : member
+      )
+    }));
   };
 
   if (!open) return null;
@@ -1010,44 +1081,116 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                   <Grid item xs={12}>
                     <Card>
                       <CardContent>
-                        <Box display="flex" alignItems="center" mb={2}>
-                          <FamilyRestroomIcon color="primary" sx={{ mr: 1 }} />
-                          <Typography variant="h6">Family History</Typography>
+                        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                          <Box display="flex" alignItems="center">
+                            <FamilyRestroomIcon color="primary" sx={{ mr: 1 }} />
+                            <Typography variant="h6">Family History</Typography>
+                          </Box>
+                          <Button
+                            size="small"
+                            onClick={() => setEditMode(!editMode)}
+                            startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                          >
+                            {editMode ? 'Cancel' : 'Edit'}
+                          </Button>
                         </Box>
                         
                         <Grid container spacing={2}>
-                          {lead.familyHistory.map((family, index) => (
-                            family.relation && (
-                              <Grid item xs={12} key={index}>
-                                <Paper variant="outlined" sx={{ p: 2 }}>
-                                  <Grid container spacing={2}>
-                                    <Grid item xs={12} md={4}>
-                                      <Typography variant="subtitle2" color="text.secondary">
-                                        Relation
-                                      </Typography>
-                                      <Typography variant="body1">{family.relation}</Typography>
+                          {editMode ? (
+                            <>
+                              {editedLead.familyHistory?.map((family, index) => (
+                                <Grid item xs={12} key={index}>
+                                  <Paper variant="outlined" sx={{ p: 2 }}>
+                                    <Grid container spacing={2} alignItems="center">
+                                      <Grid item xs={12} md={3}>
+                                        <TextField
+                                          size="small"
+                                          fullWidth
+                                          label="Relation"
+                                          value={family.relation || ''}
+                                          onChange={(e) => updateFamilyMember(index, 'relation', e.target.value)}
+                                          placeholder="e.g., Mother, Father"
+                                        />
+                                      </Grid>
+                                      <Grid item xs={12} md={5}>
+                                        <TextField
+                                          size="small"
+                                          fullWidth
+                                          label="Conditions"
+                                          value={family.conditions || ''}
+                                          onChange={(e) => updateFamilyMember(index, 'conditions', e.target.value)}
+                                          placeholder="Medical conditions"
+                                        />
+                                      </Grid>
+                                      <Grid item xs={12} md={3}>
+                                        <TextField
+                                          size="small"
+                                          fullWidth
+                                          label="Age of Diagnosis"
+                                          value={family.ageOfDiagnosis || ''}
+                                          onChange={(e) => updateFamilyMember(index, 'ageOfDiagnosis', e.target.value)}
+                                          placeholder="Age"
+                                        />
+                                      </Grid>
+                                      <Grid item xs={12} md={1}>
+                                        <IconButton
+                                          color="error"
+                                          onClick={() => removeFamilyMember(index)}
+                                          disabled={editedLead.familyHistory?.length === 1}
+                                        >
+                                          <CloseIcon />
+                                        </IconButton>
+                                      </Grid>
                                     </Grid>
-                                    {family.conditions && (
-                                      <Grid item xs={12} md={6}>
-                                        <Typography variant="subtitle2" color="text.secondary">
-                                          Conditions
-                                        </Typography>
-                                        <Typography variant="body1">{family.conditions}</Typography>
-                                      </Grid>
-                                    )}
-                                    {family.ageOfDiagnosis && (
-                                      <Grid item xs={12} md={2}>
-                                        <Typography variant="subtitle2" color="text.secondary">
-                                          Age of Diagnosis
-                                        </Typography>
-                                        <Typography variant="body1">{family.ageOfDiagnosis}</Typography>
-                                      </Grid>
-                                    )}
-                                  </Grid>
-                                </Paper>
+                                  </Paper>
+                                </Grid>
+                              ))}
+                              <Grid item xs={12}>
+                                <Button
+                                  variant="outlined"
+                                  onClick={addFamilyMember}
+                                  sx={{ mt: 1 }}
+                                >
+                                  Add Family Member
+                                </Button>
                               </Grid>
-                            )
-                          ))}
+                            </>
+                          ) : (
+                            <>
+                              {lead.familyHistory.map((family, index) => (
+                                family.relation && (
+                                  <Grid item xs={12} key={index}>
+                                    <Paper variant="outlined" sx={{ p: 2 }}>
+                                      <Grid container spacing={2}>
+                                        <Grid item xs={12} md={4}>
+                                          <Typography variant="subtitle2" color="text.secondary">
+                                            Relation
+                                          </Typography>
+                                          <Typography variant="body1">{family.relation}</Typography>
+                                        </Grid>
+                                        {family.conditions && (
+                                          <Grid item xs={12} md={6}>
+                                            <Typography variant="subtitle2" color="text.secondary">
+                                              Conditions
+                                            </Typography>
+                                            <Typography variant="body1">{family.conditions}</Typography>
+                                          </Grid>
+                                        )}
+                                        {family.ageOfDiagnosis && (
+                                          <Grid item xs={12} md={2}>
+                                            <Typography variant="subtitle2" color="text.secondary">
+                                              Age of Diagnosis
+                                            </Typography>
+                                            <Typography variant="body1">{family.ageOfDiagnosis}</Typography>
+                                          </Grid>
+                                        )}
+                                      </Grid>
+                                    </Paper>
+                                  </Grid>
+                                )
+                              ))}
+                            </>
+                          )}
                         </Grid>
                       </CardContent>
                     </Card>

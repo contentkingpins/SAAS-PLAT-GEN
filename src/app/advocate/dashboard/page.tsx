@@ -108,77 +108,32 @@ export default function AdvocateDashboard() {
     try {
       setLoading(true);
       
-      // Debug logging
-      console.log('🔍 === MY LEADS QUERY DEBUG ===');
-      console.log('🔍 Dashboard user object:', JSON.stringify(user, null, 2));
-      console.log('🔍 Using user.id for query:', user?.id);
-      console.log('🔍 User.id type:', typeof user?.id);
-      console.log('🔍 Query URL will be:', `leads?advocateId=${user?.id}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`);
-      
       // Ensure we have a valid user ID
       if (!user?.id) {
-        console.error('🔍 No user ID available for My Leads query');
         setError('User ID not available - please refresh the page');
         return;
       }
       
-      // Get leads assigned to this advocate - use string conversion for consistency
-      const advocateId = String(user.id); // Ensure string type for consistency
+      // Get leads assigned to this advocate
+      const advocateId = String(user.id);
       const queryUrl = `leads?advocateId=${advocateId}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`;
       
-      console.log('🔍 Final query advocateId:', advocateId);
-      console.log('🔍 Final query advocateId type:', typeof advocateId);
-      console.log('🔍 Final query URL:', queryUrl);
-      
-      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(queryUrl);
+      // API client returns the data array directly, not the full response object
+      const leadsData = await apiClient.get<Lead[]>(queryUrl);
 
-      console.log('🔍 === MY LEADS API RESPONSE ===');
-      console.log('🔍 API response success:', apiResponse?.success);
-      console.log('🔍 API response data length:', apiResponse?.data?.length || 0);
-      console.log('🔍 Full API response:', JSON.stringify(apiResponse, null, 2));
-      
-      // Log each lead's advocate assignment for debugging
-      if (apiResponse?.data) {
-        apiResponse.data.forEach((lead: Lead, index: number) => {
-          console.log(`🔍 Lead ${index + 1}:`, {
-            id: lead.id,
-            firstName: lead.firstName,
-            lastName: lead.lastName,
-            advocateId: lead.advocateId,
-            advocateIdType: typeof lead.advocateId,
-            status: lead.status,
-            matchesCurrentUser: String(lead.advocateId) === advocateId
-          });
-        });
-      }
-
-      if (apiResponse?.success && apiResponse.data) {
-        console.log('🔍 === LEADS FOUND ===');
-        console.log('🔍 Total leads assigned to advocate:', apiResponse.data.length);
-        setLeads(apiResponse.data);
+      if (Array.isArray(leadsData) && leadsData.length > 0) {
+        setLeads(leadsData);
         
         // Calculate stats
-        const data = apiResponse.data;
         setStats({
-          totalAssigned: data.length,
-          pendingReview: data.filter((l: Lead) => l.status === 'ADVOCATE_REVIEW').length,
-          qualified: data.filter((l: Lead) => l.status === 'QUALIFIED').length,
-          completedToday: data.filter((l: Lead) => 
-            new Date(l.createdAt).toDateString() === new Date().toDateString()
-          ).length,
-        });
-        
-        console.log('🔍 Stats calculated:', {
-          totalAssigned: data.length,
-          pendingReview: data.filter((l: Lead) => l.status === 'ADVOCATE_REVIEW').length,
-          qualified: data.filter((l: Lead) => l.status === 'QUALIFIED').length,
-          completedToday: data.filter((l: Lead) => 
+          totalAssigned: leadsData.length,
+          pendingReview: leadsData.filter((l: Lead) => l.status === 'ADVOCATE_REVIEW').length,
+          qualified: leadsData.filter((l: Lead) => l.status === 'QUALIFIED').length,
+          completedToday: leadsData.filter((l: Lead) => 
             new Date(l.createdAt).toDateString() === new Date().toDateString()
           ).length,
         });
       } else {
-        console.log('🔍 === NO LEADS FOUND ===');
-        console.log('🔍 API failed or returned empty:', apiResponse);
         setLeads([]);
         setStats({
           totalAssigned: 0,

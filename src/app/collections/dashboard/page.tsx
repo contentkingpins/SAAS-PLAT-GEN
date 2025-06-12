@@ -78,19 +78,26 @@ export default function CollectionsDashboard() {
     try {
       setLoading(true);
       
-      // Get leads in collections status
-      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(`leads?collectionsAgentId=${user?.id}&status=COLLECTIONS,SHIPPED`);
+      // Get leads in collections status - API client returns data array directly
+      const leadsData = await apiClient.get<Lead[]>(`leads?collectionsAgentId=${user?.id}&status=COLLECTIONS,SHIPPED`);
 
-      if (apiResponse?.success && apiResponse.data) {
-        setLeads(apiResponse.data);
+      if (Array.isArray(leadsData)) {
+        setLeads(leadsData);
         
         // Calculate stats
-        const data = apiResponse.data;
         setStats({
-          totalAssigned: data.length,
-          pendingContact: data.filter((l: Lead) => !l.lastContactAttempt).length,
-          kitsCompleted: data.filter((l: Lead) => l.status === 'KIT_COMPLETED').length,
-          callbacksScheduled: data.filter((l: Lead) => l.nextCallbackDate).length,
+          totalAssigned: leadsData.length,
+          pendingContact: leadsData.filter((l: Lead) => !l.lastContactAttempt).length,
+          kitsCompleted: leadsData.filter((l: Lead) => l.status === 'KIT_COMPLETED').length,
+          callbacksScheduled: leadsData.filter((l: Lead) => l.nextCallbackDate).length,
+        });
+      } else {
+        setLeads([]);
+        setStats({
+          totalAssigned: 0,
+          pendingContact: 0,
+          kitsCompleted: 0,
+          callbacksScheduled: 0,
         });
       }
     } catch (err: any) {
