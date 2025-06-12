@@ -243,7 +243,11 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
         address: { ...lead.address },
         insurance: lead.insurance ? { ...lead.insurance } : {},
         medicalHistory: lead.medicalHistory ? { ...lead.medicalHistory } : {},
-        familyHistory: lead.familyHistory ? [...lead.familyHistory] : [{ relation: '', conditions: '', ageOfDiagnosis: '' }],
+        familyHistory: lead.familyHistory ? lead.familyHistory.map(fh => ({
+          relation: fh.relation || '',
+          conditions: fh.conditions || '',
+          ageOfDiagnosis: fh.ageOfDiagnosis || ''
+        })) : [{ relation: '', conditions: '', ageOfDiagnosis: '' }],
       });
     }
   }, [lead]);
