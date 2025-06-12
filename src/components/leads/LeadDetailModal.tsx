@@ -318,37 +318,57 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
       // Automatically determine status based on disposition
       const autoStatus = getStatusFromDisposition(disposition);
       
-      const updateData = {
-        advocateDisposition: disposition,
+      const updateData: any = {
         advocateNotes: advocateNotes,
         advocateId: user?.id || lead.advocateId, // Use actual user ID from store
         advocateReviewedAt: new Date().toISOString(),
         status: autoStatus, // Auto-set status based on disposition
-        
-        // Include edited lead data if in edit mode
-        ...(editMode && {
-          firstName: editedLead.firstName,
-          lastName: editedLead.lastName,
-          phone: editedLead.phone,
-          middleInitial: editedLead.middleInitial,
-          gender: editedLead.gender,
-          ethnicity: editedLead.ethnicity,
-          maritalStatus: editedLead.maritalStatus,
-          height: editedLead.height,
-          weight: editedLead.weight,
-          street: editedLead.address?.street,
-          city: editedLead.address?.city,
-          state: editedLead.address?.state,
-          zipCode: editedLead.address?.zipCode,
-          primaryInsuranceCompany: editedLead.insurance?.primaryCompany,
-          primaryPolicyNumber: editedLead.insurance?.primaryPolicyNumber,
-          medicalHistory: editedLead.medicalHistory?.past,
-          surgicalHistory: editedLead.medicalHistory?.surgical,
-          currentMedications: editedLead.medicalHistory?.medications,
-          conditionsHistory: editedLead.medicalHistory?.conditions,
-          familyHistory: editedLead.familyHistory,
-        })
       };
+
+      // Only include disposition if it's not empty
+      if (disposition && disposition.trim() !== '') {
+        updateData.advocateDisposition = disposition;
+      }
+
+      // Include edited lead data if in edit mode
+      if (editMode) {
+        // Only include non-empty values to avoid validation errors
+        if (editedLead.firstName && editedLead.firstName.trim()) updateData.firstName = editedLead.firstName;
+        if (editedLead.lastName && editedLead.lastName.trim()) updateData.lastName = editedLead.lastName;
+        if (editedLead.phone && editedLead.phone.trim()) updateData.phone = editedLead.phone;
+        if (editedLead.middleInitial && editedLead.middleInitial.trim()) updateData.middleInitial = editedLead.middleInitial;
+        if (editedLead.gender && editedLead.gender.trim()) updateData.gender = editedLead.gender;
+        if (editedLead.ethnicity && editedLead.ethnicity.trim()) updateData.ethnicity = editedLead.ethnicity;
+        if (editedLead.maritalStatus && editedLead.maritalStatus.trim()) updateData.maritalStatus = editedLead.maritalStatus;
+        if (editedLead.height && editedLead.height.trim()) updateData.height = editedLead.height;
+        if (editedLead.weight && editedLead.weight.trim()) updateData.weight = editedLead.weight;
+        
+        // Address fields
+        if (editedLead.address?.street && editedLead.address.street.trim()) updateData.street = editedLead.address.street;
+        if (editedLead.address?.city && editedLead.address.city.trim()) updateData.city = editedLead.address.city;
+        if (editedLead.address?.state && editedLead.address.state.trim()) updateData.state = editedLead.address.state;
+        if (editedLead.address?.zipCode && editedLead.address.zipCode.trim()) updateData.zipCode = editedLead.address.zipCode;
+        
+        // Insurance fields
+        if (editedLead.insurance?.primaryCompany && editedLead.insurance.primaryCompany.trim()) updateData.primaryInsuranceCompany = editedLead.insurance.primaryCompany;
+        if (editedLead.insurance?.primaryPolicyNumber && editedLead.insurance.primaryPolicyNumber.trim()) updateData.primaryPolicyNumber = editedLead.insurance.primaryPolicyNumber;
+        
+        // Medical history fields
+        if (editedLead.medicalHistory?.past && editedLead.medicalHistory.past.trim()) updateData.medicalHistory = editedLead.medicalHistory.past;
+        if (editedLead.medicalHistory?.surgical && editedLead.medicalHistory.surgical.trim()) updateData.surgicalHistory = editedLead.medicalHistory.surgical;
+        if (editedLead.medicalHistory?.medications && editedLead.medicalHistory.medications.trim()) updateData.currentMedications = editedLead.medicalHistory.medications;
+        if (editedLead.medicalHistory?.conditions && editedLead.medicalHistory.conditions.trim()) updateData.conditionsHistory = editedLead.medicalHistory.conditions;
+        
+        // Family history - only include if it has actual data
+        if (editedLead.familyHistory && Array.isArray(editedLead.familyHistory)) {
+          const validFamilyHistory = editedLead.familyHistory.filter(member => 
+            member.relation && member.relation.trim() !== ''
+          );
+          if (validFamilyHistory.length > 0) {
+            updateData.familyHistory = validFamilyHistory;
+          }
+        }
+      }
 
       console.log('Update payload:', updateData);
 
@@ -447,6 +467,11 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
 
   // Map disposition to status automatically
   const getStatusFromDisposition = (disposition: string): string => {
+    // If no disposition is selected, keep current status
+    if (!disposition || disposition.trim() === '') {
+      return lead?.status || 'ADVOCATE_REVIEW';
+    }
+    
     switch (disposition) {
       case 'DOESNT_QUALIFY':
       case 'PATIENT_DECLINED':
