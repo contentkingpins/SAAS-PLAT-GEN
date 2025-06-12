@@ -9,7 +9,7 @@ applications:
             - npm config set fetch-retries 3
             - npm config set fetch-retry-mintimeout 10000
             - npm config set fetch-retry-maxtimeout 60000
-            - npm ci --legacy-peer-deps --prefer-offline
+            - npm install --legacy-peer-deps
             - npx prisma generate
         build:
           commands:
