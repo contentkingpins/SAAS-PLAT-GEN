@@ -438,6 +438,26 @@ export async function PATCH(
     console.log('🔧 Current advocateId:', existingLead.advocateId);
     console.log('🔧 Requesting user:', authResult.user?.userId);
 
+    // Helper function to map disposition to status
+    const getStatusFromDisposition = (disposition: string): string => {
+      switch (disposition) {
+        case 'DOESNT_QUALIFY':
+          return 'DOESNT_QUALIFY';
+        case 'PATIENT_DECLINED':
+          return 'PATIENT_DECLINED';
+        case 'DUPE':
+          return 'DUPLICATE';
+        case 'COMPLIANCE_ISSUE':
+          return 'COMPLIANCE_ISSUE';
+        case 'CONNECTED_TO_COMPLIANCE':
+          return 'SENT_TO_CONSULT'; // Positive result, send to next stage
+        case 'CALL_BACK':
+        case 'CALL_DROPPED':
+        default:
+          return 'ADVOCATE_REVIEW'; // Still needs advocate attention
+      }
+    };
+
     // Prepare update data
     console.log('🔧 === UPDATE DATA PREPARATION ===');
     const updateData: any = { ...validatedData };
@@ -446,6 +466,13 @@ export async function PATCH(
     if (validatedData.advocateReviewedAt) {
       updateData.advocateReviewedAt = new Date(validatedData.advocateReviewedAt);
       console.log('🔧 Converted advocateReviewedAt to Date object');
+    }
+
+    // Auto-update status based on advocate disposition if not explicitly provided
+    if (validatedData.advocateDisposition && !validatedData.status) {
+      const autoStatus = getStatusFromDisposition(validatedData.advocateDisposition);
+      updateData.status = autoStatus;
+      console.log('🔧 Auto-setting status to:', autoStatus, 'based on disposition:', validatedData.advocateDisposition);
     }
 
     console.log('🔧 Final update data keys:', Object.keys(updateData));
@@ -510,12 +537,12 @@ export async function PATCH(
         phone: updatedLead.phone,
         
         // Additional demographics
-        middleInitial: updatedLead.middleInitial || null,
-        gender: updatedLead.gender || null,
-        ethnicity: updatedLead.ethnicity || null,
-        maritalStatus: updatedLead.maritalStatus || null,
-        height: updatedLead.height || null,
-        weight: updatedLead.weight || null,
+        middleInitial: (updatedLead as any).middleInitial || null,
+        gender: (updatedLead as any).gender || null,
+        ethnicity: (updatedLead as any).ethnicity || null,
+        maritalStatus: (updatedLead as any).maritalStatus || null,
+        height: (updatedLead as any).height || null,
+        weight: (updatedLead as any).weight || null,
         
         // Address
         address: {
@@ -527,16 +554,16 @@ export async function PATCH(
         
         // Insurance information
         insurance: {
-          primaryCompany: updatedLead.primaryInsuranceCompany || null,
-          primaryPolicyNumber: updatedLead.primaryPolicyNumber || null,
+          primaryCompany: (updatedLead as any).primaryInsuranceCompany || null,
+          primaryPolicyNumber: (updatedLead as any).primaryPolicyNumber || null,
         },
         
         // Medical history
         medicalHistory: {
-          past: updatedLead.medicalHistory || null,
-          surgical: updatedLead.surgicalHistory || null,
-          medications: updatedLead.currentMedications || null,
-          conditions: updatedLead.conditionsHistory || null,
+          past: (updatedLead as any).medicalHistory || null,
+          surgical: (updatedLead as any).surgicalHistory || null,
+          medications: (updatedLead as any).currentMedications || null,
+          conditions: (updatedLead as any).conditionsHistory || null,
         },
         
         // Family history (already parsed by Prisma)
