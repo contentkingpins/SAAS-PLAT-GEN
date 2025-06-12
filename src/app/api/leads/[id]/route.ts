@@ -342,68 +342,144 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('🔧 === LEAD UPDATE API DEBUG ===');
+    console.log('🔧 Lead ID to update:', params.id);
+    
     // Verify authentication first
     const authResult = await verifyAuth(request);
     if (authResult.error) {
+      console.log('🔧 Authentication failed:', authResult.error);
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
+
+    console.log('🔧 Auth successful. User:', authResult.user?.role, authResult.user?.userId);
 
     // Only allow ADMIN, ADVOCATE, and COLLECTIONS to update leads
     const allowedRoles = ['ADMIN', 'ADVOCATE', 'COLLECTIONS'];
     if (!allowedRoles.includes(authResult.user?.role || '')) {
+      console.log('🔧 Access denied. User role:', authResult.user?.role);
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     const { id } = params;
     const body = await request.json();
-    const validatedData = leadUpdateSchema.parse(body);
+    
+    console.log('🔧 === REQUEST BODY DEBUG ===');
+    console.log('🔧 Raw request body:', JSON.stringify(body, null, 2));
+    console.log('🔧 Body keys:', Object.keys(body));
+    console.log('🔧 Body values sample:', {
+      advocateDisposition: body.advocateDisposition,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      status: body.status
+    });
+
+    // Validate the request body
+    console.log('🔧 === VALIDATION DEBUG ===');
+    let validatedData;
+    try {
+      validatedData = leadUpdateSchema.parse(body);
+      console.log('🔧 ✅ Validation successful');
+      console.log('🔧 Validated data keys:', Object.keys(validatedData));
+    } catch (validationError) {
+      console.log('🔧 ❌ Validation failed:', validationError);
+      if (validationError instanceof z.ZodError) {
+        console.log('🔧 Validation errors:', validationError.errors);
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Validation failed',
+            details: validationError.errors
+          },
+          { status: 400 }
+        );
+      }
+      throw validationError;
+    }
 
     // Check if lead exists
+    console.log('🔧 === DATABASE CHECK ===');
     const existingLead = await prisma.lead.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        advocate: {
+          select: { id: true, firstName: true, lastName: true }
+        }
+      }
     });
 
     if (!existingLead) {
+      console.log('🔧 ❌ Lead not found:', id);
       return NextResponse.json(
         { success: false, error: 'Lead not found' },
         { status: 404 }
       );
     }
 
+    console.log('🔧 ✅ Lead found:', existingLead.firstName, existingLead.lastName);
+    console.log('🔧 Current advocateId:', existingLead.advocateId);
+    console.log('🔧 Requesting user:', authResult.user?.userId);
+
     // Prepare update data
+    console.log('🔧 === UPDATE DATA PREPARATION ===');
     const updateData: any = { ...validatedData };
 
     // Convert date strings to Date objects
     if (validatedData.advocateReviewedAt) {
       updateData.advocateReviewedAt = new Date(validatedData.advocateReviewedAt);
+      console.log('🔧 Converted advocateReviewedAt to Date object');
     }
 
-    // Update the lead
-    const updatedLead = await prisma.lead.update({
-      where: { id },
-      data: updateData,
-      include: {
-        vendor: {
-          select: { id: true, name: true, code: true }
-        },
-        advocate: {
-          select: { id: true, firstName: true, lastName: true }
-        },
-        collectionsAgent: {
-          select: { id: true, firstName: true, lastName: true }
-        },
-        complianceChecklist: true,
-        alerts: {
-          where: { isAcknowledged: false },
-          orderBy: { createdAt: 'desc' }
-        }
-      }
+    console.log('🔧 Final update data keys:', Object.keys(updateData));
+    console.log('🔧 Final update data sample:', {
+      advocateDisposition: updateData.advocateDisposition,
+      firstName: updateData.firstName,
+      lastName: updateData.lastName,
+      status: updateData.status,
+      advocateId: updateData.advocateId
     });
+
+    // Update the lead
+    console.log('🔧 === DATABASE UPDATE ===');
+    let updatedLead;
+    try {
+      updatedLead = await prisma.lead.update({
+        where: { id },
+        data: updateData,
+        include: {
+          vendor: {
+            select: { id: true, name: true, code: true }
+          },
+          advocate: {
+            select: { id: true, firstName: true, lastName: true }
+          },
+          collectionsAgent: {
+            select: { id: true, firstName: true, lastName: true }
+          },
+          complianceChecklist: true,
+          alerts: {
+            where: { isAcknowledged: false },
+            orderBy: { createdAt: 'desc' }
+          }
+        }
+      });
+      console.log('🔧 ✅ Database update successful');
+      console.log('🔧 Updated lead ID:', updatedLead.id);
+      console.log('🔧 New advocateId:', updatedLead.advocateId);
+      console.log('🔧 New status:', updatedLead.status);
+    } catch (dbError) {
+      console.log('🔧 ❌ Database update failed:', dbError);
+      throw dbError;
+    }
 
     // Handle duplicate marking
     if (validatedData.advocateDisposition === 'DUPE' && validatedData.advocateId) {
+      console.log('🔧 Marking lead as duplicate');
       await AlertService.markLeadAsDuplicate(id, validatedData.advocateId);
     }
+
+    console.log('🔧 === SUCCESS RESPONSE ===');
+    console.log('🔧 Preparing response with updated lead data');
 
     return NextResponse.json({
       success: true,
@@ -483,7 +559,14 @@ export async function PATCH(
     });
 
   } catch (error: any) {
+    console.log('🔧 === ERROR IN LEAD UPDATE ===');
+    console.log('🔧 Error type:', error.constructor.name);
+    console.log('🔧 Error message:', error.message);
+    console.log('🔧 Error code:', error.code);
+    console.log('🔧 Error stack:', error.stack?.substring(0, 500));
+
     if (error instanceof z.ZodError) {
+      console.log('🔧 Zod validation error details:', error.errors);
       return NextResponse.json(
         {
           success: false,
@@ -494,9 +577,17 @@ export async function PATCH(
       );
     }
 
-    console.error('Error updating lead:', error);
+    console.error('🔧 Unexpected error updating lead:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to update lead' },
+      { 
+        success: false, 
+        error: error.message || 'Failed to update lead',
+        debug: {
+          errorType: error.constructor.name,
+          errorCode: error.code,
+          timestamp: new Date().toISOString()
+        }
+      },
       { status: 500 }
     );
   }
