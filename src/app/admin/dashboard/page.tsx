@@ -9,14 +9,6 @@ import {
   Button,
   Tab,
   Tabs,
-  AppBar,
-  Toolbar,
-  IconButton,
-  Menu,
-  MenuItem,
-  Badge,
-  Avatar,
-  Chip,
   Alert,
   Snackbar,
   LinearProgress,
@@ -30,14 +22,8 @@ import {
   People,
   Assessment,
   Upload,
-  Settings,
-  Notifications,
-  ExitToApp,
-  AccountCircle,
   CheckCircle,
-  Error,
 } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
 import { AnalyticsDashboard } from '@/components/dashboard/AnalyticsDashboard';
 import useStore from '@/store/useStore';
 import { wsService } from '@/lib/utils/websocket';
