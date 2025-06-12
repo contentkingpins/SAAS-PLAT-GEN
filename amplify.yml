@@ -4,10 +4,10 @@ applications:
       phases:
         preBuild:
           commands:
-            - npm config set fetch-retries 5
-            - npm config set fetch-retry-mintimeout 100000
-            - npm config set fetch-retry-maxtimeout 600000
-            - npm ci --legacy-peer-deps
+            - npm config set fetch-retries 3
+            - npm config set fetch-retry-mintimeout 10000
+            - npm config set fetch-retry-maxtimeout 60000
+            - npm ci --legacy-peer-deps --prefer-offline
         build:
           commands:
             - npm run build
