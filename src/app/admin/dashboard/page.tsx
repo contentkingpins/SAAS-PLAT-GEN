@@ -257,187 +257,184 @@ export default function AdminDashboard() {
         </Tabs>
       </Paper>
 
-          <TabPanel value={tabValue} index={0}>
-            <AnalyticsDashboard />
-          </TabPanel>
+      <TabPanel value={tabValue} index={0}>
+        <AnalyticsDashboard />
+      </TabPanel>
 
-          <TabPanel value={tabValue} index={1}>
-            <AgentManagement />
-          </TabPanel>
+      <TabPanel value={tabValue} index={1}>
+        <AgentManagement />
+      </TabPanel>
 
-          <TabPanel value={tabValue} index={2}>
-            <Typography variant="h5" gutterBottom>
-              Reports
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3 }}>
-              <Box sx={{ flex: '1 1 300px' }}>
-                <Paper sx={{ p: 3, height: 200 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Daily Reports
-                  </Typography>
-                  <Button variant="outlined" fullWidth sx={{ mt: 2 }}>
-                    Generate Daily Report
-                  </Button>
-                </Paper>
-              </Box>
-              <Box sx={{ flex: '1 1 300px' }}>
-                <Paper sx={{ p: 3, height: 200 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Monthly Reports
-                  </Typography>
-                  <Button variant="outlined" fullWidth sx={{ mt: 2 }}>
-                    Generate Monthly Report
-                  </Button>
-                </Paper>
-              </Box>
-            </Box>
-          </TabPanel>
+      <TabPanel value={tabValue} index={2}>
+        <Typography variant="h5" gutterBottom>
+          Reports
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3 }}>
+          <Box sx={{ flex: '1 1 300px' }}>
+            <Paper sx={{ p: 3, height: 200 }}>
+              <Typography variant="h6" gutterBottom>
+                Daily Reports
+              </Typography>
+              <Button variant="outlined" fullWidth sx={{ mt: 2 }}>
+                Generate Daily Report
+              </Button>
+            </Paper>
+          </Box>
+          <Box sx={{ flex: '1 1 300px' }}>
+            <Paper sx={{ p: 3, height: 200 }}>
+              <Typography variant="h6" gutterBottom>
+                Monthly Reports
+              </Typography>
+              <Button variant="outlined" fullWidth sx={{ mt: 2 }}>
+                Generate Monthly Report
+              </Button>
+            </Paper>
+          </Box>
+        </Box>
+      </TabPanel>
 
-          <TabPanel value={tabValue} index={3}>
-            <Typography variant="h5" gutterBottom>
-              File Uploads
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3 }}>
-              {/* Master CSV Upload */}
-              <Box sx={{ flex: '1 1 250px' }}>
-                <Paper sx={{ p: 3, textAlign: 'center' }}>
-                  <Upload sx={{ fontSize: 48, color: 'secondary.main', mb: 2 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Master CSV Data
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Upload a single CSV containing all patient, shipping, and status data
-                  </Typography>
-                  {uploadStates['master-data'].loading && <LinearProgress sx={{ mb: 2 }} />}
-                  {uploadStates['master-data'].message && (
-                    <Alert 
-                      severity={uploadStates['master-data'].error ? 'error' : 'success'} 
-                      sx={{ mb: 2, textAlign: 'left' }}
-                    >
-                      {uploadStates['master-data'].message}
-                    </Alert>
-                  )}
-                  <Button 
-                    variant="contained" 
-                    component="label"
-                    disabled={uploadStates['master-data'].loading}
-                    color="secondary"
-                  >
-                    {uploadStates['master-data'].loading ? 'Processing...' : 'Upload Master CSV'}
-                    <input 
-                      type="file" 
-                      hidden 
-                      accept=".csv" 
-                      onChange={handleFileChange('master-data')} 
-                    />
-                  </Button>
-                </Paper>
-              </Box>
-              
-              {/* Doctor Approvals */}
-              <Box sx={{ flex: '1 1 250px' }}>
-                <Paper sx={{ p: 3, textAlign: 'center' }}>
-                  <Upload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Doctor Approvals
-                  </Typography>
-                  {uploadStates['doctor-approval'].loading && <LinearProgress sx={{ mb: 2 }} />}
-                  {uploadStates['doctor-approval'].message && (
-                    <Alert 
-                      severity={uploadStates['doctor-approval'].error ? 'error' : 'success'} 
-                      sx={{ mb: 2, textAlign: 'left' }}
-                    >
-                      {uploadStates['doctor-approval'].message}
-                    </Alert>
-                  )}
-                  <Button 
-                    variant="contained" 
-                    component="label"
-                    disabled={uploadStates['doctor-approval'].loading}
-                  >
-                    {uploadStates['doctor-approval'].loading ? 'Processing...' : 'Upload CSV'}
-                    <input 
-                      type="file" 
-                      hidden 
-                      accept=".csv" 
-                      onChange={handleFileChange('doctor-approval')} 
-                    />
-                  </Button>
-                </Paper>
-              </Box>
-              
-              {/* Shipping Reports */}
-              <Box sx={{ flex: '1 1 250px' }}>
-                <Paper sx={{ p: 3, textAlign: 'center' }}>
-                  <Upload sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Shipping Reports
-                  </Typography>
-                  {uploadStates['shipping-report'].loading && <LinearProgress sx={{ mb: 2 }} />}
-                  {uploadStates['shipping-report'].message && (
-                    <Alert 
-                      severity={uploadStates['shipping-report'].error ? 'error' : 'success'} 
-                      sx={{ mb: 2, textAlign: 'left' }}
-                    >
-                      {uploadStates['shipping-report'].message}
-                    </Alert>
-                  )}
-                  <Button 
-                    variant="contained" 
-                    component="label"
-                    disabled={uploadStates['shipping-report'].loading}
-                  >
-                    {uploadStates['shipping-report'].loading ? 'Processing...' : 'Upload CSV'}
-                    <input 
-                      type="file" 
-                      hidden 
-                      accept=".csv" 
-                      onChange={handleFileChange('shipping-report')} 
-                    />
-                  </Button>
-                </Paper>
-              </Box>
-              
-              {/* Kit Returns */}
-              <Box sx={{ flex: '1 1 250px' }}>
-                <Paper sx={{ p: 3, textAlign: 'center' }}>
-                  <Upload sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Kit Returns
-                  </Typography>
-                  {uploadStates['kit-return'].loading && <LinearProgress sx={{ mb: 2 }} />}
-                  {uploadStates['kit-return'].message && (
-                    <Alert 
-                      severity={uploadStates['kit-return'].error ? 'error' : 'success'} 
-                      sx={{ mb: 2, textAlign: 'left' }}
-                    >
-                      {uploadStates['kit-return'].message}
-                    </Alert>
-                  )}
-                  <Button 
-                    variant="contained" 
-                    component="label"
-                    disabled={uploadStates['kit-return'].loading}
-                  >
-                    {uploadStates['kit-return'].loading ? 'Processing...' : 'Upload CSV'}
-                    <input 
-                      type="file" 
-                      hidden 
-                      accept=".csv" 
-                      onChange={handleFileChange('kit-return')} 
-                    />
-                  </Button>
-                </Paper>
-              </Box>
-            </Box>
-          </TabPanel>
+      <TabPanel value={tabValue} index={3}>
+        <Typography variant="h5" gutterBottom>
+          File Uploads
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3 }}>
+          {/* Master CSV Upload */}
+          <Box sx={{ flex: '1 1 250px' }}>
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Upload sx={{ fontSize: 48, color: 'secondary.main', mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                Master CSV Data
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Upload a single CSV containing all patient, shipping, and status data
+              </Typography>
+              {uploadStates['master-data'].loading && <LinearProgress sx={{ mb: 2 }} />}
+              {uploadStates['master-data'].message && (
+                <Alert 
+                  severity={uploadStates['master-data'].error ? 'error' : 'success'} 
+                  sx={{ mb: 2, textAlign: 'left' }}
+                >
+                  {uploadStates['master-data'].message}
+                </Alert>
+              )}
+              <Button 
+                variant="contained" 
+                component="label"
+                disabled={uploadStates['master-data'].loading}
+                color="secondary"
+              >
+                {uploadStates['master-data'].loading ? 'Processing...' : 'Upload Master CSV'}
+                <input 
+                  type="file" 
+                  hidden 
+                  accept=".csv" 
+                  onChange={handleFileChange('master-data')} 
+                />
+              </Button>
+            </Paper>
+          </Box>
+          
+          {/* Doctor Approvals */}
+          <Box sx={{ flex: '1 1 250px' }}>
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Upload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                Doctor Approvals
+              </Typography>
+              {uploadStates['doctor-approval'].loading && <LinearProgress sx={{ mb: 2 }} />}
+              {uploadStates['doctor-approval'].message && (
+                <Alert 
+                  severity={uploadStates['doctor-approval'].error ? 'error' : 'success'} 
+                  sx={{ mb: 2, textAlign: 'left' }}
+                >
+                  {uploadStates['doctor-approval'].message}
+                </Alert>
+              )}
+              <Button 
+                variant="contained" 
+                component="label"
+                disabled={uploadStates['doctor-approval'].loading}
+              >
+                {uploadStates['doctor-approval'].loading ? 'Processing...' : 'Upload CSV'}
+                <input 
+                  type="file" 
+                  hidden 
+                  accept=".csv" 
+                  onChange={handleFileChange('doctor-approval')} 
+                />
+              </Button>
+            </Paper>
+          </Box>
+          
+          {/* Shipping Reports */}
+          <Box sx={{ flex: '1 1 250px' }}>
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Upload sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                Shipping Reports
+              </Typography>
+              {uploadStates['shipping-report'].loading && <LinearProgress sx={{ mb: 2 }} />}
+              {uploadStates['shipping-report'].message && (
+                <Alert 
+                  severity={uploadStates['shipping-report'].error ? 'error' : 'success'} 
+                  sx={{ mb: 2, textAlign: 'left' }}
+                >
+                  {uploadStates['shipping-report'].message}
+                </Alert>
+              )}
+              <Button 
+                variant="contained" 
+                component="label"
+                disabled={uploadStates['shipping-report'].loading}
+              >
+                {uploadStates['shipping-report'].loading ? 'Processing...' : 'Upload CSV'}
+                <input 
+                  type="file" 
+                  hidden 
+                  accept=".csv" 
+                  onChange={handleFileChange('shipping-report')} 
+                />
+              </Button>
+            </Paper>
+          </Box>
+          
+          {/* Kit Returns */}
+          <Box sx={{ flex: '1 1 250px' }}>
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Upload sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                Kit Returns
+              </Typography>
+              {uploadStates['kit-return'].loading && <LinearProgress sx={{ mb: 2 }} />}
+              {uploadStates['kit-return'].message && (
+                <Alert 
+                  severity={uploadStates['kit-return'].error ? 'error' : 'success'} 
+                  sx={{ mb: 2, textAlign: 'left' }}
+                >
+                  {uploadStates['kit-return'].message}
+                </Alert>
+              )}
+              <Button 
+                variant="contained" 
+                component="label"
+                disabled={uploadStates['kit-return'].loading}
+              >
+                {uploadStates['kit-return'].loading ? 'Processing...' : 'Upload CSV'}
+                <input 
+                  type="file" 
+                  hidden 
+                  accept=".csv" 
+                  onChange={handleFileChange('kit-return')} 
+                />
+              </Button>
+            </Paper>
+          </Box>
+        </Box>
+      </TabPanel>
 
- main
-          <TabPanel value={tabValue} index={4}>
-            <VendorManagement />
-          </TabPanel>
-        </Container>
-      </Box>
+      <TabPanel value={tabValue} index={4}>
+        <VendorManagement />
+      </TabPanel>
 
       {/* Upload Results Dialog */}
       <Dialog
@@ -535,12 +532,6 @@ export default function AdminDashboard() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
-
-      <TabPanel value={tabValue} index={4}>
-        <VendorManagement />
-      </TabPanel>
     </PortalLayout>
- main
   );
 }
