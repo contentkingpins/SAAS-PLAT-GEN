@@ -431,6 +431,10 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
       'ADVOCATE_REVIEW': 'warning',
       'QUALIFIED': 'success',
       'SENT_TO_CONSULT': 'success',
+      'DOESNT_QUALIFY': 'error',
+      'PATIENT_DECLINED': 'error',
+      'DUPLICATE': 'error',
+      'COMPLIANCE_ISSUE': 'error',
     };
     return colors[status] || 'default';
   };
@@ -474,12 +478,15 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
     
     switch (disposition) {
       case 'DOESNT_QUALIFY':
+        return 'DOESNT_QUALIFY';
       case 'PATIENT_DECLINED':
+        return 'PATIENT_DECLINED';
       case 'DUPE':
-        return 'QUALIFIED'; // Negative results, marked as processed
+        return 'DUPLICATE';
+      case 'COMPLIANCE_ISSUE':
+        return 'COMPLIANCE_ISSUE';
       case 'CONNECTED_TO_COMPLIANCE':
         return 'SENT_TO_CONSULT'; // Positive result, send to next stage
-      case 'COMPLIANCE_ISSUE':
       case 'CALL_BACK':
       case 'CALL_DROPPED':
       default:
