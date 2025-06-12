@@ -43,6 +43,7 @@ interface Lead {
   lastName: string;
   phone: string;
   status: string;
+  advocateId?: string;
   isDuplicate: boolean;
   hasActiveAlerts: boolean;
   createdAt: string;
@@ -108,16 +109,52 @@ export default function AdvocateDashboard() {
       setLoading(true);
       
       // Debug logging
-      console.log('🔍 Dashboard loading advocate data for user:', user);
-      console.log('🔍 Using user.id:', user?.id);
+      console.log('🔍 === MY LEADS QUERY DEBUG ===');
+      console.log('🔍 Dashboard user object:', JSON.stringify(user, null, 2));
+      console.log('🔍 Using user.id for query:', user?.id);
+      console.log('🔍 User.id type:', typeof user?.id);
+      console.log('🔍 Query URL will be:', `leads?advocateId=${user?.id}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`);
       
-      // Get leads assigned to this advocate
-      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(`leads?advocateId=${user?.id}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`);
+      // Ensure we have a valid user ID
+      if (!user?.id) {
+        console.error('🔍 No user ID available for My Leads query');
+        setError('User ID not available - please refresh the page');
+        return;
+      }
+      
+      // Get leads assigned to this advocate - use string conversion for consistency
+      const advocateId = String(user.id); // Ensure string type for consistency
+      const queryUrl = `leads?advocateId=${advocateId}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`;
+      
+      console.log('🔍 Final query advocateId:', advocateId);
+      console.log('🔍 Final query advocateId type:', typeof advocateId);
+      console.log('🔍 Final query URL:', queryUrl);
+      
+      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(queryUrl);
 
-      console.log('🔍 API response for My Leads:', apiResponse);
+      console.log('🔍 === MY LEADS API RESPONSE ===');
+      console.log('🔍 API response success:', apiResponse?.success);
+      console.log('🔍 API response data length:', apiResponse?.data?.length || 0);
+      console.log('🔍 Full API response:', JSON.stringify(apiResponse, null, 2));
+      
+      // Log each lead's advocate assignment for debugging
+      if (apiResponse?.data) {
+        apiResponse.data.forEach((lead: Lead, index: number) => {
+          console.log(`🔍 Lead ${index + 1}:`, {
+            id: lead.id,
+            firstName: lead.firstName,
+            lastName: lead.lastName,
+            advocateId: lead.advocateId,
+            advocateIdType: typeof lead.advocateId,
+            status: lead.status,
+            matchesCurrentUser: String(lead.advocateId) === advocateId
+          });
+        });
+      }
 
       if (apiResponse?.success && apiResponse.data) {
-        console.log('🔍 Found leads assigned to advocate:', apiResponse.data.length);
+        console.log('🔍 === LEADS FOUND ===');
+        console.log('🔍 Total leads assigned to advocate:', apiResponse.data.length);
         setLeads(apiResponse.data);
         
         // Calculate stats
@@ -130,11 +167,30 @@ export default function AdvocateDashboard() {
             new Date(l.createdAt).toDateString() === new Date().toDateString()
           ).length,
         });
+        
+        console.log('🔍 Stats calculated:', {
+          totalAssigned: data.length,
+          pendingReview: data.filter((l: Lead) => l.status === 'ADVOCATE_REVIEW').length,
+          qualified: data.filter((l: Lead) => l.status === 'QUALIFIED').length,
+          completedToday: data.filter((l: Lead) => 
+            new Date(l.createdAt).toDateString() === new Date().toDateString()
+          ).length,
+        });
       } else {
-        console.log('🔍 No leads found or API failed:', apiResponse);
+        console.log('🔍 === NO LEADS FOUND ===');
+        console.log('🔍 API failed or returned empty:', apiResponse);
+        setLeads([]);
+        setStats({
+          totalAssigned: 0,
+          pendingReview: 0,
+          qualified: 0,
+          completedToday: 0,
+        });
       }
     } catch (err: any) {
-      console.error('🔍 Error loading advocate data:', err);
+      console.error('🔍 === MY LEADS QUERY ERROR ===');
+      console.error('🔍 Error details:', err);
+      console.error('🔍 Error message:', err.message);
       setError(err.message || 'Failed to load advocate data');
     } finally {
       setLoading(false);

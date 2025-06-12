@@ -124,43 +124,89 @@ export async function GET(
     let assignmentMessage = '';
     
     if (authResult.user?.role === 'ADVOCATE') {
-      console.log('🔍 Advocate accessing lead. Auth user:', authResult.user);
+      console.log('🔍 === ADVOCATE LEAD ACCESS DEBUG ===');
+      console.log('🔍 Auth user object:', JSON.stringify(authResult.user, null, 2));
+      console.log('🔍 Auth user.userId (assignment value):', authResult.user.userId);
+      console.log('🔍 Auth user.userId type:', typeof authResult.user.userId);
       console.log('🔍 Lead current advocateId:', lead.advocateId);
-      console.log('🔍 Auth user.userId:', authResult.user.userId);
+      console.log('🔍 Lead advocateId type:', typeof lead.advocateId);
+      console.log('🔍 Lead status:', lead.status);
+      console.log('🔍 === COMPARISON TEST ===');
+      console.log('🔍 String comparison (advocateId === userId):', lead.advocateId === authResult.user.userId);
+      console.log('🔍 String conversion comparison:', String(lead.advocateId) === String(authResult.user.userId));
       
       if (!lead.advocateId) {
         // Lead is unassigned - assign it to current advocate
         const assignableStatuses = ['SUBMITTED', 'ADVOCATE_REVIEW'];
         
         if (assignableStatuses.includes(lead.status)) {
-          console.log('🎯 AUTO-ASSIGNING unassigned lead to advocate:', authResult.user.userId);
+          console.log('🎯 === AUTO-ASSIGNMENT STARTING ===');
+          console.log('🎯 Assigning lead to advocate ID:', authResult.user.userId);
           
-          await prisma.lead.update({
-            where: { id },
-            data: {
-              advocateId: authResult.user.userId,
-              status: 'ADVOCATE_REVIEW',
-              advocateReviewedAt: new Date()
-            }
-          });
-          
-          assignmentMade = true;
-          assignmentMessage = 'Lead has been automatically assigned to you and moved to your "My Leads" tab.';
-          console.log('✅ Lead auto-assigned successfully. AdvocateId set to:', authResult.user.userId);
+          try {
+            // Use a transaction to ensure data consistency
+            const updatedLead = await prisma.lead.update({
+              where: { id },
+              data: {
+                advocateId: authResult.user.userId,
+                status: 'ADVOCATE_REVIEW',
+                advocateReviewedAt: new Date()
+              },
+              include: {
+                advocate: {
+                  select: { id: true, firstName: true, lastName: true }
+                }
+              }
+            });
+            
+            assignmentMade = true;
+            assignmentMessage = `✅ Lead has been automatically assigned to you and moved to your "My Leads" tab.`;
+            
+            console.log('✅ === ASSIGNMENT SUCCESS ===');
+            console.log('✅ Lead ID:', id);
+            console.log('✅ Assigned to advocate ID:', updatedLead.advocateId);
+            console.log('✅ Advocate details:', updatedLead.advocate);
+            console.log('✅ New status:', updatedLead.status);
+            console.log('✅ Assignment timestamp:', updatedLead.advocateReviewedAt);
+            
+            // Update the lead object for the response
+            lead.advocateId = updatedLead.advocateId;
+            lead.status = updatedLead.status;
+            lead.advocate = updatedLead.advocate;
+            
+          } catch (assignmentError) {
+            console.error('❌ === ASSIGNMENT FAILED ===');
+            console.error('❌ Error:', assignmentError);
+            assignmentMessage = 'Assignment failed - please try again';
+          }
+        } else {
+          console.log('⚠️ Lead status not assignable:', lead.status);
+          assignmentMessage = `Lead status "${lead.status}" is not assignable to advocates`;
         }
       } else if (lead.advocateId !== authResult.user.userId) {
         // Lead is assigned to a different advocate - deny access
-        console.log('🚫 Access denied: Lead is assigned to different advocate');
-        console.log('🚫 Lead advocateId:', lead.advocateId, 'Auth userId:', authResult.user.userId);
+        console.log('🚫 === ACCESS DENIED ===');
+        console.log('🚫 Lead advocateId:', lead.advocateId, '(type:', typeof lead.advocateId, ')');
+        console.log('🚫 Auth userId:', authResult.user.userId, '(type:', typeof authResult.user.userId, ')');
+        console.log('🚫 Lead assigned to different advocate');
+        
         return NextResponse.json({
           success: false,
           error: 'This lead is already assigned to another advocate and is no longer available in the general pool.',
-          assignedTo: lead.advocate ? `${lead.advocate.firstName} ${lead.advocate.lastName}` : 'Another advocate'
+          assignedTo: lead.advocate ? `${lead.advocate.firstName} ${lead.advocate.lastName}` : 'Another advocate',
+          debugInfo: {
+            leadAdvocateId: lead.advocateId,
+            currentUserId: authResult.user.userId,
+            leadAdvocateIdType: typeof lead.advocateId,
+            currentUserIdType: typeof authResult.user.userId
+          }
         }, { status: 403 });
       } else {
+        console.log('✅ === OWN LEAD ACCESS ===');
         console.log('✅ Advocate accessing their own assigned lead');
+        console.log('✅ Lead advocateId:', lead.advocateId);
+        console.log('✅ Auth userId:', authResult.user.userId);
       }
-      // If lead.advocateId === authResult.user.userId, they can access their own lead
     }
 
     // Automatically check for alerts when lead is accessed
