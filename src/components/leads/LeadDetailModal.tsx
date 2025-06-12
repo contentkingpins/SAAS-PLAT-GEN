@@ -315,19 +315,22 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
       setLoading(true);
       console.log('Updating lead with disposition:', disposition);
 
-      // Automatically determine status based on disposition
-      const autoStatus = getStatusFromDisposition(disposition);
-      
       const updateData: any = {
         advocateNotes: advocateNotes,
         advocateId: user?.id || lead.advocateId, // Use actual user ID from store
         advocateReviewedAt: new Date().toISOString(),
-        status: autoStatus, // Auto-set status based on disposition
       };
 
-      // Only include disposition if it's not empty
-      if (disposition && disposition.trim() !== '') {
+      // Only update status and disposition if disposition has changed
+      if (disposition && disposition.trim() !== '' && disposition !== lead.advocateDisposition) {
+        const autoStatus = getStatusFromDisposition(disposition);
+        updateData.status = autoStatus;
         updateData.advocateDisposition = disposition;
+        console.log('Disposition changed, updating status to:', autoStatus);
+      } else if (disposition && disposition.trim() !== '') {
+        // Keep existing disposition if it hasn't changed
+        updateData.advocateDisposition = disposition;
+        console.log('Disposition unchanged, keeping current status');
       }
 
       // Include edited lead data if in edit mode
@@ -376,7 +379,11 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
       
       if (response.success) {
         console.log('✅ Lead updated successfully');
-        setStatus(autoStatus);
+        
+        // Update local status if it was changed
+        if (updateData.status) {
+          setStatus(updateData.status);
+        }
         
         // Refresh the lead data
         await loadLeadDetails();

@@ -468,11 +468,16 @@ export async function PATCH(
       console.log('🔧 Converted advocateReviewedAt to Date object');
     }
 
-    // Auto-update status based on advocate disposition if not explicitly provided
+    // Auto-update status based on advocate disposition only if disposition has changed
     if (validatedData.advocateDisposition && !validatedData.status) {
-      const autoStatus = getStatusFromDisposition(validatedData.advocateDisposition);
-      updateData.status = autoStatus;
-      console.log('🔧 Auto-setting status to:', autoStatus, 'based on disposition:', validatedData.advocateDisposition);
+      // Check if disposition is different from current
+      if (validatedData.advocateDisposition !== existingLead.advocateDisposition) {
+        const autoStatus = getStatusFromDisposition(validatedData.advocateDisposition);
+        updateData.status = autoStatus;
+        console.log('🔧 Disposition changed - Auto-setting status to:', autoStatus, 'based on disposition:', validatedData.advocateDisposition);
+      } else {
+        console.log('🔧 Disposition unchanged - keeping current status:', existingLead.status);
+      }
     }
 
     console.log('🔧 Final update data keys:', Object.keys(updateData));
