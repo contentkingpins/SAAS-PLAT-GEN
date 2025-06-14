@@ -157,6 +157,31 @@ export default function VendorDashboard() {
     }
   }, [user?.vendorId]);
 
+  // Auto-refresh every 30 seconds to show updated lead statuses
+  useEffect(() => {
+    if (!user?.vendorId) return;
+
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing vendor dashboard for updated lead statuses');
+      fetchVendorData();
+    }, 15000); // Refresh every 15 seconds for faster status updates
+
+    return () => clearInterval(refreshInterval);
+  }, [user?.vendorId]);
+
+  // Refresh when user returns to the tab (for immediate status updates)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.vendorId) {
+        console.log('🔄 Tab became visible - refreshing vendor dashboard for latest lead statuses');
+        fetchVendorData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user?.vendorId]);
+
   useEffect(() => {
     if (tabValue === 1 && user?.vendorId) {
       fetchSubVendors();

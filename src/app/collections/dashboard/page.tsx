@@ -74,6 +74,31 @@ export default function CollectionsDashboard() {
     }
   }, [user?.id]);
 
+  // Auto-refresh every 30 seconds to show updated lead statuses
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing collections dashboard for updated lead statuses');
+      loadCollectionsData();
+    }, 15000); // Refresh every 15 seconds for faster status updates
+
+    return () => clearInterval(refreshInterval);
+  }, [user?.id]);
+
+  // Refresh when user returns to the tab (for immediate status updates)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.id) {
+        console.log('🔄 Tab became visible - refreshing collections dashboard for latest lead statuses');
+        loadCollectionsData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user?.id]);
+
     const loadCollectionsData = async () => {
     try {
       setLoading(true);

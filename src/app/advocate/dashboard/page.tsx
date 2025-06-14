@@ -104,6 +104,31 @@ export default function AdvocateDashboard() {
     }
   }, [user?.id]);
 
+  // Auto-refresh every 30 seconds to show updated lead statuses
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing advocate dashboard for updated lead statuses');
+      loadAdvocateData();
+    }, 15000); // Refresh every 15 seconds for faster status updates
+
+    return () => clearInterval(refreshInterval);
+  }, [user?.id]);
+
+  // Refresh when user returns to the tab (for immediate status updates)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.id) {
+        console.log('🔄 Tab became visible - refreshing advocate dashboard for latest lead statuses');
+        loadAdvocateData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user?.id]);
+
   const loadAdvocateData = async () => {
     try {
       setLoading(true);
