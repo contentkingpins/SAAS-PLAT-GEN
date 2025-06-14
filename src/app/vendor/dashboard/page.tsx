@@ -284,12 +284,18 @@ export default function VendorDashboard() {
     switch (status) {
       case 'QUALIFIED':
       case 'APPROVED':
+      case 'SENT_TO_CONSULT':
         return 'success';
       case 'SUBMITTED':
       case 'ADVOCATE_REVIEW':
         return 'warning';
       case 'KIT_COMPLETED':
         return 'info';
+      case 'DOESNT_QUALIFY':
+      case 'PATIENT_DECLINED':
+      case 'DUPLICATE':
+      case 'COMPLIANCE_ISSUE':
+        return 'error';
       default:
         return 'default';
     }

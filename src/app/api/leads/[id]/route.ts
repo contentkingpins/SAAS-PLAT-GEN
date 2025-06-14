@@ -528,6 +528,28 @@ export async function PATCH(
       await AlertService.markLeadAsDuplicate(id, validatedData.advocateId);
     }
 
+    // Broadcast real-time update to all relevant users
+    console.log('🔧 === REAL-TIME UPDATE BROADCAST ===');
+    try {
+      // This update should be visible to:
+      // - Admin users (can see all leads)
+      // - Vendor users (can see their vendor's leads) 
+      // - Sub-vendor users (can see their sub-vendor's leads)
+      // - Advocate agents (can see their assigned leads)
+      // - Collections agents (can see leads in collections)
+      console.log('🔧 Broadcasting lead status update to all relevant dashboards');
+      console.log('🔧 Updated lead status:', updatedLead.status);
+      console.log('🔧 Updated lead advocateDisposition:', updatedLead.advocateDisposition);
+      console.log('🔧 Lead vendorId:', updatedLead.vendorId);
+      console.log('🔧 Lead advocateId:', updatedLead.advocateId);
+      
+      // Note: In a full implementation, this would use WebSocket to broadcast
+      // the update to all connected clients who have access to this lead
+      // For now, the dashboards will refresh when they refetch data
+    } catch (broadcastError) {
+      console.log('🔧 Real-time broadcast failed (non-critical):', broadcastError);
+    }
+
     console.log('🔧 === SUCCESS RESPONSE ===');
     console.log('🔧 Preparing response with updated lead data');
 
