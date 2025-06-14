@@ -274,7 +274,7 @@ export function VendorManagement() {
       };
 
       if (editingVendor) {
-        await apiClient.put(`/api/admin/vendors/${editingVendor.id}`, vendorData);
+        await apiClient.put(`/admin/vendors/${editingVendor.id}`, vendorData);
         setSuccess('Vendor updated successfully');
       } else {
         await apiClient.post('/admin/vendors', vendorData);
