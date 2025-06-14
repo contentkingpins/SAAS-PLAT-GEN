@@ -193,7 +193,7 @@ export default function AdminDashboard() {
     <PortalLayout
       title="Healthcare Lead Management"
       userRole="admin"
-      showConnectionStatus={true}
+      showConnectionStatus={false}
       showNotifications={true}
       notifications={notifications}
       fullWidth={true}

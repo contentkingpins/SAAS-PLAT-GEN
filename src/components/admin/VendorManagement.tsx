@@ -277,7 +277,7 @@ export function VendorManagement() {
         await apiClient.put(`/api/admin/vendors/${editingVendor.id}`, vendorData);
         setSuccess('Vendor updated successfully');
       } else {
-        await apiClient.post('/api/admin/vendors', vendorData);
+        await apiClient.post('/admin/vendors', vendorData);
         setSuccess('Vendor created successfully');
       }
 
@@ -292,7 +292,7 @@ export function VendorManagement() {
     if (!vendorToDelete) return;
 
     try {
-      await apiClient.delete(`/api/admin/vendors/${vendorToDelete.id}`);
+      await apiClient.delete(`/admin/vendors/${vendorToDelete.id}`);
       setSuccess('Vendor deleted successfully');
       setDeleteDialogOpen(false);
       setVendorToDelete(null);
