@@ -277,7 +277,7 @@ export function VendorManagement() {
         await apiClient.put(`/api/admin/vendors/${editingVendor.id}`, vendorData);
         setSuccess('Vendor updated successfully');
       } else {
-        await apiClient.post('/admin/vendors', vendorData);
+        await apiClient.post('/api/admin/vendors', vendorData);
         setSuccess('Vendor created successfully');
       }
 
