@@ -114,9 +114,9 @@ export default function AdvocateDashboard() {
         return;
       }
       
-      // Get leads assigned to this advocate
+      // Get leads assigned to this advocate (include all statuses they might have set)
       const advocateId = String(user.id);
-      const queryUrl = `leads?advocateId=${advocateId}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`;
+      const queryUrl = `leads?advocateId=${advocateId}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT,DOESNT_QUALIFY,PATIENT_DECLINED,DUPLICATE,COMPLIANCE_ISSUE`;
       
       // API client returns the data array directly, not the full response object
       const leadsData = await apiClient.get<Lead[]>(queryUrl);
@@ -128,8 +128,9 @@ export default function AdvocateDashboard() {
         setStats({
           totalAssigned: leadsData.length,
           pendingReview: leadsData.filter((l: Lead) => l.status === 'ADVOCATE_REVIEW').length,
-          qualified: leadsData.filter((l: Lead) => l.status === 'QUALIFIED').length,
+          qualified: leadsData.filter((l: Lead) => ['QUALIFIED', 'SENT_TO_CONSULT'].includes(l.status)).length,
           completedToday: leadsData.filter((l: Lead) => 
+            ['QUALIFIED', 'SENT_TO_CONSULT', 'DOESNT_QUALIFY', 'PATIENT_DECLINED', 'DUPLICATE', 'COMPLIANCE_ISSUE'].includes(l.status) &&
             new Date(l.createdAt).toDateString() === new Date().toDateString()
           ).length,
         });
@@ -170,20 +171,22 @@ export default function AdvocateDashboard() {
 
   const handleLeadUpdated = (updatedLead: any) => {
     console.log('Lead updated:', updatedLead);
-    // Optionally refresh the leads list or update the selected lead
+    // Update the selected lead
     setSelectedLead(updatedLead);
     
-    // If we're viewing assigned leads, refresh the list
-    if (selectedTab === 0) {
-      loadAdvocateData();
-    }
+    // Always refresh the leads list to show updated status
+    loadAdvocateData();
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ADVOCATE_REVIEW': return 'warning';
       case 'QUALIFIED': return 'success';
-      case 'SENT_TO_CONSULT': return 'info';
+      case 'SENT_TO_CONSULT': return 'success';
+      case 'DOESNT_QUALIFY': return 'error';
+      case 'PATIENT_DECLINED': return 'error';
+      case 'DUPLICATE': return 'error';
+      case 'COMPLIANCE_ISSUE': return 'error';
       default: return 'default';
     }
   };
