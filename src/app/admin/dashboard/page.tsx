@@ -26,7 +26,7 @@ import {
 } from '@mui/icons-material';
 import { AnalyticsDashboard } from '@/components/dashboard/AnalyticsDashboard';
 import useStore from '@/store/useStore';
-import { wsService } from '@/lib/utils/websocket';
+
 import { VendorManagement } from '@/components/admin/VendorManagement';
 import { AgentManagement } from '@/components/admin/AgentManagement';
 import { PortalLayout } from '@/components/layout/PortalLayout';
@@ -54,7 +54,6 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function AdminDashboard() {
-  const { isConnected } = useStore();
   const [tabValue, setTabValue] = useState(0);
   const [notifications, setNotifications] = useState(5);
   
@@ -69,15 +68,7 @@ export default function AdminDashboard() {
   const [uploadResults, setUploadResults] = useState<any>(null);
   const [resultsDialog, setResultsDialog] = useState(false);
 
-  useEffect(() => {
-    // Connect to WebSocket
-    wsService.connect();
-    wsService.joinRoom('admin');
-
-    return () => {
-      wsService.leaveRoom('admin');
-    };
-  }, []);
+  // WebSocket removed - using periodic refresh instead for AWS Amplify compatibility
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);

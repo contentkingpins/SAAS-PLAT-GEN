@@ -33,7 +33,7 @@ import {
   WifiOff as DisconnectedIcon,
   Wifi as ConnectedIcon
 } from '@mui/icons-material';
-import { useWebSocket } from '@/lib/utils/websocket';
+// WebSocket removed for AWS Amplify compatibility
 
 interface MBIAlert {
   id?: string;
@@ -73,41 +73,12 @@ const MBIAlertDashboard: React.FC = () => {
   const [bulkCheckProgress, setBulkCheckProgress] = useState<BulkCheckProgress | null>(null);
   const [isBulkChecking, setIsBulkChecking] = useState(false);
 
-  const { subscribe, send } = useWebSocket();
+  // WebSocket functionality removed for AWS Amplify compatibility
+  // Using periodic refresh instead
 
   useEffect(() => {
-    // Subscribe to WebSocket events
-    const unsubscribeConnected = subscribe('connected', (data: any) => {
-      setIsConnected(true);
-      setSnackbarMessage('🔗 Connected to real-time alert system');
-      setSnackbarOpen(true);
-      console.log('Connected to WebSocket:', data);
-
-      // Authenticate as admin user
-      send('authenticate', {
-        userId: 'admin-user',
-        userRole: 'admin',
-        vendorId: null
-      });
-    });
-
-    const unsubscribeAuth = subscribe('authenticated', (data: any) => {
-      console.log('✅ Authenticated:', data);
-      setSnackbarMessage('✅ Authenticated as admin');
-      setSnackbarOpen(true);
-    });
-
-    const unsubscribeMBIAlert = subscribe('mbi_alert', (alert: MBIAlert) => {
-      console.log('🚨 New MBI Alert received:', alert);
-      setAlerts(prev => [{ ...alert, timestamp: new Date(alert.timestamp) }, ...prev.slice(0, 49)]);
-      setSnackbarMessage(`🚨 New ${alert.severity} duplicate alert for lead ${alert.leadId}`);
-      setSnackbarOpen(true);
-    });
-
-    const unsubscribeLeadAlert = subscribe('lead_alert', (alert: MBIAlert) => {
-      console.log('📋 Lead-specific alert:', alert);
-      setAlerts(prev => [{ ...alert, timestamp: new Date(alert.timestamp) }, ...prev.slice(0, 49)]);
-    });
+    // Load initial alerts from API
+    loadAlerts();
 
     const unsubscribeServerStats = subscribe('server_stats', (stats: ServerStats) => {
       setServerStats({ ...stats, timestamp: new Date(stats.timestamp) });
