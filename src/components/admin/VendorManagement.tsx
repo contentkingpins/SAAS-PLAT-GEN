@@ -122,6 +122,11 @@ const vendorSchema = z.object({
   staticCode: z.string().min(3, 'Static code must be at least 3 characters').optional(),
   parentVendorId: z.string().optional(),
   isActive: z.boolean(),
+  // New fields for automatic user creation
+  contactEmail: z.string().email('Invalid email address').optional(),
+  contactFirstName: z.string().min(2, 'First name must be at least 2 characters').optional(),
+  contactLastName: z.string().min(2, 'Last name must be at least 2 characters').optional(),
+  createUserAccount: z.boolean(),
 });
 
 type VendorFormData = z.infer<typeof vendorSchema>;
@@ -241,13 +246,17 @@ export function VendorManagement() {
 
   const handleCreateVendor = () => {
     setEditingVendor(null);
-    reset({
-      name: '',
-      code: '',
-      staticCode: '',
-      parentVendorId: '',
-      isActive: true,
-    });
+          reset({
+        name: '',
+        code: '',
+        staticCode: '',
+        parentVendorId: '',
+        isActive: true,
+        contactEmail: '',
+        contactFirstName: '',
+        contactLastName: '',
+        createUserAccount: true, // Default to creating user account
+      });
     setDialogOpen(true);
   };
 
@@ -259,6 +268,10 @@ export function VendorManagement() {
       staticCode: vendor.staticCode,
       parentVendorId: vendor.parentVendorId || '',
       isActive: vendor.isActive,
+      contactEmail: '',
+      contactFirstName: '',
+      contactLastName: '',
+      createUserAccount: false,
     });
     setDialogOpen(true);
   };
@@ -309,8 +322,16 @@ export function VendorManagement() {
         await apiClient.put(`/admin/vendors/${editingVendor.id}`, vendorData);
         setSuccess('Vendor updated successfully');
       } else {
-        await apiClient.post('/admin/vendors', vendorData);
-        setSuccess('Vendor created successfully');
+        const response = await apiClient.post('/admin/vendors', vendorData) as any;
+        
+        // Check if user account was created and show credentials
+        if (response.userAccount?.created) {
+          setSuccess(
+            `Vendor created successfully! 🎉 Login credentials: Email: ${response.userAccount.email} | Password: ${response.userAccount.defaultPassword} | ⚠️ Please save these credentials securely!`
+          );
+        } else {
+          setSuccess('Vendor created successfully');
+        }
       }
 
       setDialogOpen(false);
@@ -1050,9 +1071,63 @@ export function VendorManagement() {
               />
 
               {!editingVendor && (
-                <Alert severity="info">
-                  After creating the vendor, you'll get a unique form link that vendors can use to submit leads.
-                </Alert>
+                <>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={watch('createUserAccount')}
+                        onChange={(e) => setValue('createUserAccount', e.target.checked)}
+                      />
+                    }
+                    label="Create Vendor Login Account"
+                  />
+
+                  {watch('createUserAccount') && (
+                    <Box sx={{ pl: 2, border: '1px solid #e0e0e0', borderRadius: 1, p: 2, bgcolor: '#f9f9f9' }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Vendor Contact Information
+                      </Typography>
+                      
+                      <TextField
+                        fullWidth
+                        label="Contact Email"
+                        placeholder="vendor@company.com"
+                        {...register('contactEmail')}
+                        error={!!errors.contactEmail}
+                        helperText={errors.contactEmail?.message || 'This will be the vendor\'s login email'}
+                        sx={{ mb: 2 }}
+                      />
+
+                      <Box display="flex" gap={2}>
+                        <TextField
+                          fullWidth
+                          label="First Name"
+                          placeholder="John"
+                          {...register('contactFirstName')}
+                          error={!!errors.contactFirstName}
+                          helperText={errors.contactFirstName?.message}
+                        />
+
+                        <TextField
+                          fullWidth
+                          label="Last Name"
+                          placeholder="Smith"
+                          {...register('contactLastName')}
+                          error={!!errors.contactLastName}
+                          helperText={errors.contactLastName?.message}
+                        />
+                      </Box>
+
+                      <Alert severity="info" sx={{ mt: 2 }}>
+                        A secure password will be automatically generated and displayed after creation.
+                      </Alert>
+                    </Box>
+                  )}
+
+                  <Alert severity="info">
+                    After creating the vendor, you'll get a unique form link that vendors can use to submit leads.
+                  </Alert>
+                </>
               )}
             </Box>
           </DialogContent>
