@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import { AnalyticsDashboard } from '@/components/dashboard/AnalyticsDashboard';
 import useStore from '@/store/useStore';
+import { apiClient } from '@/lib/api/client';
 
 import { VendorManagement } from '@/components/admin/VendorManagement';
 import { AgentManagement } from '@/components/admin/AgentManagement';
@@ -56,6 +57,27 @@ function TabPanel(props: TabPanelProps) {
 export default function AdminDashboard() {
   const [tabValue, setTabValue] = useState(0);
   const [notifications, setNotifications] = useState(5);
+  const { user, isAuthenticated, logout } = useStore();
+  
+  // Add token validation on component mount
+  useEffect(() => {
+    const validateToken = async () => {
+      try {
+        // Test the token by making a simple API call
+        await apiClient.get('/analytics/dashboard?range=week');
+      } catch (error: any) {
+        if (error.status === 401) {
+          console.warn('Invalid token detected, logging out user');
+          logout();
+          window.location.href = '/login';
+        }
+      }
+    };
+
+    if (isAuthenticated && user?.role === 'admin') {
+      validateToken();
+    }
+  }, [isAuthenticated, user, logout]);
   
   // Upload state management
   const [uploadStates, setUploadStates] = useState({

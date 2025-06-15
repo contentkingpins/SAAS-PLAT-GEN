@@ -84,6 +84,8 @@ class ApiClient {
           // Clear token and redirect to login
           if (typeof window !== 'undefined') {
             localStorage.removeItem('authToken');
+            // Show user-friendly message
+            alert('Your session has expired. Please log in again.');
             window.location.href = '/login';
           }
         }

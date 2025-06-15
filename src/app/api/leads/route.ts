@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AlertService } from '@/lib/services/alertService';
 import { prisma } from '@/lib/prisma';
+import { verifyAuth } from '@/lib/auth/middleware';
 
 declare global {
   var broadcastMBIAlert: ((alert: any) => void) | undefined;
@@ -309,6 +310,22 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 === LEADS API QUERY DEBUG ===');
+    
+    // Verify authentication first
+    const authResult = await verifyAuth(request);
+    if (authResult.error) {
+      console.log('🔍 Authentication failed:', authResult.error);
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    console.log('🔍 Auth successful. User:', authResult.user?.role, authResult.user?.userId);
+
+    // Only allow ADMIN, ADVOCATE, and COLLECTIONS to query leads
+    const allowedRoles = ['ADMIN', 'ADVOCATE', 'COLLECTIONS'];
+    if (!allowedRoles.includes(authResult.user?.role || '')) {
+      console.log('🔍 Access denied. User role:', authResult.user?.role);
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
     
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
