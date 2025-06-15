@@ -86,7 +86,7 @@ export default function AdminDashboard() {
     'kit-return': { loading: false, message: '', error: false },
     'master-data': { loading: false, message: '', error: false }
   });
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
   const [uploadResults, setUploadResults] = useState<any>(null);
   const [resultsDialog, setResultsDialog] = useState(false);
 
@@ -211,6 +211,185 @@ export default function AdminDashboard() {
     event.target.value = '';
   };
 
+  // Report generation functions
+  const generateDailyReport = async () => {
+    try {
+      setSnackbar({ open: false, message: '', severity: 'success' });
+      
+      // Get today's date range
+      const today = new Date();
+      const startOfDay = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+      const endOfDay = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+      
+      // Fetch today's leads
+      const response = await apiClient.get(`/admin/leads?startDate=${startOfDay}&endDate=${endOfDay}&limit=1000`);
+      const leads = Array.isArray(response) ? response : (response as any)?.data || [];
+      
+      if (!leads || leads.length === 0) {
+        setSnackbar({
+          open: true,
+          message: 'No leads found for today',
+          severity: 'info'
+        });
+        return;
+      }
+
+      // Generate CSV report
+      const headers = [
+        'Lead ID', 'Patient Name', 'MBI', 'Phone', 'Status', 'Test Type', 
+        'Vendor Name', 'Vendor Code', 'Advocate', 'Collections Agent', 
+        'Created Time', 'Last Updated'
+      ];
+      
+      const csvData = leads.map((lead: any) => [
+        lead.id,
+        `${lead.firstName} ${lead.lastName}`,
+        lead.mbi || 'N/A',
+        lead.phone || 'N/A',
+        lead.status,
+        lead.testType || 'N/A',
+        lead.vendor?.name || 'Unknown',
+        lead.vendor?.code || 'Unknown',
+        lead.advocate ? `${lead.advocate.firstName} ${lead.advocate.lastName}` : 'Unassigned',
+        lead.collectionsAgent ? `${lead.collectionsAgent.firstName} ${lead.collectionsAgent.lastName}` : 'Unassigned',
+        new Date(lead.createdAt).toLocaleString(),
+        new Date(lead.updatedAt).toLocaleString()
+      ]);
+
+      const csvContent = [headers, ...csvData]
+        .map((row: any[]) => row.map((field: any) => `"${field}"`).join(','))
+        .join('\n');
+
+      // Download the file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `daily_report_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setSnackbar({
+        open: true,
+        message: `Daily report generated successfully! ${leads.length} leads exported.`,
+        severity: 'success'
+      });
+
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: `Failed to generate daily report: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const generateMonthlyReport = async () => {
+    try {
+      setSnackbar({ open: false, message: '', severity: 'success' });
+      
+      // Get this month's date range
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+      
+      // Fetch this month's leads and analytics
+      const [leadsResponse, analytics] = await Promise.all([
+        apiClient.get(`/admin/leads?startDate=${startOfMonth}&endDate=${endOfMonth}&limit=5000`),
+        apiClient.get('/analytics/dashboard?range=month')
+      ]);
+      
+      const leads = Array.isArray(leadsResponse) ? leadsResponse : (leadsResponse as any)?.data || [];
+      
+      if (!leads || leads.length === 0) {
+        setSnackbar({
+          open: true,
+          message: 'No leads found for this month',
+          severity: 'info'
+        });
+        return;
+      }
+
+      // Generate comprehensive monthly report
+      const headers = [
+        'Lead ID', 'Patient Name', 'MBI', 'Phone', 'Status', 'Test Type', 
+        'Vendor Name', 'Vendor Code', 'Advocate', 'Collections Agent',
+        'Advocate Disposition', 'Collections Disposition', 'Contact Attempts',
+        'Created Date', 'Last Updated', 'Days in System'
+      ];
+      
+      const csvData = leads.map((lead: any) => {
+        const createdDate = new Date(lead.createdAt);
+        const daysInSystem = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        return [
+          lead.id,
+          `${lead.firstName} ${lead.lastName}`,
+          lead.mbi || 'N/A',
+          lead.phone || 'N/A',
+          lead.status,
+          lead.testType || 'N/A',
+          lead.vendor?.name || 'Unknown',
+          lead.vendor?.code || 'Unknown',
+          lead.advocate ? `${lead.advocate.firstName} ${lead.advocate.lastName}` : 'Unassigned',
+          lead.collectionsAgent ? `${lead.collectionsAgent.firstName} ${lead.collectionsAgent.lastName}` : 'Unassigned',
+          lead.advocateDisposition || 'N/A',
+          lead.collectionsDisposition || 'N/A',
+          lead.contactAttempts || 0,
+          createdDate.toLocaleDateString(),
+          new Date(lead.updatedAt).toLocaleDateString(),
+          daysInSystem
+        ];
+      });
+
+      // Add summary statistics at the top
+      const summaryData = [
+        ['Report Generated', new Date().toLocaleString()],
+        ['Report Period', `${new Date(startOfMonth).toLocaleDateString()} - ${new Date(endOfMonth).toLocaleDateString()}`],
+        ['Total Leads', leads.length.toString()],
+        ['Total Vendors', new Set(leads.map((l: any) => l.vendorId)).size.toString()],
+        ['Conversion Rate', `${((analytics as any)?.conversionRates?.overallConversion * 100 || 0).toFixed(2)}%`],
+        ['Qualified Leads', leads.filter((l: any) => ['QUALIFIED', 'SENT_TO_CONSULT'].includes(l.status)).length.toString()],
+        ['Completed Kits', leads.filter((l: any) => l.status === 'KIT_COMPLETED').length.toString()],
+        ['', ''], // Empty row separator
+        ['Lead Details:', '']
+      ];
+
+      const csvContent = [
+        ...summaryData.map((row: any[]) => row.map((field: any) => `"${field}"`).join(',')),
+        '', // Empty line
+        headers.map((field: string) => `"${field}"`).join(','),
+        ...csvData.map((row: any[]) => row.map((field: any) => `"${field}"`).join(','))
+      ].join('\n');
+
+      // Download the file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `monthly_report_${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setSnackbar({
+        open: true,
+        message: `Monthly report generated successfully! ${leads.length} leads exported with analytics.`,
+        severity: 'success'
+      });
+
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: `Failed to generate monthly report: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
   return (
     <PortalLayout
       title="Healthcare Lead Management"
@@ -274,7 +453,7 @@ export default function AdminDashboard() {
               <Typography variant="h6" gutterBottom>
                 Daily Reports
               </Typography>
-              <Button variant="outlined" fullWidth sx={{ mt: 2 }}>
+              <Button variant="outlined" fullWidth sx={{ mt: 2 }} onClick={generateDailyReport}>
                 Generate Daily Report
               </Button>
             </Paper>
@@ -284,7 +463,7 @@ export default function AdminDashboard() {
               <Typography variant="h6" gutterBottom>
                 Monthly Reports
               </Typography>
-              <Button variant="outlined" fullWidth sx={{ mt: 2 }}>
+              <Button variant="outlined" fullWidth sx={{ mt: 2 }} onClick={generateMonthlyReport}>
                 Generate Monthly Report
               </Button>
             </Paper>
@@ -517,14 +696,15 @@ export default function AdminDashboard() {
         </DialogActions>
       </Dialog>
 
-      {/* Notification Snackbar */}
+      {/* Success/Error Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert 
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
           severity={snackbar.severity}
           sx={{ width: '100%' }}
         >
