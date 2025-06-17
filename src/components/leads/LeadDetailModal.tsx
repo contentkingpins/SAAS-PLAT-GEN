@@ -827,13 +827,15 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                             <PersonIcon color="primary" sx={{ mr: 1 }} />
                             <Typography variant="h6">Demographics</Typography>
                           </Box>
-                          <Button
-                            size="small"
-                            onClick={() => setEditMode(!editMode)}
-                            startIcon={editMode ? <CancelIcon /> : <EditIcon />}
-                          >
-                            {editMode ? 'Cancel' : 'Edit'}
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              size="small"
+                              onClick={() => setEditMode(!editMode)}
+                              startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                            >
+                              {editMode ? 'Cancel' : 'Edit'}
+                            </Button>
+                          )}
                         </Box>
                         
                         <Grid container spacing={2}>
@@ -970,13 +972,15 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                             <BusinessIcon color="primary" sx={{ mr: 1 }} />
                             <Typography variant="h6">Insurance Information</Typography>
                           </Box>
-                          <Button
-                            size="small"
-                            onClick={() => setEditMode(!editMode)}
-                            startIcon={editMode ? <CancelIcon /> : <EditIcon />}
-                          >
-                            {editMode ? 'Cancel' : 'Edit'}
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              size="small"
+                              onClick={() => setEditMode(!editMode)}
+                              startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                            >
+                              {editMode ? 'Cancel' : 'Edit'}
+                            </Button>
+                          )}
                         </Box>
                         
                         <Grid container spacing={2}>
@@ -1030,13 +1034,15 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                             <LocalHospitalIcon color="primary" sx={{ mr: 1 }} />
                             <Typography variant="h6">Medical History</Typography>
                           </Box>
-                          <Button
-                            size="small"
-                            onClick={() => setEditMode(!editMode)}
-                            startIcon={editMode ? <CancelIcon /> : <EditIcon />}
-                          >
-                            {editMode ? 'Cancel' : 'Edit'}
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              size="small"
+                              onClick={() => setEditMode(!editMode)}
+                              startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                            >
+                              {editMode ? 'Cancel' : 'Edit'}
+                            </Button>
+                          )}
                         </Box>
                         
                         <Grid container spacing={2}>
@@ -1134,13 +1140,15 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                             <FamilyRestroomIcon color="primary" sx={{ mr: 1 }} />
                             <Typography variant="h6">Family History</Typography>
                           </Box>
-                          <Button
-                            size="small"
-                            onClick={() => setEditMode(!editMode)}
-                            startIcon={editMode ? <CancelIcon /> : <EditIcon />}
-                          >
-                            {editMode ? 'Cancel' : 'Edit'}
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              size="small"
+                              onClick={() => setEditMode(!editMode)}
+                              startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                            >
+                              {editMode ? 'Cancel' : 'Edit'}
+                            </Button>
+                          )}
                         </Box>
                         
                         <Grid container spacing={2}>
