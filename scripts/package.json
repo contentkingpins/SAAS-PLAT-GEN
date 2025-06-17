@@ -4,7 +4,8 @@
   "description": "Utility scripts for SaasPlat",
   "main": "index.js",
   "scripts": {
-    "import-baseline": "node import-baseline-data.js"
+    "import-baseline": "node import-baseline-data.js",
+    "cleanup-test-data": "node cleanup-test-data.js"
   },
   "dependencies": {
     "@prisma/client": "^5.7.0"
