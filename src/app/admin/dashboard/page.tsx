@@ -23,6 +23,7 @@ import {
   Assessment,
   Upload,
   CheckCircle,
+  Analytics as AnalyticsIcon,
 } from '@mui/icons-material';
 import { AnalyticsDashboard } from '@/components/dashboard/AnalyticsDashboard';
 import useStore from '@/store/useStore';
@@ -30,6 +31,7 @@ import { apiClient } from '@/lib/api/client';
 
 import { VendorManagement } from '@/components/admin/VendorManagement';
 import { AgentManagement } from '@/components/admin/AgentManagement';
+import { VendorMetricsDisplay } from '@/components/admin/VendorMetricsDisplay';
 import { PortalLayout } from '@/components/layout/PortalLayout';
 
 interface TabPanelProps {
@@ -424,6 +426,11 @@ export default function AdminDashboard() {
             iconPosition="start"
             label="Vendors"
           />
+          <Tab
+            icon={<AnalyticsIcon />}
+            iconPosition="start"
+            label="Vendor Metrics"
+          />
         </Tabs>
       </Paper>
 
@@ -503,12 +510,12 @@ export default function AdminDashboard() {
             </Paper>
           </Box>
           
-          {/* Shipping Reports */}
+          {/* Outgoing Samples */}
           <Box sx={{ flex: '1 1 250px' }}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Upload sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
               <Typography variant="h6" gutterBottom>
-                Shipping Reports
+                Outgoing Samples
               </Typography>
               {uploadStates['shipping-report'].loading && <LinearProgress sx={{ mb: 2 }} />}
               {uploadStates['shipping-report'].message && (
@@ -535,12 +542,12 @@ export default function AdminDashboard() {
             </Paper>
           </Box>
           
-          {/* Kit Returns */}
+          {/* Completed Samples */}
           <Box sx={{ flex: '1 1 250px' }}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Upload sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
               <Typography variant="h6" gutterBottom>
-                Kit Returns
+                Completed Samples
               </Typography>
               {uploadStates['kit-return'].loading && <LinearProgress sx={{ mb: 2 }} />}
               {uploadStates['kit-return'].message && (
@@ -571,6 +578,10 @@ export default function AdminDashboard() {
 
       <TabPanel value={tabValue} index={4}>
         <VendorManagement />
+      </TabPanel>
+
+      <TabPanel value={tabValue} index={5}>
+        <VendorMetricsDisplay mode="admin" refreshInterval={15} />
       </TabPanel>
 
       {/* Upload Results Dialog */}

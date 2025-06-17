@@ -49,6 +49,7 @@ import {
   Add as AddIcon,
   Link as LinkIcon,
   AccountTree as AccountTreeIcon,
+  Analytics as AnalyticsIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import useStore from '@/store/useStore';
@@ -61,6 +62,7 @@ import { z } from 'zod';
 import { VendorAuthGuard } from '@/components/auth/VendorAuthGuard';
 import { PortalLayout } from '@/components/layout/PortalLayout';
 import LeadDetailModal from '@/components/leads/LeadDetailModal';
+import { VendorMetricsDisplay } from '@/components/admin/VendorMetricsDisplay';
 
 interface VendorMetrics {
   totalLeads: number;
@@ -391,6 +393,13 @@ export default function VendorDashboard() {
                   icon={<AccountTreeIcon />}
                   iconPosition="start"
                   label="Downline Management"
+                />
+              )}
+              {isMainVendor && (
+                <Tab
+                  icon={<AnalyticsIcon />}
+                  iconPosition="start"
+                  label="Sub-Vendor Metrics"
                 />
               )}
             </Tabs>
@@ -731,6 +740,17 @@ export default function VendorDashboard() {
               )}
             </Paper>
           </TabPanel>
+          )}
+
+          {/* Tab 3: Sub-Vendor Metrics - Only for Main Vendors */}
+          {isMainVendor && (
+            <TabPanel value={tabValue} index={2}>
+              <VendorMetricsDisplay 
+                mode="vendor" 
+                vendorId={user?.vendorId} 
+                refreshInterval={15} 
+              />
+            </TabPanel>
           )}
 
         {/* Create Downline Vendor Dialog */}
