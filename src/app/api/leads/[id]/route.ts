@@ -97,8 +97,8 @@ export async function GET(
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
-    // Only allow ADMIN, ADVOCATE, and COLLECTIONS to view lead details
-    const allowedRoles = ['ADMIN', 'ADVOCATE', 'COLLECTIONS'];
+    // Allow ADMIN, ADVOCATE, COLLECTIONS, and VENDOR to view lead details
+    const allowedRoles = ['ADMIN', 'ADVOCATE', 'COLLECTIONS', 'VENDOR'];
     if (!allowedRoles.includes(authResult.user?.role || '')) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
@@ -136,6 +136,16 @@ export async function GET(
     }
 
     console.log('✅ Lead found successfully:', lead.firstName, lead.lastName);
+
+    // Vendor Access Control: Vendors can only access their own leads
+    if (authResult.user?.role === 'VENDOR') {
+      if (authResult.user?.vendorId !== lead.vendorId) {
+        return NextResponse.json({
+          success: false,
+          error: 'Access denied: You can only view leads from your own vendor'
+        }, { status: 403 });
+      }
+    }
 
     // STRONG AUTO-ASSIGNMENT: Assign lead to advocate if unassigned
     let assignmentMade = false;
@@ -372,11 +382,11 @@ export async function PATCH(
 
     console.log('🔧 Auth successful. User:', authResult.user?.role, authResult.user?.userId);
 
-    // Only allow ADMIN, ADVOCATE, and COLLECTIONS to update leads
+    // Only allow ADMIN, ADVOCATE, and COLLECTIONS to update leads (not vendors)
     const allowedRoles = ['ADMIN', 'ADVOCATE', 'COLLECTIONS'];
     if (!allowedRoles.includes(authResult.user?.role || '')) {
       console.log('🔧 Access denied. User role:', authResult.user?.role);
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      return NextResponse.json({ error: 'Access denied - vendors can only view leads, not modify them' }, { status: 403 });
     }
 
     const { id } = params;

@@ -173,6 +173,9 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
     severity: 'success' as 'success' | 'error'
   });
 
+  // Check if user has edit permissions (vendors can only view, not edit)
+  const canEdit = user?.role === 'admin' || user?.role === 'advocate' || user?.role === 'collections';
+
   // Add state for editing fields
   const [editMode, setEditMode] = useState(false);
   const [editedLead, setEditedLead] = useState<{
@@ -565,13 +568,15 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                         <PersonIcon color="primary" sx={{ mr: 1 }} />
                         <Typography variant="h6">Patient Information</Typography>
                       </Box>
-                      <Button
-                        size="small"
-                        onClick={() => setEditMode(!editMode)}
-                        startIcon={editMode ? <CancelIcon /> : <EditIcon />}
-                      >
-                        {editMode ? 'Cancel' : 'Edit'}
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          size="small"
+                          onClick={() => setEditMode(!editMode)}
+                          startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                        >
+                          {editMode ? 'Cancel' : 'Edit'}
+                        </Button>
+                      )}
                     </Box>
                     
                     <Grid container spacing={2}>
@@ -1241,13 +1246,65 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                 </Grid>
               )}
 
-              {/* Advocate Update Section */}
-              <Grid item xs={12}>
-                <Paper sx={{ p: 3 }}>
-                  <Box display="flex" alignItems="center" mb={3}>
-                    <NotesIcon color="primary" sx={{ mr: 1 }} />
-                    <Typography variant="h6">Advocate Review</Typography>
-                  </Box>
+              {/* Advocate Notes & Disposition - Read-only for vendors */}
+              {!canEdit && (lead.advocateNotes || lead.advocateDisposition) && (
+                <Grid item xs={12}>
+                  <Paper sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={3}>
+                      <NotesIcon color="primary" sx={{ mr: 1 }} />
+                      <Typography variant="h6">Advocate Review Results</Typography>
+                    </Box>
+                    
+                    <Grid container spacing={3}>
+                      {lead.advocateDisposition && (
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Disposition
+                          </Typography>
+                          <Chip 
+                            label={ADVOCATE_DISPOSITIONS.find(d => d.value === lead.advocateDisposition)?.label || lead.advocateDisposition}
+                            color={ADVOCATE_DISPOSITIONS.find(d => d.value === lead.advocateDisposition)?.color as any || 'default'}
+                            size="medium"
+                          />
+                        </Grid>
+                      )}
+                      
+                      {lead.advocateNotes && (
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Advocate Notes
+                          </Typography>
+                          <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'grey.50' }}>
+                            <Typography variant="body2">
+                              {lead.advocateNotes}
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                      )}
+                      
+                      {lead.advocateReviewedAt && (
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Reviewed Date
+                          </Typography>
+                          <Typography variant="body2">
+                            {formatDate(lead.advocateReviewedAt)}
+                          </Typography>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </Paper>
+                </Grid>
+              )}
+
+              {/* Advocate Update Section - Only for non-vendor users */}
+              {canEdit && (
+                <Grid item xs={12}>
+                  <Paper sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={3}>
+                      <NotesIcon color="primary" sx={{ mr: 1 }} />
+                      <Typography variant="h6">Advocate Review</Typography>
+                    </Box>
                   
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={4}>
@@ -1290,25 +1347,28 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                         placeholder="Add notes about your review, call details, or patient interaction..."
                       />
                     </Grid>
-                  </Grid>
-                </Paper>
-              </Grid>
+                    </Grid>
+                  </Paper>
+                </Grid>
+              )}
             </Grid>
           )}
         </DialogContent>
 
         <DialogActions>
           <Button onClick={onClose} disabled={loading}>
-            Cancel
+            {canEdit ? 'Cancel' : 'Close'}
           </Button>
-          <Button 
-            onClick={handleUpdate} 
-            variant="contained" 
-            disabled={loading || !lead}
-            startIcon={loading ? <CircularProgress size={20} /> : <CheckCircleIcon />}
-          >
-            {loading ? 'Updating...' : 'Update Lead'}
-          </Button>
+          {canEdit && (
+            <Button 
+              onClick={handleUpdate} 
+              variant="contained" 
+              disabled={loading || !lead}
+              startIcon={loading ? <CircularProgress size={20} /> : <CheckCircleIcon />}
+            >
+              {loading ? 'Updating...' : 'Update Lead'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 

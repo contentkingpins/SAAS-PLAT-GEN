@@ -60,6 +60,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { VendorAuthGuard } from '@/components/auth/VendorAuthGuard';
 import { PortalLayout } from '@/components/layout/PortalLayout';
+import LeadDetailModal from '@/components/leads/LeadDetailModal';
 
 interface VendorMetrics {
   totalLeads: number;
@@ -136,6 +137,10 @@ export default function VendorDashboard() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Lead Detail Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   const {
     register,
@@ -344,6 +349,23 @@ export default function VendorDashboard() {
     </Typography>
   );
 
+  // Lead Detail Modal Handlers
+  const handleLeadClick = (leadId: string) => {
+    setSelectedLeadId(leadId);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedLeadId(null);
+  };
+
+  const handleLeadUpdated = (updatedLead: any) => {
+    console.log('Lead updated:', updatedLead);
+    // Refresh vendor data to show updated lead information
+    fetchVendorData();
+  };
+
   return (
     <VendorAuthGuard>
       <PortalLayout
@@ -448,7 +470,7 @@ export default function VendorDashboard() {
                     Recent Leads
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Monitor leads submitted through your downline vendor forms. Vendors do not submit leads directly.
+                    Monitor leads submitted through your downline vendor forms. Click on any lead to view detailed information, advocate notes, and disposition status.
                   </Typography>
                   <TableContainer>
                     <Table>
@@ -465,7 +487,16 @@ export default function VendorDashboard() {
                         {leads
                           .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                           .map((lead) => (
-                            <TableRow key={lead.id}>
+                            <TableRow 
+                              key={lead.id}
+                              onClick={() => handleLeadClick(lead.id)}
+                              sx={{ 
+                                cursor: 'pointer',
+                                '&:hover': {
+                                  backgroundColor: 'action.hover'
+                                }
+                              }}
+                            >
                               <TableCell>
                                 {format(new Date(lead.createdAt), 'MM/dd/yyyy')}
                               </TableCell>
@@ -773,6 +804,14 @@ export default function VendorDashboard() {
           </DialogActions>
         </form>
       </Dialog>
+
+        {/* Lead Detail Modal */}
+        <LeadDetailModal
+          open={modalOpen}
+          leadId={selectedLeadId}
+          onClose={handleCloseModal}
+          onLeadUpdated={handleLeadUpdated}
+        />
       </PortalLayout>
     </VendorAuthGuard>
   );
