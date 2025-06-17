@@ -137,14 +137,37 @@ export async function GET(
 
     console.log('✅ Lead found successfully:', lead.firstName, lead.lastName);
 
-    // Vendor Access Control: Vendors can only access their own leads
+    // Vendor Access Control: Vendors can access their own leads AND sub-vendor leads
     if (authResult.user?.role === 'VENDOR') {
-      if (authResult.user?.vendorId !== lead.vendorId) {
+      console.log('🔍 === VENDOR ACCESS CONTROL DEBUG ===');
+      console.log('🔍 User vendorId:', authResult.user.vendorId);
+      console.log('🔍 Lead vendorId:', lead.vendorId);
+      
+      // Check if this lead belongs directly to the vendor
+      const isDirectLead = authResult.user?.vendorId === lead.vendorId;
+      
+      // Check if this lead belongs to a sub-vendor of this vendor
+      let isSubVendorLead = false;
+      if (!isDirectLead) {
+        const subVendorCheck = await prisma.vendor.findFirst({
+          where: {
+            id: lead.vendorId,
+            parentVendorId: authResult.user.vendorId
+          }
+        });
+        isSubVendorLead = !!subVendorCheck;
+        console.log('🔍 Sub-vendor check result:', isSubVendorLead);
+      }
+      
+      if (!isDirectLead && !isSubVendorLead) {
+        console.log('🚫 Access denied - not direct or sub-vendor lead');
         return NextResponse.json({
           success: false,
-          error: 'Access denied: You can only view leads from your own vendor'
+          error: 'Access denied: You can only view leads from your own vendor or sub-vendors'
         }, { status: 403 });
       }
+      
+      console.log('✅ Vendor access granted:', isDirectLead ? 'direct lead' : 'sub-vendor lead');
     }
 
     // STRONG AUTO-ASSIGNMENT: Assign lead to advocate if unassigned
