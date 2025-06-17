@@ -116,6 +116,11 @@ interface LeadDetail {
   contactAttempts: number;
   lastContactAttempt?: string;
   nextCallbackDate?: string;
+  
+  // Doctor approval information
+  doctorApprovalStatus?: 'PENDING' | 'APPROVED' | 'DECLINED';
+  doctorApprovalDate?: string;
+  
   createdAt: string;
   updatedAt: string;
   vendor: {
@@ -1251,6 +1256,45 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                       </CardContent>
                     </Card>
                   </Grid>
+                </Grid>
+              )}
+
+              {/* Doctor Approval Status */}
+              {lead.doctorApprovalStatus && (
+                <Grid item xs={12}>
+                  <Paper sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={3}>
+                      <LocalHospitalIcon color="primary" sx={{ mr: 1 }} />
+                      <Typography variant="h6">Doctor Approval Status</Typography>
+                    </Box>
+                    
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          Decision
+                        </Typography>
+                        <Chip 
+                          label={lead.doctorApprovalStatus}
+                          color={
+                            lead.doctorApprovalStatus === 'APPROVED' ? 'success' :
+                            lead.doctorApprovalStatus === 'DECLINED' ? 'error' : 'warning'
+                          }
+                          size="medium"
+                        />
+                      </Grid>
+                      
+                      {lead.doctorApprovalDate && (
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Decision Date
+                          </Typography>
+                          <Typography variant="body1">
+                            {formatDate(lead.doctorApprovalDate)}
+                          </Typography>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </Paper>
                 </Grid>
               )}
 

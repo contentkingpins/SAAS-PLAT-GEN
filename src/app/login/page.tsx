@@ -113,7 +113,7 @@ export default function LoginPage() {
             <Typography component="h1" variant="h4" fontWeight="bold">
               Welcome Back
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.primary" sx={{ mt: 1 }}>
               Healthcare Lead Management Platform
             </Typography>
           </Box>
@@ -185,7 +185,7 @@ export default function LoginPage() {
           {/* Development Test Credentials */}
           {process.env.NODE_ENV === 'development' && (
             <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+              <Typography variant="caption" color="text.primary" display="block" gutterBottom fontWeight="medium">
                 Test Credentials (Development Only):
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -208,7 +208,7 @@ export default function LoginPage() {
           )}
         </Paper>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
+        <Typography variant="body2" color="text.primary" sx={{ mt: 3 }}>
           © 2024 Healthcare Lead Management. All rights reserved.
         </Typography>
       </Box>

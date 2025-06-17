@@ -469,7 +469,7 @@ export default function VendorDashboard() {
                   <Typography variant="h5" gutterBottom fontWeight="bold">
                     Recent Leads
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.primary" sx={{ mb: 3 }}>
                     Monitor leads submitted through your downline vendor forms. Click on any lead to view detailed information, advocate notes, and disposition status.
                   </Typography>
                   <TableContainer>

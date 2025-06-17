@@ -193,7 +193,7 @@ export default function CollectionsDashboard() {
       onErrorClose={() => setError(null)}
     >
       <Box mb={3}>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" color="text.primary">
           {welcomeMessage}
         </Typography>
       </Box>
@@ -206,7 +206,7 @@ export default function CollectionsDashboard() {
                 <Box display="flex" alignItems="center">
                   <Assignment color="primary" sx={{ mr: 2 }} />
                   <Box>
-                    <Typography color="text.secondary" gutterBottom>
+                    <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Total Assigned
                     </Typography>
                     <Typography variant="h4">
@@ -224,7 +224,7 @@ export default function CollectionsDashboard() {
                 <Box display="flex" alignItems="center">
                   <Phone color="warning" sx={{ mr: 2 }} />
                   <Box>
-                    <Typography color="text.secondary" gutterBottom>
+                    <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Pending Contact
                     </Typography>
                     <Typography variant="h4">

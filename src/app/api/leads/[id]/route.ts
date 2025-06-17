@@ -646,6 +646,11 @@ export async function PATCH(
         contactAttempts: updatedLead.contactAttempts,
         lastContactAttempt: updatedLead.lastContactAttempt?.toISOString(),
         nextCallbackDate: updatedLead.nextCallbackDate?.toISOString(),
+        
+        // Doctor approval information
+        doctorApprovalStatus: updatedLead.doctorApprovalStatus,
+        doctorApprovalDate: updatedLead.doctorApprovalDate?.toISOString(),
+        
         createdAt: updatedLead.createdAt,
         updatedAt: updatedLead.updatedAt,
         vendor: updatedLead.vendor,

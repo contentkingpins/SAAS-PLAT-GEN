@@ -248,7 +248,7 @@ export default function AdvocateDashboard() {
       onErrorClose={() => setError(null)}
     >
       <Box mb={3}>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" color="text.primary">
           {welcomeMessage}
         </Typography>
       </Box>
@@ -285,7 +285,7 @@ export default function AdvocateDashboard() {
                 <Box display="flex" alignItems="center">
                   <AssignmentIcon color="primary" sx={{ mr: 2 }} />
                   <Box>
-                    <Typography color="text.secondary" gutterBottom>
+                    <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Total Assigned
                     </Typography>
                     <Typography variant="h4">
@@ -303,7 +303,7 @@ export default function AdvocateDashboard() {
                 <Box display="flex" alignItems="center">
                   <Warning color="warning" sx={{ mr: 2 }} />
                   <Box>
-                    <Typography color="text.secondary" gutterBottom>
+                    <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Pending Review
                     </Typography>
                     <Typography variant="h4">
@@ -321,7 +321,7 @@ export default function AdvocateDashboard() {
                 <Box display="flex" alignItems="center">
                   <CheckCircle color="success" sx={{ mr: 2 }} />
                   <Box>
-                    <Typography color="text.secondary" gutterBottom>
+                    <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Qualified
                     </Typography>
                     <Typography variant="h4">
@@ -339,7 +339,7 @@ export default function AdvocateDashboard() {
                 <Box display="flex" alignItems="center">
                   <Phone color="info" sx={{ mr: 2 }} />
                   <Box>
-                    <Typography color="text.secondary" gutterBottom>
+                    <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Completed Today
                     </Typography>
                     <Typography variant="h4">
@@ -424,7 +424,7 @@ export default function AdvocateDashboard() {
 
             {leads.length === 0 && !loading && (
               <Box textAlign="center" py={4}>
-                <Typography color="text.secondary">
+                <Typography color="text.primary" variant="body1">
                   No leads assigned yet.
                 </Typography>
               </Box>
@@ -442,7 +442,7 @@ export default function AdvocateDashboard() {
                 <Typography variant="h6" gutterBottom>
                   Search Existing Leads
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography variant="body2" color="text.primary" sx={{ mb: 3 }}>
                   When answering calls, search for existing patient records by name, phone, MBI, or location.
                 </Typography>
                 

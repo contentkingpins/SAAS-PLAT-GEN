@@ -512,12 +512,15 @@ export default function AdminDashboard() {
             </Paper>
           </Box>
           
-          {/* Doctor Approvals */}
+          {/* Approvals and Denials */}
           <Box sx={{ flex: '1 1 250px' }}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Upload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
               <Typography variant="h6" gutterBottom>
-                Doctor Approvals
+                Approvals and Denials
+              </Typography>
+              <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
+                Upload CSV with approval/denial decisions to update lead statuses
               </Typography>
               {uploadStates['doctor-approval'].loading && <LinearProgress sx={{ mb: 2 }} />}
               {uploadStates['doctor-approval'].message && (
