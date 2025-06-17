@@ -157,14 +157,14 @@ export default function VendorDashboard() {
     }
   }, [user?.vendorId]);
 
-  // Auto-refresh every 30 seconds to show updated lead statuses
+  // Auto-refresh every 60 seconds (increased from 15) to reduce interruptions
   useEffect(() => {
     if (!user?.vendorId) return;
 
     const refreshInterval = setInterval(() => {
       console.log('🔄 Auto-refreshing vendor dashboard for updated lead statuses');
       fetchVendorData();
-    }, 15000); // Refresh every 15 seconds for faster status updates
+    }, 60000); // Refresh every 60 seconds instead of 15
 
     return () => clearInterval(refreshInterval);
   }, [user?.vendorId]);

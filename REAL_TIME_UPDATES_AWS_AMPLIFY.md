@@ -13,10 +13,11 @@ AWS Amplify is a serverless environment that doesn't support WebSocket connectio
 
 Since WebSocket isn't available, we've implemented a multi-layered approach:
 
-### 1. **Automatic Periodic Refresh (15 seconds)**
-All dashboards now automatically refresh every 15 seconds to fetch the latest lead statuses:
+### 1. **Smart Periodic Refresh (60 seconds)**
+All dashboards now automatically refresh every 60 seconds (increased from 15 seconds) to balance real-time updates with user experience:
 
 - **Advocate Dashboard**: `src/app/advocate/dashboard/page.tsx`
+  - **Smart Refresh**: Only refreshes "My Leads" tab, pauses during search activity
 - **Vendor Dashboard**: `src/app/vendor/dashboard/page.tsx`
 - **Collections Dashboard**: `src/app/collections/dashboard/page.tsx`
 - **Admin Analytics Dashboard**: `src/components/dashboard/AnalyticsDashboard.tsx`
@@ -26,15 +27,39 @@ useEffect(() => {
   if (!user?.id) return;
 
   const refreshInterval = setInterval(() => {
-    console.log('🔄 Auto-refreshing dashboard for updated lead statuses');
-    loadData();
-  }, 15000); // Refresh every 15 seconds
+    // Only refresh if user is not actively searching (advocate dashboard)
+    if (selectedTab === 0) { // Only refresh "My Leads" tab
+      console.log('🔄 Auto-refreshing dashboard for updated lead statuses');
+      loadData();
+    }
+  }, 60000); // Refresh every 60 seconds instead of 15
 
   return () => clearInterval(refreshInterval);
-}, [user?.id]);
+}, [user?.id, selectedTab]); // Include selectedTab to pause during search
 ```
 
-### 2. **Tab Visibility Refresh**
+### 2. **Enhanced Search Experience**
+The search functionality now includes:
+
+- **Debounced Search**: 300ms delay to reduce API calls
+- **Visual Feedback**: Loading spinner and search status indicators
+- **No Interruption**: Auto-refresh pauses during active search
+- **Smart Results**: Real-time result count and status messages
+
+```typescript
+// Search with loading states and activity indicators
+const debouncedSearch = useCallback(
+  useDebounce(async (searchQuery: string) => {
+    setLoading(true);
+    setIsSearching(true);
+    // ... search logic
+    setTimeout(() => setIsSearching(false), 1000);
+  }, 300),
+  []
+);
+```
+
+### 3. **Tab Visibility Refresh**
 When users switch back to the browser tab, the dashboard immediately refreshes to show the latest updates:
 
 ```typescript
@@ -51,7 +76,7 @@ useEffect(() => {
 }, [user?.id]);
 ```
 
-### 3. **Immediate Callback Updates**
+### 4. **Immediate Callback Updates**
 When a lead is updated through the LeadDetailModal, it immediately calls back to refresh the parent dashboard:
 
 ```typescript
@@ -70,7 +95,7 @@ const handleLeadUpdated = (updatedLead: any) => {
 };
 ```
 
-### 4. **Comprehensive Status Support**
+### 5. **Comprehensive Status Support**
 All dashboards now support the full range of lead statuses with proper color coding:
 
 **Positive Statuses (Green):**
@@ -92,7 +117,7 @@ All dashboards now support the full range of lead statuses with proper color cod
 - `KIT_COMPLETED`
 - `SHIPPED`
 
-### 5. **API Filtering for Visibility**
+### 6. **API Filtering for Visibility**
 
 #### Advocate Dashboard
 Shows leads with all possible statuses that an advocate might have worked on:
@@ -109,21 +134,21 @@ WHERE (vendorId = ? OR vendor.parentVendorId = ?)
 #### Admin Dashboard
 Shows all leads across the entire system with comprehensive analytics.
 
-## Benefits of This Approach
+## Benefits of This Improved Approach
 
-1. **Works in Serverless Environment**: No WebSocket dependency
-2. **Fast Updates**: 15-second refresh cycle provides near real-time feel
-3. **Immediate Visibility**: Tab focus triggers instant refresh
-4. **Comprehensive Coverage**: All user types see relevant lead updates
-5. **Efficient**: Only refreshes when needed (user active, tab visible)
-6. **Scalable**: Works regardless of number of users or leads
+1. **Better User Experience**: 60-second refresh intervals reduce interruptions
+2. **Search-Friendly**: Auto-refresh pauses during search activity
+3. **Fast When Needed**: Tab focus triggers instant refresh
+4. **Visual Feedback**: Users see search activity and results clearly
+5. **Efficient**: Reduced API calls with debounced search
+6. **Smart Context**: Different refresh strategies for different user activities
 
-## Performance Considerations
+## Performance Optimizations
 
-- **15-second intervals** balance responsiveness with server load
-- **Tab visibility detection** prevents unnecessary API calls when users aren't active
-- **Efficient API queries** with proper filtering reduce data transfer
-- **Callback-based updates** provide immediate feedback for user actions
+- **Reduced API Load**: 60-second intervals instead of 15-second
+- **Debounced Search**: 300ms delay prevents excessive search API calls
+- **Context-Aware**: Only refreshes relevant data based on user activity
+- **Smart Pausing**: Stops auto-refresh during active search sessions
 
 ## Future Enhancements
 

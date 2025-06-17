@@ -104,8 +104,8 @@ export function AnalyticsDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-    // Set up real-time updates
-    const interval = setInterval(fetchDashboardData, 15000); // Update every 15 seconds for faster status updates
+    // Set up real-time updates - increased interval to reduce interruptions
+    const interval = setInterval(fetchDashboardData, 60000); // Update every 60 seconds instead of 15
     return () => clearInterval(interval);
   }, [timeRange]);
 

@@ -104,17 +104,20 @@ export default function AdvocateDashboard() {
     }
   }, [user?.id]);
 
-  // Auto-refresh every 30 seconds to show updated lead statuses
+  // Auto-refresh every 60 seconds (increased from 15) and pause during search activity
   useEffect(() => {
     if (!user?.id) return;
 
     const refreshInterval = setInterval(() => {
-      console.log('🔄 Auto-refreshing advocate dashboard for updated lead statuses');
-      loadAdvocateData();
-    }, 15000); // Refresh every 15 seconds for faster status updates
+      // Only refresh if user is not actively searching (based on tab)
+      if (selectedTab === 0) { // Only refresh "My Leads" tab
+        console.log('🔄 Auto-refreshing advocate dashboard for updated lead statuses');
+        loadAdvocateData();
+      }
+    }, 60000); // Refresh every 60 seconds instead of 15
 
     return () => clearInterval(refreshInterval);
-  }, [user?.id]);
+  }, [user?.id, selectedTab]); // Add selectedTab as dependency
 
   // Refresh when user returns to the tab (for immediate status updates)
   useEffect(() => {
