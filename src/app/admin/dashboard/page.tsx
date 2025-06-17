@@ -83,8 +83,7 @@ export default function AdminDashboard() {
   const [uploadStates, setUploadStates] = useState({
     'doctor-approval': { loading: false, message: '', error: false },
     'shipping-report': { loading: false, message: '', error: false },
-    'kit-return': { loading: false, message: '', error: false },
-    'master-data': { loading: false, message: '', error: false }
+    'kit-return': { loading: false, message: '', error: false }
   });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
   const [uploadResults, setUploadResults] = useState<any>(null);
@@ -127,9 +126,6 @@ export default function AdminDashboard() {
         case 'kit-return':
           endpoint = '/api/admin/uploads/kit-return';
           break;
-        case 'master-data':
-          endpoint = '/api/admin/uploads/master-data';
-          break;
         default:
           const invalidTypeMsg = 'Invalid upload type';
           throw { message: invalidTypeMsg };
@@ -167,11 +163,7 @@ export default function AdminDashboard() {
         severity: 'success'
       });
 
-      // Show detailed results for master data uploads
-      if (uploadType === 'master-data' && result.results) {
-        setUploadResults(result);
-        setResultsDialog(true);
-      }
+
 
     } catch (error) {
       const errorMessage = error && typeof error === 'object' && 'message' in error 
@@ -476,42 +468,6 @@ export default function AdminDashboard() {
           File Uploads
         </Typography>
         <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3 }}>
-          {/* Master CSV Upload */}
-          <Box sx={{ flex: '1 1 250px' }}>
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Upload sx={{ fontSize: 48, color: 'secondary.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Master CSV Data
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Upload a single CSV containing all patient, shipping, and status data
-              </Typography>
-              {uploadStates['master-data'].loading && <LinearProgress sx={{ mb: 2 }} />}
-              {uploadStates['master-data'].message && (
-                <Alert 
-                  severity={uploadStates['master-data'].error ? 'error' : 'success'} 
-                  sx={{ mb: 2, textAlign: 'left' }}
-                >
-                  {uploadStates['master-data'].message}
-                </Alert>
-              )}
-              <Button 
-                variant="contained" 
-                component="label"
-                disabled={uploadStates['master-data'].loading}
-                color="secondary"
-              >
-                {uploadStates['master-data'].loading ? 'Processing...' : 'Upload Master CSV'}
-                <input 
-                  type="file" 
-                  hidden 
-                  accept=".csv" 
-                  onChange={handleFileChange('master-data')} 
-                />
-              </Button>
-            </Paper>
-          </Box>
-          
           {/* Approvals and Denials */}
           <Box sx={{ flex: '1 1 250px' }}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
