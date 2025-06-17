@@ -78,39 +78,48 @@ export function VendorMetricsDisplay({
         throw new Error('Invalid configuration: vendor mode requires vendorId');
       }
 
+      console.log(`🔍 Fetching vendor metrics from: ${endpoint}`);
       const response = await apiClient.get<any>(endpoint);
+      console.log('📊 Vendor metrics response:', response);
       
       // Handle different response formats from the two endpoints
       let vendorData: any[] = [];
-      if (mode === 'admin' && response.vendors) {
+      if (mode === 'admin' && response?.vendors) {
         vendorData = response.vendors;
-      } else if (mode === 'vendor' && response.subVendors) {
+      } else if (mode === 'vendor' && response?.subVendors) {
         vendorData = response.subVendors;
       } else if (Array.isArray(response)) {
         vendorData = response;
+      } else {
+        console.warn('⚠️ Unexpected response format:', response);
+        vendorData = [];
       }
+
+      console.log(`📋 Processing ${vendorData.length} vendor records`);
 
       // Transform the data to match our interface
       const transformedMetrics: VendorMetrics[] = vendorData.map((vendor: any) => ({
-        vendorId: vendor.vendorId,
-        vendorName: vendor.vendorName,
-        vendorCode: vendor.vendorCode,
-        totalLeads: vendor.totalLeads,
-        immuneLeads: Math.round((vendor.immunePercentage / 100) * vendor.totalLeads),
-        neuroLeads: Math.round((vendor.neuroPercentage / 100) * vendor.totalLeads),
-        deniedLeads: Math.round((vendor.denialPercentage / 100) * (vendor.sentToConsult || vendor.totalLeads)),
-        chasingLeads: Math.round((vendor.chaseRate / 100) * vendor.totalLeads),
-        immunePercentage: vendor.immunePercentage,
-        neuroPercentage: vendor.neuroPercentage,
-        denialPercentage: vendor.denialPercentage,
-        chaseRate: vendor.chaseRate,
+        vendorId: vendor.vendorId || '',
+        vendorName: vendor.vendorName || 'Unknown',
+        vendorCode: vendor.vendorCode || 'N/A',
+        totalLeads: vendor.totalLeads || 0,
+        immuneLeads: Math.round(((vendor.immunePercentage || 0) / 100) * (vendor.totalLeads || 0)),
+        neuroLeads: Math.round(((vendor.neuroPercentage || 0) / 100) * (vendor.totalLeads || 0)),
+        deniedLeads: Math.round(((vendor.denialPercentage || 0) / 100) * (vendor.sentToConsult || vendor.totalLeads || 0)),
+        chasingLeads: Math.round(((vendor.chaseRate || 0) / 100) * (vendor.totalLeads || 0)),
+        immunePercentage: vendor.immunePercentage || 0,
+        neuroPercentage: vendor.neuroPercentage || 0,
+        denialPercentage: vendor.denialPercentage || 0,
+        chaseRate: vendor.chaseRate || 0,
       }));
 
+      console.log('✅ Transformed metrics:', transformedMetrics);
       setMetrics(transformedMetrics);
       setLastUpdated(new Date());
     } catch (error: any) {
-      console.error('Failed to fetch vendor metrics:', error);
+      console.error('❌ Failed to fetch vendor metrics:', error);
       setError(error.message || 'Failed to fetch vendor metrics');
+      setMetrics([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -158,14 +167,14 @@ export function VendorMetricsDisplay({
   };
 
   // Summary calculations
-  const totalVendors = metrics.length;
-  const totalLeads = metrics.reduce((sum, m) => sum + m.totalLeads, 0);
+  const totalVendors = metrics?.length || 0;
+  const totalLeads = metrics?.reduce((sum, m) => sum + (m.totalLeads || 0), 0) || 0;
   const avgDenialRate = totalLeads > 0 ? 
-    (metrics.reduce((sum, m) => sum + m.deniedLeads, 0) / totalLeads * 100) : 0;
+    (metrics?.reduce((sum, m) => sum + (m.deniedLeads || 0), 0) / totalLeads * 100) : 0;
   const avgChaseRate = totalLeads > 0 ? 
-    (metrics.reduce((sum, m) => sum + m.chasingLeads, 0) / totalLeads * 100) : 0;
+    (metrics?.reduce((sum, m) => sum + (m.chasingLeads || 0), 0) / totalLeads * 100) : 0;
 
-  if (loading && metrics.length === 0) {
+      if (loading && (!metrics || metrics.length === 0)) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -300,7 +309,7 @@ export function VendorMetricsDisplay({
               </TableRow>
             </TableHead>
             <TableBody>
-              {metrics
+              {(metrics || [])
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((vendor) => (
                   <TableRow key={vendor.vendorId} hover>
@@ -400,7 +409,7 @@ export function VendorMetricsDisplay({
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
-          count={metrics.length}
+          count={metrics?.length || 0}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(_, newPage) => setPage(newPage)}
@@ -411,7 +420,7 @@ export function VendorMetricsDisplay({
         />
       </Paper>
 
-      {metrics.length === 0 && !loading && (
+      {(!metrics || metrics.length === 0) && !loading && (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <BusinessIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
           <Typography variant="h6" color="text.secondary">
