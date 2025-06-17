@@ -78,8 +78,35 @@ export function VendorMetricsDisplay({
         throw new Error('Invalid configuration: vendor mode requires vendorId');
       }
 
-      const data = await apiClient.get<VendorMetrics[]>(endpoint);
-      setMetrics(data || []);
+      const response = await apiClient.get<any>(endpoint);
+      
+      // Handle different response formats from the two endpoints
+      let vendorData: any[] = [];
+      if (mode === 'admin' && response.vendors) {
+        vendorData = response.vendors;
+      } else if (mode === 'vendor' && response.subVendors) {
+        vendorData = response.subVendors;
+      } else if (Array.isArray(response)) {
+        vendorData = response;
+      }
+
+      // Transform the data to match our interface
+      const transformedMetrics: VendorMetrics[] = vendorData.map((vendor: any) => ({
+        vendorId: vendor.vendorId,
+        vendorName: vendor.vendorName,
+        vendorCode: vendor.vendorCode,
+        totalLeads: vendor.totalLeads,
+        immuneLeads: Math.round((vendor.immunePercentage / 100) * vendor.totalLeads),
+        neuroLeads: Math.round((vendor.neuroPercentage / 100) * vendor.totalLeads),
+        deniedLeads: Math.round((vendor.denialPercentage / 100) * (vendor.sentToConsult || vendor.totalLeads)),
+        chasingLeads: Math.round((vendor.chaseRate / 100) * vendor.totalLeads),
+        immunePercentage: vendor.immunePercentage,
+        neuroPercentage: vendor.neuroPercentage,
+        denialPercentage: vendor.denialPercentage,
+        chaseRate: vendor.chaseRate,
+      }));
+
+      setMetrics(transformedMetrics);
       setLastUpdated(new Date());
     } catch (error: any) {
       console.error('Failed to fetch vendor metrics:', error);
