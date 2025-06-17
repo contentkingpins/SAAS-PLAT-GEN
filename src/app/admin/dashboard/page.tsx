@@ -58,7 +58,6 @@ function TabPanel(props: TabPanelProps) {
 
 export default function AdminDashboard() {
   const [tabValue, setTabValue] = useState(0);
-  const [notifications, setNotifications] = useState(5);
   const { user, isAuthenticated, logout } = useStore();
   
   // Add token validation on component mount
@@ -389,8 +388,7 @@ export default function AdminDashboard() {
       title="Healthcare Lead Management"
       userRole="admin"
       showConnectionStatus={false}
-      showNotifications={true}
-      notifications={notifications}
+      showNotifications={false}
       fullWidth={true}
     >
       <Paper elevation={0} sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
