@@ -82,6 +82,7 @@ export default function AdminDashboard() {
   
   // Upload state management
   const [uploadStates, setUploadStates] = useState({
+    'bulk-lead': { loading: false, message: '', error: false },
     'doctor-approval': { loading: false, message: '', error: false },
     'shipping-report': { loading: false, message: '', error: false },
     'kit-return': { loading: false, message: '', error: false }
@@ -118,6 +119,9 @@ export default function AdminDashboard() {
       // Determine upload endpoint based on type
       let endpoint = '';
       switch (uploadType) {
+        case 'bulk-lead':
+          endpoint = '/api/admin/uploads/bulk-lead';
+          break;
         case 'doctor-approval':
           endpoint = '/api/admin/uploads/doctor-approval';
           break;
@@ -473,6 +477,41 @@ export default function AdminDashboard() {
           File Uploads
         </Typography>
         <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3 }}>
+          {/* Bulk Lead Upload */}
+          <Box sx={{ flex: '1 1 250px' }}>
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Upload sx={{ fontSize: 48, color: 'info.main', mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                Bulk Lead Upload
+              </Typography>
+              <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
+                Import historical leads from old CRM system for data migration
+              </Typography>
+              {uploadStates['bulk-lead'].loading && <LinearProgress sx={{ mb: 2 }} />}
+              {uploadStates['bulk-lead'].message && (
+                <Alert 
+                  severity={uploadStates['bulk-lead'].error ? 'error' : 'success'} 
+                  sx={{ mb: 2, textAlign: 'left' }}
+                >
+                  {uploadStates['bulk-lead'].message}
+                </Alert>
+              )}
+              <Button 
+                variant="contained" 
+                component="label"
+                disabled={uploadStates['bulk-lead'].loading}
+              >
+                {uploadStates['bulk-lead'].loading ? 'Processing...' : 'Upload CSV'}
+                <input 
+                  type="file" 
+                  hidden 
+                  accept=".csv" 
+                  onChange={handleFileChange('bulk-lead')} 
+                />
+              </Button>
+            </Paper>
+          </Box>
+
           {/* Approvals and Denials */}
           <Box sx={{ flex: '1 1 250px' }}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
