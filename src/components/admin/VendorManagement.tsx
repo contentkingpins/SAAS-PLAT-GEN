@@ -51,6 +51,9 @@ import {
   ExpandMore as ExpandMoreIcon,
   Assignment as AssignmentIcon,
   DateRange as DateRangeIcon,
+  Archive as ArchiveIcon,
+  Unarchive as UnarchiveIcon,
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -119,6 +122,11 @@ const vendorSchema = z.object({
   staticCode: z.string().min(3, 'Static code must be at least 3 characters').optional(),
   parentVendorId: z.string().optional(),
   isActive: z.boolean(),
+  // New fields for automatic user creation
+  contactEmail: z.string().email('Invalid email address').optional(),
+  contactFirstName: z.string().min(2, 'First name must be at least 2 characters').optional(),
+  contactLastName: z.string().min(2, 'Last name must be at least 2 characters').optional(),
+  createUserAccount: z.boolean(),
 });
 
 type VendorFormData = z.infer<typeof vendorSchema>;
@@ -149,6 +157,7 @@ export function VendorManagement() {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [vendorStatusFilter, setVendorStatusFilter] = useState<string>('active');
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -237,13 +246,17 @@ export function VendorManagement() {
 
   const handleCreateVendor = () => {
     setEditingVendor(null);
-    reset({
-      name: '',
-      code: '',
-      staticCode: '',
-      parentVendorId: '',
-      isActive: true,
-    });
+          reset({
+        name: '',
+        code: '',
+        staticCode: '',
+        parentVendorId: '',
+        isActive: true,
+        contactEmail: '',
+        contactFirstName: '',
+        contactLastName: '',
+        createUserAccount: true, // Default to creating user account
+      });
     setDialogOpen(true);
   };
 
@@ -255,13 +268,45 @@ export function VendorManagement() {
       staticCode: vendor.staticCode,
       parentVendorId: vendor.parentVendorId || '',
       isActive: vendor.isActive,
+      contactEmail: '',
+      contactFirstName: '',
+      contactLastName: '',
+      createUserAccount: false,
     });
     setDialogOpen(true);
   };
 
+  const handleArchiveVendor = async (vendor: Vendor) => {
+    try {
+      setError(null);
+      await apiClient.put(`/admin/vendors/${vendor.id}`, { isActive: false });
+      setSuccess(`Vendor "${vendor.name}" archived successfully`);
+      fetchVendors();
+    } catch (error: any) {
+      setError(error.message || 'Failed to archive vendor');
+    }
+  };
+
+  const handleReactivateVendor = async (vendor: Vendor) => {
+    try {
+      setError(null);
+      await apiClient.put(`/admin/vendors/${vendor.id}`, { isActive: true });
+      setSuccess(`Vendor "${vendor.name}" reactivated successfully`);
+      fetchVendors();
+    } catch (error: any) {
+      setError(error.message || 'Failed to reactivate vendor');
+    }
+  };
+
   const handleDeleteVendor = (vendor: Vendor) => {
-    setVendorToDelete(vendor);
-    setDeleteDialogOpen(true);
+    const stats = getVendorStats(vendor);
+    if (stats.totalLeads > 0 || stats.activeUsers > 0) {
+      setVendorToDelete(vendor);
+      setDeleteDialogOpen(true);
+    } else {
+      setVendorToDelete(vendor);
+      setDeleteDialogOpen(true);
+    }
   };
 
   const onSubmit = async (data: VendorFormData) => {
@@ -274,11 +319,19 @@ export function VendorManagement() {
       };
 
       if (editingVendor) {
-        await apiClient.put(`/api/admin/vendors/${editingVendor.id}`, vendorData);
+        await apiClient.put(`/admin/vendors/${editingVendor.id}`, vendorData);
         setSuccess('Vendor updated successfully');
       } else {
-        await apiClient.post('/admin/vendors', vendorData);
-        setSuccess('Vendor created successfully');
+        const response = await apiClient.post('/admin/vendors', vendorData) as any;
+        
+        // Check if user account was created and show credentials
+        if (response.userAccount?.created) {
+          setSuccess(
+            `Vendor created successfully! 🎉 Login credentials: Email: ${response.userAccount.email} | Password: ${response.userAccount.defaultPassword} | ⚠️ Please save these credentials securely!`
+          );
+        } else {
+          setSuccess('Vendor created successfully');
+        }
       }
 
       setDialogOpen(false);
@@ -288,17 +341,25 @@ export function VendorManagement() {
     }
   };
 
-  const confirmDelete = async () => {
+  const confirmArchiveOrDelete = async () => {
     if (!vendorToDelete) return;
 
     try {
-      await apiClient.delete(`/api/admin/vendors/${vendorToDelete.id}`);
-      setSuccess('Vendor deleted successfully');
+      const stats = getVendorStats(vendorToDelete);
+      
+      if (stats.totalLeads > 0 || stats.activeUsers > 0) {
+        await apiClient.put(`/admin/vendors/${vendorToDelete.id}`, { isActive: false });
+        setSuccess(`Vendor "${vendorToDelete.name}" archived successfully`);
+      } else {
+        await apiClient.delete(`/admin/vendors/${vendorToDelete.id}`);
+        setSuccess(`Vendor "${vendorToDelete.name}" deleted successfully`);
+      }
+      
       setDeleteDialogOpen(false);
       setVendorToDelete(null);
       fetchVendors();
     } catch (error: any) {
-      setError(error.message || 'Failed to delete vendor');
+      setError(error.message || 'Failed to process vendor');
     }
   };
 
@@ -367,6 +428,15 @@ export function VendorManagement() {
     'RETURNED'
   ];
 
+  // Filter vendors based on status
+  const getFilteredVendors = () => {
+    return vendors.filter(vendor => {
+      if (vendorStatusFilter === 'active') return vendor.isActive;
+      if (vendorStatusFilter === 'archived') return !vendor.isActive;
+      return true; // Show all
+    });
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -421,6 +491,26 @@ export function VendorManagement() {
 
       {/* Tab 1: Vendor Management */}
       <TabPanel value={tabValue} index={0}>
+        {/* Vendor Status Filter */}
+        <Box display="flex" gap={2} mb={3} alignItems="center">
+          <FormControl sx={{ minWidth: 150 }}>
+            <InputLabel>Vendor Status</InputLabel>
+            <Select
+              value={vendorStatusFilter}
+              onChange={(e) => setVendorStatusFilter(e.target.value)}
+              label="Vendor Status"
+            >
+              <MenuItem value="active">Active Only</MenuItem>
+              <MenuItem value="archived">Archived Only</MenuItem>
+              <MenuItem value="all">All Vendors</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <Typography variant="body2" color="text.secondary">
+            Showing {getFilteredVendors().length} of {vendors.length} vendors
+          </Typography>
+        </Box>
+
         {/* Vendor Stats Cards */}
         <Grid container spacing={3} mb={3}>
           <Grid item xs={12} sm={6} md={3}>
@@ -490,16 +580,22 @@ export function VendorManagement() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {vendors
+                {getFilteredVendors()
                   .slice(vendorPage * vendorRowsPerPage, vendorPage * vendorRowsPerPage + vendorRowsPerPage)
                   .map((vendor) => {
                     const stats = getVendorStats(vendor);
                     const formLink = getFormLink(vendor);
                     return (
-                      <TableRow key={vendor.id}>
+                      <TableRow 
+                        key={vendor.id}
+                        sx={{ 
+                          opacity: vendor.isActive ? 1 : 0.6,
+                          backgroundColor: vendor.isActive ? 'inherit' : 'action.hover'
+                        }}
+                      >
                         <TableCell>
                           <Box display="flex" alignItems="center" gap={1}>
-                            <BusinessIcon color="primary" />
+                            <BusinessIcon color={vendor.isActive ? "primary" : "disabled"} />
                             <Box>
                               <Typography variant="body1" fontWeight="medium">
                                 {vendor.name}
@@ -526,14 +622,18 @@ export function VendorManagement() {
                               href={formLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              sx={{ fontSize: '0.75rem', maxWidth: '200px', wordBreak: 'break-all' }}
+                              sx={{ 
+                                fontSize: '0.875rem',
+                                color: vendor.isActive ? 'primary.main' : 'text.disabled'
+                              }}
                             >
-                              {formLink}
+                              {vendor.code} Form
                             </Link>
-                            <Tooltip title="Copy link">
+                            <Tooltip title="Copy form link">
                               <IconButton
                                 size="small"
-                                onClick={() => copyToClipboard(formLink)}
+                                onClick={() => navigator.clipboard.writeText(formLink)}
+                                disabled={!vendor.isActive}
                               >
                                 <LinkIcon fontSize="small" />
                               </IconButton>
@@ -548,16 +648,17 @@ export function VendorManagement() {
                                 Sub of: {vendor.parentVendor.name}
                               </Typography>
                             </Box>
-                          ) : stats.subVendorCount > 0 ? (
-                            <Chip
-                              label={`${stats.subVendorCount} sub-vendors`}
-                              size="small"
-                              color="info"
-                            />
                           ) : (
-                            <Typography variant="body2" color="text.secondary">
-                              Independent
-                            </Typography>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Typography variant="body2">Independent</Typography>
+                              {stats.subVendorCount > 0 && (
+                                <Chip
+                                  label={`${stats.subVendorCount} sub-vendors`}
+                                  size="small"
+                                  color="info"
+                                />
+                              )}
+                            </Box>
                           )}
                         </TableCell>
                         <TableCell>
@@ -572,9 +673,10 @@ export function VendorManagement() {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={vendor.isActive ? 'Active' : 'Inactive'}
+                            label={vendor.isActive ? 'Active' : 'Archived'}
                             color={vendor.isActive ? 'success' : 'default'}
                             size="small"
+                            icon={vendor.isActive ? <CheckCircleIcon /> : <ArchiveIcon />}
                           />
                         </TableCell>
                         <TableCell>
@@ -588,14 +690,37 @@ export function VendorManagement() {
                               size="small"
                               onClick={() => handleEditVendor(vendor)}
                               color="primary"
+                              title="Edit vendor"
                             >
                               <EditIcon />
                             </IconButton>
+                            
+                            {vendor.isActive ? (
+                              <IconButton
+                                size="small"
+                                onClick={() => handleArchiveVendor(vendor)}
+                                color="warning"
+                                title={stats.totalLeads > 0 ? "Archive vendor (has leads)" : "Archive vendor"}
+                              >
+                                <ArchiveIcon />
+                              </IconButton>
+                            ) : (
+                              <IconButton
+                                size="small"
+                                onClick={() => handleReactivateVendor(vendor)}
+                                color="success"
+                                title="Reactivate vendor"
+                              >
+                                <UnarchiveIcon />
+                              </IconButton>
+                            )}
+                            
                             <IconButton
                               size="small"
                               onClick={() => handleDeleteVendor(vendor)}
                               color="error"
-                              disabled={stats.totalLeads > 0}
+                              title={stats.totalLeads > 0 ? "Cannot delete (has leads)" : "Delete vendor"}
+                              disabled={stats.totalLeads > 0 && vendor.isActive}
                             >
                               <DeleteIcon />
                             </IconButton>
@@ -607,17 +732,17 @@ export function VendorManagement() {
               </TableBody>
             </Table>
           </TableContainer>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
-            component="div"
-            count={vendors.length}
-            rowsPerPage={vendorRowsPerPage}
-            page={vendorPage}
-            onPageChange={(_, newPage) => setVendorPage(newPage)}
-            onRowsPerPageChange={(e) => {
-              setVendorRowsPerPage(parseInt(e.target.value, 10));
-              setVendorPage(0);
-            }}
+                      <TablePagination
+              rowsPerPageOptions={[5, 10, 25]}
+              component="div"
+              count={getFilteredVendors().length}
+              rowsPerPage={vendorRowsPerPage}
+              page={vendorPage}
+              onPageChange={(_, newPage) => setVendorPage(newPage)}
+              onRowsPerPageChange={(e) => {
+                setVendorRowsPerPage(parseInt(e.target.value, 10));
+                setVendorPage(0);
+              }}
           />
         </Paper>
       </TabPanel>
@@ -946,9 +1071,63 @@ export function VendorManagement() {
               />
 
               {!editingVendor && (
-                <Alert severity="info">
-                  After creating the vendor, you'll get a unique form link that vendors can use to submit leads.
-                </Alert>
+                <>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={watch('createUserAccount')}
+                        onChange={(e) => setValue('createUserAccount', e.target.checked)}
+                      />
+                    }
+                    label="Create Vendor Login Account"
+                  />
+
+                  {watch('createUserAccount') && (
+                    <Box sx={{ pl: 2, border: '1px solid #e0e0e0', borderRadius: 1, p: 2, bgcolor: '#f9f9f9' }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Vendor Contact Information
+                      </Typography>
+                      
+                      <TextField
+                        fullWidth
+                        label="Contact Email"
+                        placeholder="vendor@company.com"
+                        {...register('contactEmail')}
+                        error={!!errors.contactEmail}
+                        helperText={errors.contactEmail?.message || 'This will be the vendor\'s login email'}
+                        sx={{ mb: 2 }}
+                      />
+
+                      <Box display="flex" gap={2}>
+                        <TextField
+                          fullWidth
+                          label="First Name"
+                          placeholder="John"
+                          {...register('contactFirstName')}
+                          error={!!errors.contactFirstName}
+                          helperText={errors.contactFirstName?.message}
+                        />
+
+                        <TextField
+                          fullWidth
+                          label="Last Name"
+                          placeholder="Smith"
+                          {...register('contactLastName')}
+                          error={!!errors.contactLastName}
+                          helperText={errors.contactLastName?.message}
+                        />
+                      </Box>
+
+                      <Alert severity="info" sx={{ mt: 2 }}>
+                        A secure password will be automatically generated and displayed after creation.
+                      </Alert>
+                    </Box>
+                  )}
+
+                  <Alert severity="info">
+                    After creating the vendor, you'll get a unique form link that vendors can use to submit leads.
+                  </Alert>
+                </>
               )}
             </Box>
           </DialogContent>
@@ -971,29 +1150,70 @@ export function VendorManagement() {
         </form>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
+      {/* Enhanced Delete/Archive Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {vendorToDelete && (getVendorStats(vendorToDelete).totalLeads > 0 || getVendorStats(vendorToDelete).activeUsers > 0)
+            ? "Archive Vendor" 
+            : "Delete Vendor"
+          }
+        </DialogTitle>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete vendor "{vendorToDelete?.name}"?
-            This action cannot be undone.
-          </Typography>
-          {vendorToDelete && getVendorStats(vendorToDelete).totalLeads > 0 && (
-            <Alert severity="warning" sx={{ mt: 2 }}>
-              This vendor has leads associated with it and cannot be deleted.
-            </Alert>
+          {vendorToDelete && (getVendorStats(vendorToDelete).totalLeads > 0 || getVendorStats(vendorToDelete).activeUsers > 0) ? (
+            <>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <Typography variant="body1" fontWeight="medium">
+                  Cannot permanently delete "{vendorToDelete?.name}"
+                </Typography>
+              </Alert>
+              
+              <Typography paragraph>
+                This vendor has:
+              </Typography>
+              <ul>
+                {getVendorStats(vendorToDelete).totalLeads > 0 && (
+                  <li><strong>{getVendorStats(vendorToDelete).totalLeads} leads</strong> associated with it</li>
+                )}
+                {getVendorStats(vendorToDelete).activeUsers > 0 && (
+                  <li><strong>{getVendorStats(vendorToDelete).activeUsers} users</strong> associated with it</li>
+                )}
+              </ul>
+              
+              <Typography paragraph>
+                <strong>Archive instead?</strong> This will:
+              </Typography>
+              <ul>
+                <li>Hide the vendor from active vendor lists</li>
+                <li>Prevent new lead submissions to this vendor</li>
+                <li>Preserve all existing lead and user data</li>
+                <li>Allow reactivation if needed in the future</li>
+              </ul>
+              
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                To permanently delete this vendor, you must first transfer or remove all associated leads and users.
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Typography paragraph>
+                Are you sure you want to permanently delete vendor "{vendorToDelete?.name}"?
+              </Typography>
+              <Alert severity="error">
+                <Typography variant="body2">
+                  <strong>This action cannot be undone.</strong> All vendor data will be permanently removed.
+                </Typography>
+              </Alert>
+            </>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button
-            onClick={confirmDelete}
-            color="error"
+            onClick={confirmArchiveOrDelete}
+            color={vendorToDelete && (getVendorStats(vendorToDelete).totalLeads > 0 || getVendorStats(vendorToDelete).activeUsers > 0) ? "warning" : "error"}
             variant="contained"
-            disabled={vendorToDelete ? getVendorStats(vendorToDelete).totalLeads > 0 : false}
           >
-            Delete
+            {vendorToDelete && (getVendorStats(vendorToDelete).totalLeads > 0 || getVendorStats(vendorToDelete).activeUsers > 0) ? "Archive Vendor" : "Delete Permanently"}
           </Button>
         </DialogActions>
       </Dialog>

@@ -49,6 +49,7 @@ import {
   Add as AddIcon,
   Link as LinkIcon,
   AccountTree as AccountTreeIcon,
+  Analytics as AnalyticsIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import useStore from '@/store/useStore';
@@ -60,6 +61,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { VendorAuthGuard } from '@/components/auth/VendorAuthGuard';
 import { PortalLayout } from '@/components/layout/PortalLayout';
+import LeadDetailModal from '@/components/leads/LeadDetailModal';
+import { VendorMetricsDisplay } from '@/components/admin/VendorMetricsDisplay';
 
 interface VendorMetrics {
   totalLeads: number;
@@ -137,6 +140,10 @@ export default function VendorDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Lead Detail Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -155,6 +162,31 @@ export default function VendorDashboard() {
     if (user?.vendorId) {
       fetchVendorData();
     }
+  }, [user?.vendorId]);
+
+  // Auto-refresh every 60 seconds (increased from 15) to reduce interruptions
+  useEffect(() => {
+    if (!user?.vendorId) return;
+
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing vendor dashboard for updated lead statuses');
+      fetchVendorData();
+    }, 60000); // Refresh every 60 seconds instead of 15
+
+    return () => clearInterval(refreshInterval);
+  }, [user?.vendorId]);
+
+  // Refresh when user returns to the tab (for immediate status updates)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.vendorId) {
+        console.log('🔄 Tab became visible - refreshing vendor dashboard for latest lead statuses');
+        fetchVendorData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [user?.vendorId]);
 
   useEffect(() => {
@@ -284,12 +316,18 @@ export default function VendorDashboard() {
     switch (status) {
       case 'QUALIFIED':
       case 'APPROVED':
+      case 'SENT_TO_CONSULT':
         return 'success';
       case 'SUBMITTED':
       case 'ADVOCATE_REVIEW':
         return 'warning';
       case 'KIT_COMPLETED':
         return 'info';
+      case 'DOESNT_QUALIFY':
+      case 'PATIENT_DECLINED':
+      case 'DUPLICATE':
+      case 'COMPLIANCE_ISSUE':
+        return 'error';
       default:
         return 'default';
     }
@@ -312,6 +350,23 @@ export default function VendorDashboard() {
       Vendor ID: <strong>{user?.vendorId || 'N/A'}</strong>
     </Typography>
   );
+
+  // Lead Detail Modal Handlers
+  const handleLeadClick = (leadId: string) => {
+    setSelectedLeadId(leadId);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedLeadId(null);
+  };
+
+  const handleLeadUpdated = (updatedLead: any) => {
+    console.log('Lead updated:', updatedLead);
+    // Refresh vendor data to show updated lead information
+    fetchVendorData();
+  };
 
   return (
     <VendorAuthGuard>
@@ -338,6 +393,13 @@ export default function VendorDashboard() {
                   icon={<AccountTreeIcon />}
                   iconPosition="start"
                   label="Downline Management"
+                />
+              )}
+              {isMainVendor && (
+                <Tab
+                  icon={<AnalyticsIcon />}
+                  iconPosition="start"
+                  label="Sub-Vendor Metrics"
                 />
               )}
             </Tabs>
@@ -416,8 +478,8 @@ export default function VendorDashboard() {
                   <Typography variant="h5" gutterBottom fontWeight="bold">
                     Recent Leads
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Monitor leads submitted through your downline vendor forms. Vendors do not submit leads directly.
+                  <Typography variant="body2" color="text.primary" sx={{ mb: 3 }}>
+                    Monitor leads submitted through your downline vendor forms. Click on any lead to view detailed information, advocate notes, and disposition status.
                   </Typography>
                   <TableContainer>
                     <Table>
@@ -434,7 +496,16 @@ export default function VendorDashboard() {
                         {leads
                           .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                           .map((lead) => (
-                            <TableRow key={lead.id}>
+                            <TableRow 
+                              key={lead.id}
+                              onClick={() => handleLeadClick(lead.id)}
+                              sx={{ 
+                                cursor: 'pointer',
+                                '&:hover': {
+                                  backgroundColor: 'action.hover'
+                                }
+                              }}
+                            >
                               <TableCell>
                                 {format(new Date(lead.createdAt), 'MM/dd/yyyy')}
                               </TableCell>
@@ -671,6 +742,17 @@ export default function VendorDashboard() {
           </TabPanel>
           )}
 
+          {/* Tab 3: Sub-Vendor Metrics - Only for Main Vendors */}
+          {isMainVendor && (
+            <TabPanel value={tabValue} index={2}>
+              <VendorMetricsDisplay 
+                mode="vendor" 
+                vendorId={user?.vendorId} 
+                refreshInterval={15} 
+              />
+            </TabPanel>
+          )}
+
         {/* Create Downline Vendor Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>
@@ -742,6 +824,14 @@ export default function VendorDashboard() {
           </DialogActions>
         </form>
       </Dialog>
+
+        {/* Lead Detail Modal */}
+        <LeadDetailModal
+          open={modalOpen}
+          leadId={selectedLeadId}
+          onClose={handleCloseModal}
+          onLeadUpdated={handleLeadUpdated}
+        />
       </PortalLayout>
     </VendorAuthGuard>
   );

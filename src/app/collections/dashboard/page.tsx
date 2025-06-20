@@ -74,23 +74,55 @@ export default function CollectionsDashboard() {
     }
   }, [user?.id]);
 
+  // Auto-refresh every 60 seconds (increased from 15) to reduce interruptions
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing collections dashboard for updated lead statuses');
+      loadCollectionsData();
+    }, 60000); // Refresh every 60 seconds instead of 15
+
+    return () => clearInterval(refreshInterval);
+  }, [user?.id]);
+
+  // Refresh when user returns to the tab (for immediate status updates)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.id) {
+        console.log('🔄 Tab became visible - refreshing collections dashboard for latest lead statuses');
+        loadCollectionsData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user?.id]);
+
     const loadCollectionsData = async () => {
     try {
       setLoading(true);
       
-      // Get leads in collections status
-      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(`leads?collectionsAgentId=${user?.id}&status=COLLECTIONS,SHIPPED`);
+      // Get leads in collections status - API client returns data array directly
+      const leadsData = await apiClient.get<Lead[]>(`leads?collectionsAgentId=${user?.id}&status=COLLECTIONS,SHIPPED`);
 
-      if (apiResponse?.success && apiResponse.data) {
-        setLeads(apiResponse.data);
+      if (Array.isArray(leadsData)) {
+        setLeads(leadsData);
         
         // Calculate stats
-        const data = apiResponse.data;
         setStats({
-          totalAssigned: data.length,
-          pendingContact: data.filter((l: Lead) => !l.lastContactAttempt).length,
-          kitsCompleted: data.filter((l: Lead) => l.status === 'KIT_COMPLETED').length,
-          callbacksScheduled: data.filter((l: Lead) => l.nextCallbackDate).length,
+          totalAssigned: leadsData.length,
+          pendingContact: leadsData.filter((l: Lead) => !l.lastContactAttempt).length,
+          kitsCompleted: leadsData.filter((l: Lead) => l.status === 'KIT_COMPLETED').length,
+          callbacksScheduled: leadsData.filter((l: Lead) => l.nextCallbackDate).length,
+        });
+      } else {
+        setLeads([]);
+        setStats({
+          totalAssigned: 0,
+          pendingContact: 0,
+          kitsCompleted: 0,
+          callbacksScheduled: 0,
         });
       }
     } catch (err: any) {
@@ -161,7 +193,7 @@ export default function CollectionsDashboard() {
       onErrorClose={() => setError(null)}
     >
       <Box mb={3}>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" color="text.primary">
           {welcomeMessage}
         </Typography>
       </Box>
@@ -174,7 +206,7 @@ export default function CollectionsDashboard() {
                 <Box display="flex" alignItems="center">
                   <Assignment color="primary" sx={{ mr: 2 }} />
                   <Box>
-                    <Typography color="text.secondary" gutterBottom>
+                    <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Total Assigned
                     </Typography>
                     <Typography variant="h4">
@@ -192,7 +224,7 @@ export default function CollectionsDashboard() {
                 <Box display="flex" alignItems="center">
                   <Phone color="warning" sx={{ mr: 2 }} />
                   <Box>
-                    <Typography color="text.secondary" gutterBottom>
+                    <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Pending Contact
                     </Typography>
                     <Typography variant="h4">

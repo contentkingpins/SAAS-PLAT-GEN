@@ -3,28 +3,9 @@
 import React, { useEffect } from 'react';
 import { Box, Container, Typography, Paper } from '@mui/material';
 import MBIAlertDashboard from '@/components/MBIAlertDashboard';
-import { wsService } from '@/lib/utils/websocket';
+// WebSocket removed for AWS Amplify compatibility
 
 const MBIAlertPage: React.FC = () => {
-  useEffect(() => {
-    // Connect to WebSocket when component mounts
-    const connectWebSocket = () => {
-      try {
-        const wsEndpoint = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'ws://localhost:3001';
-        wsService.connect();
-        console.log('🔌 Attempting WebSocket connection to:', wsEndpoint);
-      } catch (error) {
-        console.error('Failed to connect to WebSocket:', error);
-      }
-    };
-
-    connectWebSocket();
-
-    // Cleanup on unmount
-    return () => {
-      wsService.disconnect();
-    };
-  }, []);
 
   return (
     <Container maxWidth="xl">

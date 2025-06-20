@@ -277,8 +277,20 @@
         });
         
         // Auto-fill admin credentials on page load
-        window.addEventListener('load', () => {
-            fillCredentials('admin@healthcare.com', 'admin123');
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('email').value = 'admin@healthcare.com';
+            document.getElementById('password').value = 'admin123';
+            
+            // Add a note about token expiration
+            const form = document.querySelector('.login-form');
+            const note = document.createElement('div');
+            note.style.cssText = 'background: #e3f2fd; padding: 12px; border-radius: 4px; margin-bottom: 16px; font-size: 14px; color: #1565c0;';
+            note.innerHTML = `
+                <strong>🔧 Authentication Debug Tool</strong><br>
+                Use this page to get fresh authentication tokens.<br>
+                If you're getting 401 errors in the admin dashboard, use this to log in again.
+            `;
+            form.insertBefore(note, form.firstChild);
         });
     </script>
 </body>

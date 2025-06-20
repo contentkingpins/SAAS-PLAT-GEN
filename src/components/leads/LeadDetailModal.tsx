@@ -116,6 +116,11 @@ interface LeadDetail {
   contactAttempts: number;
   lastContactAttempt?: string;
   nextCallbackDate?: string;
+  
+  // Doctor approval information
+  doctorApprovalStatus?: 'PENDING' | 'APPROVED' | 'DECLINED';
+  doctorApprovalDate?: string;
+  
   createdAt: string;
   updatedAt: string;
   vendor: {
@@ -173,9 +178,57 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
     severity: 'success' as 'success' | 'error'
   });
 
+  // Check if user has edit permissions (vendors can only view, not edit)
+  const canEdit = user?.role === 'admin' || user?.role === 'advocate' || user?.role === 'collections';
+
   // Add state for editing fields
   const [editMode, setEditMode] = useState(false);
-  const [editedLead, setEditedLead] = useState<any>({});
+  const [editedLead, setEditedLead] = useState<{
+    firstName: string;
+    lastName: string;
+    phone: string;
+    middleInitial: string;
+    gender: string;
+    ethnicity: string;
+    maritalStatus: string;
+    height: string;
+    weight: string;
+    address?: {
+      street: string;
+      city: string;
+      state: string;
+      zipCode: string;
+    };
+    insurance?: {
+      primaryCompany?: string;
+      primaryPolicyNumber?: string;
+    };
+    medicalHistory?: {
+      past?: string;
+      surgical?: string;
+      medications?: string;
+      conditions?: string;
+    };
+    familyHistory?: Array<{
+      relation: string;
+      conditions: string;
+      ageOfDiagnosis: string;
+    }>;
+  }>({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    middleInitial: '',
+    gender: '',
+    ethnicity: '',
+    maritalStatus: '',
+    height: '',
+    weight: '',
+    address: { street: '', city: '', state: '', zipCode: '' },
+    insurance: {},
+    medicalHistory: {},
+    familyHistory: [{ relation: '', conditions: '', ageOfDiagnosis: '' }],
+  });
 
   useEffect(() => {
     if (open && leadId) {
@@ -270,39 +323,63 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
       setLoading(true);
       console.log('Updating lead with disposition:', disposition);
 
-      // Automatically determine status based on disposition
-      const autoStatus = getStatusFromDisposition(disposition);
-      
-      const updateData = {
-        advocateDisposition: disposition,
+      const updateData: any = {
         advocateNotes: advocateNotes,
         advocateId: user?.id || lead.advocateId, // Use actual user ID from store
         advocateReviewedAt: new Date().toISOString(),
-        status: autoStatus, // Auto-set status based on disposition
-        
-        // Include edited lead data if in edit mode
-        ...(editMode && {
-          firstName: editedLead.firstName,
-          lastName: editedLead.lastName,
-          phone: editedLead.phone,
-          middleInitial: editedLead.middleInitial,
-          gender: editedLead.gender,
-          ethnicity: editedLead.ethnicity,
-          maritalStatus: editedLead.maritalStatus,
-          height: editedLead.height,
-          weight: editedLead.weight,
-          street: editedLead.address?.street,
-          city: editedLead.address?.city,
-          state: editedLead.address?.state,
-          zipCode: editedLead.address?.zipCode,
-          primaryInsuranceCompany: editedLead.insurance?.primaryCompany,
-          primaryPolicyNumber: editedLead.insurance?.primaryPolicyNumber,
-          medicalHistory: editedLead.medicalHistory?.past,
-          surgicalHistory: editedLead.medicalHistory?.surgical,
-          currentMedications: editedLead.medicalHistory?.medications,
-          conditionsHistory: editedLead.medicalHistory?.conditions,
-        })
       };
+
+      // Only update status and disposition if disposition has changed
+      if (disposition && disposition.trim() !== '' && disposition !== lead.advocateDisposition) {
+        const autoStatus = getStatusFromDisposition(disposition);
+        updateData.status = autoStatus;
+        updateData.advocateDisposition = disposition;
+        console.log('Disposition changed, updating status to:', autoStatus);
+      } else if (disposition && disposition.trim() !== '') {
+        // Keep existing disposition if it hasn't changed
+        updateData.advocateDisposition = disposition;
+        console.log('Disposition unchanged, keeping current status');
+      }
+
+      // Include edited lead data if in edit mode
+      if (editMode) {
+        // Only include non-empty values to avoid validation errors
+        if (editedLead.firstName && editedLead.firstName.trim()) updateData.firstName = editedLead.firstName;
+        if (editedLead.lastName && editedLead.lastName.trim()) updateData.lastName = editedLead.lastName;
+        if (editedLead.phone && editedLead.phone.trim()) updateData.phone = editedLead.phone;
+        if (editedLead.middleInitial && editedLead.middleInitial.trim()) updateData.middleInitial = editedLead.middleInitial;
+        if (editedLead.gender && editedLead.gender.trim()) updateData.gender = editedLead.gender;
+        if (editedLead.ethnicity && editedLead.ethnicity.trim()) updateData.ethnicity = editedLead.ethnicity;
+        if (editedLead.maritalStatus && editedLead.maritalStatus.trim()) updateData.maritalStatus = editedLead.maritalStatus;
+        if (editedLead.height && editedLead.height.trim()) updateData.height = editedLead.height;
+        if (editedLead.weight && editedLead.weight.trim()) updateData.weight = editedLead.weight;
+        
+        // Address fields
+        if (editedLead.address?.street && editedLead.address.street.trim()) updateData.street = editedLead.address.street;
+        if (editedLead.address?.city && editedLead.address.city.trim()) updateData.city = editedLead.address.city;
+        if (editedLead.address?.state && editedLead.address.state.trim()) updateData.state = editedLead.address.state;
+        if (editedLead.address?.zipCode && editedLead.address.zipCode.trim()) updateData.zipCode = editedLead.address.zipCode;
+        
+        // Insurance fields
+        if (editedLead.insurance?.primaryCompany && editedLead.insurance.primaryCompany.trim()) updateData.primaryInsuranceCompany = editedLead.insurance.primaryCompany;
+        if (editedLead.insurance?.primaryPolicyNumber && editedLead.insurance.primaryPolicyNumber.trim()) updateData.primaryPolicyNumber = editedLead.insurance.primaryPolicyNumber;
+        
+        // Medical history fields
+        if (editedLead.medicalHistory?.past && editedLead.medicalHistory.past.trim()) updateData.medicalHistory = editedLead.medicalHistory.past;
+        if (editedLead.medicalHistory?.surgical && editedLead.medicalHistory.surgical.trim()) updateData.surgicalHistory = editedLead.medicalHistory.surgical;
+        if (editedLead.medicalHistory?.medications && editedLead.medicalHistory.medications.trim()) updateData.currentMedications = editedLead.medicalHistory.medications;
+        if (editedLead.medicalHistory?.conditions && editedLead.medicalHistory.conditions.trim()) updateData.conditionsHistory = editedLead.medicalHistory.conditions;
+        
+        // Family history - only include if it has actual data
+        if (editedLead.familyHistory && Array.isArray(editedLead.familyHistory)) {
+          const validFamilyHistory = editedLead.familyHistory.filter(member => 
+            member.relation && member.relation.trim() !== ''
+          );
+          if (validFamilyHistory.length > 0) {
+            updateData.familyHistory = validFamilyHistory;
+          }
+        }
+      }
 
       console.log('Update payload:', updateData);
 
@@ -310,7 +387,11 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
       
       if (response.success) {
         console.log('✅ Lead updated successfully');
-        setStatus(autoStatus);
+        
+        // Update local status if it was changed
+        if (updateData.status) {
+          setStatus(updateData.status);
+        }
         
         // Refresh the lead data
         await loadLeadDetails();
@@ -365,6 +446,10 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
       'ADVOCATE_REVIEW': 'warning',
       'QUALIFIED': 'success',
       'SENT_TO_CONSULT': 'success',
+      'DOESNT_QUALIFY': 'error',
+      'PATIENT_DECLINED': 'error',
+      'DUPLICATE': 'error',
+      'COMPLIANCE_ISSUE': 'error',
     };
     return colors[status] || 'default';
   };
@@ -401,19 +486,51 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
 
   // Map disposition to status automatically
   const getStatusFromDisposition = (disposition: string): string => {
+    // If no disposition is selected, keep current status
+    if (!disposition || disposition.trim() === '') {
+      return lead?.status || 'ADVOCATE_REVIEW';
+    }
+    
     switch (disposition) {
       case 'DOESNT_QUALIFY':
+        return 'DOESNT_QUALIFY';
       case 'PATIENT_DECLINED':
+        return 'PATIENT_DECLINED';
       case 'DUPE':
-        return 'QUALIFIED'; // Negative results, marked as processed
+        return 'DUPLICATE';
+      case 'COMPLIANCE_ISSUE':
+        return 'COMPLIANCE_ISSUE';
       case 'CONNECTED_TO_COMPLIANCE':
         return 'SENT_TO_CONSULT'; // Positive result, send to next stage
-      case 'COMPLIANCE_ISSUE':
       case 'CALL_BACK':
       case 'CALL_DROPPED':
       default:
         return 'ADVOCATE_REVIEW'; // Still needs advocate attention
     }
+  };
+
+  // Add helpers for family history editing
+  const addFamilyMember = () => {
+    setEditedLead(prev => ({
+      ...prev,
+      familyHistory: [...(prev.familyHistory || []), { relation: '', conditions: '', ageOfDiagnosis: '' }]
+    }));
+  };
+
+  const removeFamilyMember = (index: number) => {
+    setEditedLead(prev => ({
+      ...prev,
+      familyHistory: prev.familyHistory?.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateFamilyMember = (index: number, field: string, value: string) => {
+    setEditedLead(prev => ({
+      ...prev,
+      familyHistory: prev.familyHistory?.map((member, i) => 
+        i === index ? { ...member, [field]: value } : member
+      )
+    }));
   };
 
   if (!open) return null;
@@ -456,13 +573,15 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                         <PersonIcon color="primary" sx={{ mr: 1 }} />
                         <Typography variant="h6">Patient Information</Typography>
                       </Box>
-                      <Button
-                        size="small"
-                        onClick={() => setEditMode(!editMode)}
-                        startIcon={editMode ? <CancelIcon /> : <EditIcon />}
-                      >
-                        {editMode ? 'Cancel' : 'Edit'}
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          size="small"
+                          onClick={() => setEditMode(!editMode)}
+                          startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                        >
+                          {editMode ? 'Cancel' : 'Edit'}
+                        </Button>
+                      )}
                     </Box>
                     
                     <Grid container spacing={2}>
@@ -713,13 +832,15 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                             <PersonIcon color="primary" sx={{ mr: 1 }} />
                             <Typography variant="h6">Demographics</Typography>
                           </Box>
-                          <Button
-                            size="small"
-                            onClick={() => setEditMode(!editMode)}
-                            startIcon={editMode ? <CancelIcon /> : <EditIcon />}
-                          >
-                            {editMode ? 'Cancel' : 'Edit'}
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              size="small"
+                              onClick={() => setEditMode(!editMode)}
+                              startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                            >
+                              {editMode ? 'Cancel' : 'Edit'}
+                            </Button>
+                          )}
                         </Box>
                         
                         <Grid container spacing={2}>
@@ -856,13 +977,15 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                             <BusinessIcon color="primary" sx={{ mr: 1 }} />
                             <Typography variant="h6">Insurance Information</Typography>
                           </Box>
-                          <Button
-                            size="small"
-                            onClick={() => setEditMode(!editMode)}
-                            startIcon={editMode ? <CancelIcon /> : <EditIcon />}
-                          >
-                            {editMode ? 'Cancel' : 'Edit'}
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              size="small"
+                              onClick={() => setEditMode(!editMode)}
+                              startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                            >
+                              {editMode ? 'Cancel' : 'Edit'}
+                            </Button>
+                          )}
                         </Box>
                         
                         <Grid container spacing={2}>
@@ -916,13 +1039,15 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                             <LocalHospitalIcon color="primary" sx={{ mr: 1 }} />
                             <Typography variant="h6">Medical History</Typography>
                           </Box>
-                          <Button
-                            size="small"
-                            onClick={() => setEditMode(!editMode)}
-                            startIcon={editMode ? <CancelIcon /> : <EditIcon />}
-                          >
-                            {editMode ? 'Cancel' : 'Edit'}
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              size="small"
+                              onClick={() => setEditMode(!editMode)}
+                              startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                            >
+                              {editMode ? 'Cancel' : 'Edit'}
+                            </Button>
+                          )}
                         </Box>
                         
                         <Grid container spacing={2}>
@@ -1015,44 +1140,118 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                   <Grid item xs={12}>
                     <Card>
                       <CardContent>
-                        <Box display="flex" alignItems="center" mb={2}>
-                          <FamilyRestroomIcon color="primary" sx={{ mr: 1 }} />
-                          <Typography variant="h6">Family History</Typography>
+                        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                          <Box display="flex" alignItems="center">
+                            <FamilyRestroomIcon color="primary" sx={{ mr: 1 }} />
+                            <Typography variant="h6">Family History</Typography>
+                          </Box>
+                          {canEdit && (
+                            <Button
+                              size="small"
+                              onClick={() => setEditMode(!editMode)}
+                              startIcon={editMode ? <CancelIcon /> : <EditIcon />}
+                            >
+                              {editMode ? 'Cancel' : 'Edit'}
+                            </Button>
+                          )}
                         </Box>
                         
                         <Grid container spacing={2}>
-                          {lead.familyHistory.map((family, index) => (
-                            family.relation && (
-                              <Grid item xs={12} key={index}>
-                                <Paper variant="outlined" sx={{ p: 2 }}>
-                                  <Grid container spacing={2}>
-                                    <Grid item xs={12} md={4}>
-                                      <Typography variant="subtitle2" color="text.secondary">
-                                        Relation
-                                      </Typography>
-                                      <Typography variant="body1">{family.relation}</Typography>
+                          {editMode ? (
+                            <>
+                              {editedLead.familyHistory?.map((family, index) => (
+                                <Grid item xs={12} key={index}>
+                                  <Paper variant="outlined" sx={{ p: 2 }}>
+                                    <Grid container spacing={2} alignItems="center">
+                                      <Grid item xs={12} md={3}>
+                                        <TextField
+                                          size="small"
+                                          fullWidth
+                                          label="Relation"
+                                          value={family.relation || ''}
+                                          onChange={(e) => updateFamilyMember(index, 'relation', e.target.value)}
+                                          placeholder="e.g., Mother, Father"
+                                        />
+                                      </Grid>
+                                      <Grid item xs={12} md={5}>
+                                        <TextField
+                                          size="small"
+                                          fullWidth
+                                          label="Conditions"
+                                          value={family.conditions || ''}
+                                          onChange={(e) => updateFamilyMember(index, 'conditions', e.target.value)}
+                                          placeholder="Medical conditions"
+                                        />
+                                      </Grid>
+                                      <Grid item xs={12} md={3}>
+                                        <TextField
+                                          size="small"
+                                          fullWidth
+                                          label="Age of Diagnosis"
+                                          value={family.ageOfDiagnosis || ''}
+                                          onChange={(e) => updateFamilyMember(index, 'ageOfDiagnosis', e.target.value)}
+                                          placeholder="Age"
+                                        />
+                                      </Grid>
+                                      <Grid item xs={12} md={1}>
+                                        <IconButton
+                                          color="error"
+                                          onClick={() => removeFamilyMember(index)}
+                                          disabled={editedLead.familyHistory?.length === 1}
+                                        >
+                                          <CloseIcon />
+                                        </IconButton>
+                                      </Grid>
                                     </Grid>
-                                    {family.conditions && (
-                                      <Grid item xs={12} md={6}>
-                                        <Typography variant="subtitle2" color="text.secondary">
-                                          Conditions
-                                        </Typography>
-                                        <Typography variant="body1">{family.conditions}</Typography>
-                                      </Grid>
-                                    )}
-                                    {family.ageOfDiagnosis && (
-                                      <Grid item xs={12} md={2}>
-                                        <Typography variant="subtitle2" color="text.secondary">
-                                          Age of Diagnosis
-                                        </Typography>
-                                        <Typography variant="body1">{family.ageOfDiagnosis}</Typography>
-                                      </Grid>
-                                    )}
-                                  </Grid>
-                                </Paper>
+                                  </Paper>
+                                </Grid>
+                              ))}
+                              <Grid item xs={12}>
+                                <Button
+                                  variant="outlined"
+                                  onClick={addFamilyMember}
+                                  sx={{ mt: 1 }}
+                                >
+                                  Add Family Member
+                                </Button>
                               </Grid>
-                            )
-                          ))}
+                            </>
+                          ) : (
+                            <>
+                              {lead.familyHistory.map((family, index) => (
+                                family.relation && (
+                                  <Grid item xs={12} key={index}>
+                                    <Paper variant="outlined" sx={{ p: 2 }}>
+                                      <Grid container spacing={2}>
+                                        <Grid item xs={12} md={4}>
+                                          <Typography variant="subtitle2" color="text.secondary">
+                                            Relation
+                                          </Typography>
+                                          <Typography variant="body1">{family.relation}</Typography>
+                                        </Grid>
+                                        {family.conditions && (
+                                          <Grid item xs={12} md={6}>
+                                            <Typography variant="subtitle2" color="text.secondary">
+                                              Conditions
+                                            </Typography>
+                                            <Typography variant="body1">{family.conditions}</Typography>
+                                          </Grid>
+                                        )}
+                                        {family.ageOfDiagnosis && (
+                                          <Grid item xs={12} md={2}>
+                                            <Typography variant="subtitle2" color="text.secondary">
+                                              Age of Diagnosis
+                                            </Typography>
+                                            <Typography variant="body1">{family.ageOfDiagnosis}</Typography>
+                                          </Grid>
+                                        )}
+                                      </Grid>
+                                    </Paper>
+                                  </Grid>
+                                )
+                              ))}
+                            </>
+                          )}
                         </Grid>
                       </CardContent>
                     </Card>
@@ -1060,13 +1259,104 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                 </Grid>
               )}
 
-              {/* Advocate Update Section */}
-              <Grid item xs={12}>
-                <Paper sx={{ p: 3 }}>
-                  <Box display="flex" alignItems="center" mb={3}>
-                    <NotesIcon color="primary" sx={{ mr: 1 }} />
-                    <Typography variant="h6">Advocate Review</Typography>
-                  </Box>
+              {/* Doctor Approval Status */}
+              {lead.doctorApprovalStatus && (
+                <Grid item xs={12}>
+                  <Paper sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={3}>
+                      <LocalHospitalIcon color="primary" sx={{ mr: 1 }} />
+                      <Typography variant="h6">Doctor Approval Status</Typography>
+                    </Box>
+                    
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          Decision
+                        </Typography>
+                        <Chip 
+                          label={lead.doctorApprovalStatus}
+                          color={
+                            lead.doctorApprovalStatus === 'APPROVED' ? 'success' :
+                            lead.doctorApprovalStatus === 'DECLINED' ? 'error' : 'warning'
+                          }
+                          size="medium"
+                        />
+                      </Grid>
+                      
+                      {lead.doctorApprovalDate && (
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Decision Date
+                          </Typography>
+                          <Typography variant="body1">
+                            {formatDate(lead.doctorApprovalDate)}
+                          </Typography>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </Paper>
+                </Grid>
+              )}
+
+              {/* Advocate Notes & Disposition - Read-only for vendors */}
+              {!canEdit && (lead.advocateNotes || lead.advocateDisposition) && (
+                <Grid item xs={12}>
+                  <Paper sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={3}>
+                      <NotesIcon color="primary" sx={{ mr: 1 }} />
+                      <Typography variant="h6">Advocate Review Results</Typography>
+                    </Box>
+                    
+                    <Grid container spacing={3}>
+                      {lead.advocateDisposition && (
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Disposition
+                          </Typography>
+                          <Chip 
+                            label={ADVOCATE_DISPOSITIONS.find(d => d.value === lead.advocateDisposition)?.label || lead.advocateDisposition}
+                            color={ADVOCATE_DISPOSITIONS.find(d => d.value === lead.advocateDisposition)?.color as any || 'default'}
+                            size="medium"
+                          />
+                        </Grid>
+                      )}
+                      
+                      {lead.advocateNotes && (
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Advocate Notes
+                          </Typography>
+                          <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'grey.50' }}>
+                            <Typography variant="body2">
+                              {lead.advocateNotes}
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                      )}
+                      
+                      {lead.advocateReviewedAt && (
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Reviewed Date
+                          </Typography>
+                          <Typography variant="body2">
+                            {formatDate(lead.advocateReviewedAt)}
+                          </Typography>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </Paper>
+                </Grid>
+              )}
+
+              {/* Advocate Update Section - Only for non-vendor users */}
+              {canEdit && (
+                <Grid item xs={12}>
+                  <Paper sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={3}>
+                      <NotesIcon color="primary" sx={{ mr: 1 }} />
+                      <Typography variant="h6">Advocate Review</Typography>
+                    </Box>
                   
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={4}>
@@ -1109,25 +1399,28 @@ export default function LeadDetailModal({ open, leadId, onClose, onLeadUpdated }
                         placeholder="Add notes about your review, call details, or patient interaction..."
                       />
                     </Grid>
-                  </Grid>
-                </Paper>
-              </Grid>
+                    </Grid>
+                  </Paper>
+                </Grid>
+              )}
             </Grid>
           )}
         </DialogContent>
 
         <DialogActions>
           <Button onClick={onClose} disabled={loading}>
-            Cancel
+            {canEdit ? 'Cancel' : 'Close'}
           </Button>
-          <Button 
-            onClick={handleUpdate} 
-            variant="contained" 
-            disabled={loading || !lead}
-            startIcon={loading ? <CircularProgress size={20} /> : <CheckCircleIcon />}
-          >
-            {loading ? 'Updating...' : 'Update Lead'}
-          </Button>
+          {canEdit && (
+            <Button 
+              onClick={handleUpdate} 
+              variant="contained" 
+              disabled={loading || !lead}
+              startIcon={loading ? <CircularProgress size={20} /> : <CheckCircleIcon />}
+            >
+              {loading ? 'Updating...' : 'Update Lead'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 

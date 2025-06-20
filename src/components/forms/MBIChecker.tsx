@@ -96,22 +96,13 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
 
     setLoading(true);
     try {
-      const response = await fetch('/api/leads/check-mbi-duplicate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          mbi: mbi.replace(/-/g, ''), // Remove dashes for API
-          testType,
-        }),
+      // Import apiClient dynamically to avoid SSR issues
+      const { apiClient } = await import('@/lib/api/client');
+      
+      const data = await apiClient.post<MBICheckResult>('/leads/check-mbi-duplicate', {
+        mbi: mbi.replace(/-/g, ''), // Remove dashes for API
+        testType,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to check MBI');
-      }
 
       setResult(data);
       setHasChecked(true);
@@ -120,9 +111,10 @@ export default function MBIChecker({ onValidationComplete, defaultTestType }: MB
       const isValid = data.status === 'ALLOWED';
       onValidationComplete(isValid, mbi, testType);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error checking MBI:', error);
-      alert('Failed to check MBI. Please try again.');
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to check MBI. Please try again.';
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
