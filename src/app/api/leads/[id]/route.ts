@@ -10,7 +10,22 @@ const leadUpdateSchema = z.object({
   advocateNotes: z.string().optional(),
   advocateId: z.string().optional(),
   advocateReviewedAt: z.string().datetime().optional(),
-  status: z.enum(['SUBMITTED', 'ADVOCATE_REVIEW', 'QUALIFIED', 'SENT_TO_CONSULT', 'APPROVED', 'READY_TO_SHIP', 'SHIPPED', 'COLLECTIONS', 'KIT_COMPLETED', 'RETURNED']).optional(),
+  status: z.enum([
+    'SUBMITTED', 
+    'ADVOCATE_REVIEW', 
+    'QUALIFIED', 
+    'SENT_TO_CONSULT', 
+    'APPROVED', 
+    'READY_TO_SHIP', 
+    'SHIPPED', 
+    'COLLECTIONS', 
+    'KIT_COMPLETED', 
+    'RETURNED',
+    'DOESNT_QUALIFY',
+    'PATIENT_DECLINED',
+    'DUPLICATE',
+    'COMPLIANCE_ISSUE'
+  ]).optional(),
   testType: z.enum(['IMMUNE', 'NEURO']).optional(),
   collectionsAgentId: z.string().optional(),
   collectionsDisposition: z.enum(['NO_ANSWER', 'SCHEDULED_CALLBACK', 'KIT_COMPLETED']).optional(),
@@ -42,6 +57,9 @@ const leadUpdateSchema = z.object({
   surgicalHistory: z.string().optional(),
   currentMedications: z.string().optional(),
   conditionsHistory: z.string().optional(),
+  
+  // Family history field (JSON)
+  familyHistory: z.any().optional(),
 }).partial();
 
 // GET /api/leads/[id] - Get lead with alert checking
@@ -79,8 +97,8 @@ export async function GET(
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
-    // Only allow ADMIN, ADVOCATE, and COLLECTIONS to view lead details
-    const allowedRoles = ['ADMIN', 'ADVOCATE', 'COLLECTIONS'];
+    // Allow ADMIN, ADVOCATE, COLLECTIONS, and VENDOR to view lead details
+    const allowedRoles = ['ADMIN', 'ADVOCATE', 'COLLECTIONS', 'VENDOR'];
     if (!allowedRoles.includes(authResult.user?.role || '')) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
@@ -119,48 +137,127 @@ export async function GET(
 
     console.log('✅ Lead found successfully:', lead.firstName, lead.lastName);
 
+    // Vendor Access Control: Vendors can access their own leads AND sub-vendor leads
+    if (authResult.user?.role === 'VENDOR') {
+      console.log('🔍 === VENDOR ACCESS CONTROL DEBUG ===');
+      console.log('🔍 User vendorId:', authResult.user.vendorId);
+      console.log('🔍 Lead vendorId:', lead.vendorId);
+      
+      // Check if this lead belongs directly to the vendor
+      const isDirectLead = authResult.user?.vendorId === lead.vendorId;
+      
+      // Check if this lead belongs to a sub-vendor of this vendor
+      let isSubVendorLead = false;
+      if (!isDirectLead) {
+        const subVendorCheck = await prisma.vendor.findFirst({
+          where: {
+            id: lead.vendorId,
+            parentVendorId: authResult.user.vendorId
+          }
+        });
+        isSubVendorLead = !!subVendorCheck;
+        console.log('🔍 Sub-vendor check result:', isSubVendorLead);
+      }
+      
+      if (!isDirectLead && !isSubVendorLead) {
+        console.log('🚫 Access denied - not direct or sub-vendor lead');
+        return NextResponse.json({
+          success: false,
+          error: 'Access denied: You can only view leads from your own vendor or sub-vendors'
+        }, { status: 403 });
+      }
+      
+      console.log('✅ Vendor access granted:', isDirectLead ? 'direct lead' : 'sub-vendor lead');
+    }
+
     // STRONG AUTO-ASSIGNMENT: Assign lead to advocate if unassigned
     let assignmentMade = false;
     let assignmentMessage = '';
     
     if (authResult.user?.role === 'ADVOCATE') {
-      console.log('🔍 Advocate accessing lead. Auth user:', authResult.user);
+      console.log('🔍 === ADVOCATE LEAD ACCESS DEBUG ===');
+      console.log('🔍 Auth user object:', JSON.stringify(authResult.user, null, 2));
+      console.log('🔍 Auth user.userId (assignment value):', authResult.user.userId);
+      console.log('🔍 Auth user.userId type:', typeof authResult.user.userId);
       console.log('🔍 Lead current advocateId:', lead.advocateId);
-      console.log('🔍 Auth user.userId:', authResult.user.userId);
+      console.log('🔍 Lead advocateId type:', typeof lead.advocateId);
+      console.log('🔍 Lead status:', lead.status);
+      console.log('🔍 === COMPARISON TEST ===');
+      console.log('🔍 String comparison (advocateId === userId):', lead.advocateId === authResult.user.userId);
+      console.log('🔍 String conversion comparison:', String(lead.advocateId) === String(authResult.user.userId));
       
       if (!lead.advocateId) {
         // Lead is unassigned - assign it to current advocate
         const assignableStatuses = ['SUBMITTED', 'ADVOCATE_REVIEW'];
         
         if (assignableStatuses.includes(lead.status)) {
-          console.log('🎯 AUTO-ASSIGNING unassigned lead to advocate:', authResult.user.userId);
+          console.log('🎯 === AUTO-ASSIGNMENT STARTING ===');
+          console.log('🎯 Assigning lead to advocate ID:', authResult.user.userId);
           
-          await prisma.lead.update({
-            where: { id },
-            data: {
-              advocateId: authResult.user.userId,
-              status: 'ADVOCATE_REVIEW',
-              advocateReviewedAt: new Date()
-            }
-          });
-          
-          assignmentMade = true;
-          assignmentMessage = 'Lead has been automatically assigned to you and moved to your "My Leads" tab.';
-          console.log('✅ Lead auto-assigned successfully. AdvocateId set to:', authResult.user.userId);
+          try {
+            // Use a transaction to ensure data consistency
+            const updatedLead = await prisma.lead.update({
+              where: { id },
+              data: {
+                advocateId: authResult.user.userId,
+                status: 'ADVOCATE_REVIEW',
+                advocateReviewedAt: new Date()
+              },
+              include: {
+                advocate: {
+                  select: { id: true, firstName: true, lastName: true }
+                }
+              }
+            });
+            
+            assignmentMade = true;
+            assignmentMessage = `✅ Lead has been automatically assigned to you and moved to your "My Leads" tab.`;
+            
+            console.log('✅ === ASSIGNMENT SUCCESS ===');
+            console.log('✅ Lead ID:', id);
+            console.log('✅ Assigned to advocate ID:', updatedLead.advocateId);
+            console.log('✅ Advocate details:', updatedLead.advocate);
+            console.log('✅ New status:', updatedLead.status);
+            console.log('✅ Assignment timestamp:', updatedLead.advocateReviewedAt);
+            
+            // Update the lead object for the response
+            lead.advocateId = updatedLead.advocateId;
+            lead.status = updatedLead.status;
+            lead.advocate = updatedLead.advocate;
+            
+          } catch (assignmentError) {
+            console.error('❌ === ASSIGNMENT FAILED ===');
+            console.error('❌ Error:', assignmentError);
+            assignmentMessage = 'Assignment failed - please try again';
+          }
+        } else {
+          console.log('⚠️ Lead status not assignable:', lead.status);
+          assignmentMessage = `Lead status "${lead.status}" is not assignable to advocates`;
         }
       } else if (lead.advocateId !== authResult.user.userId) {
         // Lead is assigned to a different advocate - deny access
-        console.log('🚫 Access denied: Lead is assigned to different advocate');
-        console.log('🚫 Lead advocateId:', lead.advocateId, 'Auth userId:', authResult.user.userId);
+        console.log('🚫 === ACCESS DENIED ===');
+        console.log('🚫 Lead advocateId:', lead.advocateId, '(type:', typeof lead.advocateId, ')');
+        console.log('🚫 Auth userId:', authResult.user.userId, '(type:', typeof authResult.user.userId, ')');
+        console.log('🚫 Lead assigned to different advocate');
+        
         return NextResponse.json({
           success: false,
           error: 'This lead is already assigned to another advocate and is no longer available in the general pool.',
-          assignedTo: lead.advocate ? `${lead.advocate.firstName} ${lead.advocate.lastName}` : 'Another advocate'
+          assignedTo: lead.advocate ? `${lead.advocate.firstName} ${lead.advocate.lastName}` : 'Another advocate',
+          debugInfo: {
+            leadAdvocateId: lead.advocateId,
+            currentUserId: authResult.user.userId,
+            leadAdvocateIdType: typeof lead.advocateId,
+            currentUserIdType: typeof authResult.user.userId
+          }
         }, { status: 403 });
       } else {
+        console.log('✅ === OWN LEAD ACCESS ===');
         console.log('✅ Advocate accessing their own assigned lead');
+        console.log('✅ Lead advocateId:', lead.advocateId);
+        console.log('✅ Auth userId:', authResult.user.userId);
       }
-      // If lead.advocateId === authResult.user.userId, they can access their own lead
     }
 
     // Automatically check for alerts when lead is accessed
@@ -296,68 +393,198 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('🔧 === LEAD UPDATE API DEBUG ===');
+    console.log('🔧 Lead ID to update:', params.id);
+    
     // Verify authentication first
     const authResult = await verifyAuth(request);
     if (authResult.error) {
+      console.log('🔧 Authentication failed:', authResult.error);
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
-    // Only allow ADMIN, ADVOCATE, and COLLECTIONS to update leads
+    console.log('🔧 Auth successful. User:', authResult.user?.role, authResult.user?.userId);
+
+    // Only allow ADMIN, ADVOCATE, and COLLECTIONS to update leads (not vendors)
     const allowedRoles = ['ADMIN', 'ADVOCATE', 'COLLECTIONS'];
     if (!allowedRoles.includes(authResult.user?.role || '')) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      console.log('🔧 Access denied. User role:', authResult.user?.role);
+      return NextResponse.json({ error: 'Access denied - vendors can only view leads, not modify them' }, { status: 403 });
     }
 
     const { id } = params;
     const body = await request.json();
-    const validatedData = leadUpdateSchema.parse(body);
+    
+    console.log('🔧 === REQUEST BODY DEBUG ===');
+    console.log('🔧 Raw request body:', JSON.stringify(body, null, 2));
+    console.log('🔧 Body keys:', Object.keys(body));
+    console.log('🔧 Body values sample:', {
+      advocateDisposition: body.advocateDisposition,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      status: body.status
+    });
+
+    // Validate the request body
+    console.log('🔧 === VALIDATION DEBUG ===');
+    let validatedData;
+    try {
+      validatedData = leadUpdateSchema.parse(body);
+      console.log('🔧 ✅ Validation successful');
+      console.log('🔧 Validated data keys:', Object.keys(validatedData));
+    } catch (validationError) {
+      console.log('🔧 ❌ Validation failed:', validationError);
+      if (validationError instanceof z.ZodError) {
+        console.log('🔧 Validation errors:', validationError.errors);
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Validation failed',
+            details: validationError.errors
+          },
+          { status: 400 }
+        );
+      }
+      throw validationError;
+    }
 
     // Check if lead exists
+    console.log('🔧 === DATABASE CHECK ===');
     const existingLead = await prisma.lead.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        advocate: {
+          select: { id: true, firstName: true, lastName: true }
+        }
+      }
     });
 
     if (!existingLead) {
+      console.log('🔧 ❌ Lead not found:', id);
       return NextResponse.json(
         { success: false, error: 'Lead not found' },
         { status: 404 }
       );
     }
 
+    console.log('🔧 ✅ Lead found:', existingLead.firstName, existingLead.lastName);
+    console.log('🔧 Current advocateId:', existingLead.advocateId);
+    console.log('🔧 Requesting user:', authResult.user?.userId);
+
+    // Helper function to map disposition to status
+    const getStatusFromDisposition = (disposition: string): string => {
+      switch (disposition) {
+        case 'DOESNT_QUALIFY':
+          return 'DOESNT_QUALIFY';
+        case 'PATIENT_DECLINED':
+          return 'PATIENT_DECLINED';
+        case 'DUPE':
+          return 'DUPLICATE';
+        case 'COMPLIANCE_ISSUE':
+          return 'COMPLIANCE_ISSUE';
+        case 'CONNECTED_TO_COMPLIANCE':
+          return 'SENT_TO_CONSULT'; // Positive result, send to next stage
+        case 'CALL_BACK':
+        case 'CALL_DROPPED':
+        default:
+          return 'ADVOCATE_REVIEW'; // Still needs advocate attention
+      }
+    };
+
     // Prepare update data
+    console.log('🔧 === UPDATE DATA PREPARATION ===');
     const updateData: any = { ...validatedData };
 
     // Convert date strings to Date objects
     if (validatedData.advocateReviewedAt) {
       updateData.advocateReviewedAt = new Date(validatedData.advocateReviewedAt);
+      console.log('🔧 Converted advocateReviewedAt to Date object');
     }
 
-    // Update the lead
-    const updatedLead = await prisma.lead.update({
-      where: { id },
-      data: updateData,
-      include: {
-        vendor: {
-          select: { id: true, name: true, code: true }
-        },
-        advocate: {
-          select: { id: true, firstName: true, lastName: true }
-        },
-        collectionsAgent: {
-          select: { id: true, firstName: true, lastName: true }
-        },
-        complianceChecklist: true,
-        alerts: {
-          where: { isAcknowledged: false },
-          orderBy: { createdAt: 'desc' }
-        }
+    // Auto-update status based on advocate disposition only if disposition has changed
+    if (validatedData.advocateDisposition && !validatedData.status) {
+      // Check if disposition is different from current
+      if (validatedData.advocateDisposition !== existingLead.advocateDisposition) {
+        const autoStatus = getStatusFromDisposition(validatedData.advocateDisposition);
+        updateData.status = autoStatus;
+        console.log('🔧 Disposition changed - Auto-setting status to:', autoStatus, 'based on disposition:', validatedData.advocateDisposition);
+      } else {
+        console.log('🔧 Disposition unchanged - keeping current status:', existingLead.status);
       }
+    }
+
+    console.log('🔧 Final update data keys:', Object.keys(updateData));
+    console.log('🔧 Final update data sample:', {
+      advocateDisposition: updateData.advocateDisposition,
+      firstName: updateData.firstName,
+      lastName: updateData.lastName,
+      status: updateData.status,
+      advocateId: updateData.advocateId
     });
+
+    // Update the lead
+    console.log('🔧 === DATABASE UPDATE ===');
+    let updatedLead;
+    try {
+      updatedLead = await prisma.lead.update({
+        where: { id },
+        data: updateData,
+        include: {
+          vendor: {
+            select: { id: true, name: true, code: true }
+          },
+          advocate: {
+            select: { id: true, firstName: true, lastName: true }
+          },
+          collectionsAgent: {
+            select: { id: true, firstName: true, lastName: true }
+          },
+          complianceChecklist: true,
+          alerts: {
+            where: { isAcknowledged: false },
+            orderBy: { createdAt: 'desc' }
+          }
+        }
+      });
+      console.log('🔧 ✅ Database update successful');
+      console.log('🔧 Updated lead ID:', updatedLead.id);
+      console.log('🔧 New advocateId:', updatedLead.advocateId);
+      console.log('🔧 New status:', updatedLead.status);
+    } catch (dbError) {
+      console.log('🔧 ❌ Database update failed:', dbError);
+      throw dbError;
+    }
 
     // Handle duplicate marking
     if (validatedData.advocateDisposition === 'DUPE' && validatedData.advocateId) {
+      console.log('🔧 Marking lead as duplicate');
       await AlertService.markLeadAsDuplicate(id, validatedData.advocateId);
     }
+
+    // Broadcast real-time update to all relevant users
+    console.log('🔧 === REAL-TIME UPDATE BROADCAST ===');
+    try {
+      // This update should be visible to:
+      // - Admin users (can see all leads)
+      // - Vendor users (can see their vendor's leads) 
+      // - Sub-vendor users (can see their sub-vendor's leads)
+      // - Advocate agents (can see their assigned leads)
+      // - Collections agents (can see leads in collections)
+      console.log('🔧 Broadcasting lead status update to all relevant dashboards');
+      console.log('🔧 Updated lead status:', updatedLead.status);
+      console.log('🔧 Updated lead advocateDisposition:', updatedLead.advocateDisposition);
+      console.log('🔧 Lead vendorId:', updatedLead.vendorId);
+      console.log('🔧 Lead advocateId:', updatedLead.advocateId);
+      
+      // Note: In a full implementation, this would use WebSocket to broadcast
+      // the update to all connected clients who have access to this lead
+      // For now, the dashboards will refresh when they refetch data
+    } catch (broadcastError) {
+      console.log('🔧 Real-time broadcast failed (non-critical):', broadcastError);
+    }
+
+    console.log('🔧 === SUCCESS RESPONSE ===');
+    console.log('🔧 Preparing response with updated lead data');
 
     return NextResponse.json({
       success: true,
@@ -370,12 +597,12 @@ export async function PATCH(
         phone: updatedLead.phone,
         
         // Additional demographics
-        middleInitial: updatedLead.middleInitial,
-        gender: updatedLead.gender,
-        ethnicity: updatedLead.ethnicity,
-        maritalStatus: updatedLead.maritalStatus,
-        height: updatedLead.height,
-        weight: updatedLead.weight,
+        middleInitial: (updatedLead as any).middleInitial || null,
+        gender: (updatedLead as any).gender || null,
+        ethnicity: (updatedLead as any).ethnicity || null,
+        maritalStatus: (updatedLead as any).maritalStatus || null,
+        height: (updatedLead as any).height || null,
+        weight: (updatedLead as any).weight || null,
         
         // Address
         address: {
@@ -387,16 +614,16 @@ export async function PATCH(
         
         // Insurance information
         insurance: {
-          primaryCompany: updatedLead.primaryInsuranceCompany,
-          primaryPolicyNumber: updatedLead.primaryPolicyNumber,
+          primaryCompany: (updatedLead as any).primaryInsuranceCompany || null,
+          primaryPolicyNumber: (updatedLead as any).primaryPolicyNumber || null,
         },
         
         // Medical history
         medicalHistory: {
-          past: updatedLead.medicalHistory,
-          surgical: updatedLead.surgicalHistory,
-          medications: updatedLead.currentMedications,
-          conditions: updatedLead.conditionsHistory,
+          past: (updatedLead as any).medicalHistory || null,
+          surgical: (updatedLead as any).surgicalHistory || null,
+          medications: (updatedLead as any).currentMedications || null,
+          conditions: (updatedLead as any).conditionsHistory || null,
         },
         
         // Family history (already parsed by Prisma)
@@ -419,6 +646,11 @@ export async function PATCH(
         contactAttempts: updatedLead.contactAttempts,
         lastContactAttempt: updatedLead.lastContactAttempt?.toISOString(),
         nextCallbackDate: updatedLead.nextCallbackDate?.toISOString(),
+        
+        // Doctor approval information
+        doctorApprovalStatus: updatedLead.doctorApprovalStatus,
+        doctorApprovalDate: updatedLead.doctorApprovalDate?.toISOString(),
+        
         createdAt: updatedLead.createdAt,
         updatedAt: updatedLead.updatedAt,
         vendor: updatedLead.vendor,
@@ -437,7 +669,14 @@ export async function PATCH(
     });
 
   } catch (error: any) {
+    console.log('🔧 === ERROR IN LEAD UPDATE ===');
+    console.log('🔧 Error type:', error.constructor.name);
+    console.log('🔧 Error message:', error.message);
+    console.log('🔧 Error code:', error.code);
+    console.log('🔧 Error stack:', error.stack?.substring(0, 500));
+
     if (error instanceof z.ZodError) {
+      console.log('🔧 Zod validation error details:', error.errors);
       return NextResponse.json(
         {
           success: false,
@@ -448,9 +687,17 @@ export async function PATCH(
       );
     }
 
-    console.error('Error updating lead:', error);
+    console.error('🔧 Unexpected error updating lead:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to update lead' },
+      { 
+        success: false, 
+        error: error.message || 'Failed to update lead',
+        debug: {
+          errorType: error.constructor.name,
+          errorCode: error.code,
+          timestamp: new Date().toISOString()
+        }
+      },
       { status: 500 }
     );
   }

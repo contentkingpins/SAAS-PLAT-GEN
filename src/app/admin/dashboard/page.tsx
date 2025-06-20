@@ -23,12 +23,15 @@ import {
   Assessment,
   Upload,
   CheckCircle,
+  Analytics as AnalyticsIcon,
 } from '@mui/icons-material';
 import { AnalyticsDashboard } from '@/components/dashboard/AnalyticsDashboard';
 import useStore from '@/store/useStore';
-import { wsService } from '@/lib/utils/websocket';
+import { apiClient } from '@/lib/api/client';
+
 import { VendorManagement } from '@/components/admin/VendorManagement';
 import { AgentManagement } from '@/components/admin/AgentManagement';
+import { VendorMetricsDisplay } from '@/components/admin/VendorMetricsDisplay';
 import { PortalLayout } from '@/components/layout/PortalLayout';
 
 interface TabPanelProps {
@@ -54,31 +57,47 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function AdminDashboard() {
-  const { isConnected } = useStore();
   const [tabValue, setTabValue] = useState(0);
-  const [notifications, setNotifications] = useState(5);
+  const { user, isAuthenticated, logout } = useStore();
+  
+  // Add token validation on component mount
+  useEffect(() => {
+    const validateToken = async () => {
+      try {
+        // Test the token by making a simple API call
+        await apiClient.get('/analytics/dashboard?range=week');
+      } catch (error: any) {
+        if (error.status === 401) {
+          console.warn('Invalid token detected, logging out user');
+          logout();
+          window.location.href = '/login';
+        }
+      }
+    };
+
+    if (isAuthenticated && user?.role === 'admin') {
+      validateToken();
+    }
+  }, [isAuthenticated, user, logout]);
   
   // Upload state management
   const [uploadStates, setUploadStates] = useState({
+    'bulk-lead': { loading: false, message: '', error: false },
     'doctor-approval': { loading: false, message: '', error: false },
     'shipping-report': { loading: false, message: '', error: false },
+ main
     'kit-return': { loading: false, message: '', error: false },
     'master-data': { loading: false, message: '', error: false },
     'bulk-lead': { loading: false, message: '', error: false }
+
+    'kit-return': { loading: false, message: '', error: false }
+ main
   });
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
   const [uploadResults, setUploadResults] = useState<any>(null);
   const [resultsDialog, setResultsDialog] = useState(false);
 
-  useEffect(() => {
-    // Connect to WebSocket
-    wsService.connect();
-    wsService.joinRoom('admin');
-
-    return () => {
-      wsService.leaveRoom('admin');
-    };
-  }, []);
+  // WebSocket removed - using periodic refresh instead for AWS Amplify compatibility
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -106,6 +125,9 @@ export default function AdminDashboard() {
       // Determine upload endpoint based on type
       let endpoint = '';
       switch (uploadType) {
+        case 'bulk-lead':
+          endpoint = '/api/admin/uploads/bulk-lead';
+          break;
         case 'doctor-approval':
           endpoint = '/api/admin/uploads/doctor-approval';
           break;
@@ -115,12 +137,15 @@ export default function AdminDashboard() {
         case 'kit-return':
           endpoint = '/api/admin/uploads/kit-return';
           break;
+ main
         case 'master-data':
           endpoint = '/api/admin/uploads/master-data';
           break;
         case 'bulk-lead':
           endpoint = '/api/admin/uploads/bulk-lead';
           break;
+
+ main
         default:
           const invalidTypeMsg = 'Invalid upload type';
           throw { message: invalidTypeMsg };
@@ -158,11 +183,15 @@ export default function AdminDashboard() {
         severity: 'success'
       });
 
+ main
       // Show detailed results for master data and bulk lead uploads
       if ((uploadType === 'master-data' || uploadType === 'bulk-lead') && result.results) {
         setUploadResults(result);
         setResultsDialog(true);
       }
+
+
+ main
 
     } catch (error) {
       const errorMessage = error && typeof error === 'object' && 'message' in error 
@@ -202,13 +231,191 @@ export default function AdminDashboard() {
     event.target.value = '';
   };
 
+  // Report generation functions
+  const generateDailyReport = async () => {
+    try {
+      setSnackbar({ open: false, message: '', severity: 'success' });
+      
+      // Get today's date range
+      const today = new Date();
+      const startOfDay = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+      const endOfDay = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+      
+      // Fetch today's leads
+      const response = await apiClient.get(`/admin/leads?startDate=${startOfDay}&endDate=${endOfDay}&limit=1000`);
+      const leads = Array.isArray(response) ? response : (response as any)?.data || [];
+      
+      if (!leads || leads.length === 0) {
+        setSnackbar({
+          open: true,
+          message: 'No leads found for today',
+          severity: 'info'
+        });
+        return;
+      }
+
+      // Generate CSV report
+      const headers = [
+        'Lead ID', 'Patient Name', 'MBI', 'Phone', 'Status', 'Test Type', 
+        'Vendor Name', 'Vendor Code', 'Advocate', 'Collections Agent', 
+        'Created Time', 'Last Updated'
+      ];
+      
+      const csvData = leads.map((lead: any) => [
+        lead.id,
+        `${lead.firstName} ${lead.lastName}`,
+        lead.mbi || 'N/A',
+        lead.phone || 'N/A',
+        lead.status,
+        lead.testType || 'N/A',
+        lead.vendor?.name || 'Unknown',
+        lead.vendor?.code || 'Unknown',
+        lead.advocate ? `${lead.advocate.firstName} ${lead.advocate.lastName}` : 'Unassigned',
+        lead.collectionsAgent ? `${lead.collectionsAgent.firstName} ${lead.collectionsAgent.lastName}` : 'Unassigned',
+        new Date(lead.createdAt).toLocaleString(),
+        new Date(lead.updatedAt).toLocaleString()
+      ]);
+
+      const csvContent = [headers, ...csvData]
+        .map((row: any[]) => row.map((field: any) => `"${field}"`).join(','))
+        .join('\n');
+
+      // Download the file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `daily_report_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setSnackbar({
+        open: true,
+        message: `Daily report generated successfully! ${leads.length} leads exported.`,
+        severity: 'success'
+      });
+
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: `Failed to generate daily report: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const generateMonthlyReport = async () => {
+    try {
+      setSnackbar({ open: false, message: '', severity: 'success' });
+      
+      // Get this month's date range
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+      
+      // Fetch this month's leads and analytics
+      const [leadsResponse, analytics] = await Promise.all([
+        apiClient.get(`/admin/leads?startDate=${startOfMonth}&endDate=${endOfMonth}&limit=5000`),
+        apiClient.get('/analytics/dashboard?range=month')
+      ]);
+      
+      const leads = Array.isArray(leadsResponse) ? leadsResponse : (leadsResponse as any)?.data || [];
+      
+      if (!leads || leads.length === 0) {
+        setSnackbar({
+          open: true,
+          message: 'No leads found for this month',
+          severity: 'info'
+        });
+        return;
+      }
+
+      // Generate comprehensive monthly report
+      const headers = [
+        'Lead ID', 'Patient Name', 'MBI', 'Phone', 'Status', 'Test Type', 
+        'Vendor Name', 'Vendor Code', 'Advocate', 'Collections Agent',
+        'Advocate Disposition', 'Collections Disposition', 'Contact Attempts',
+        'Created Date', 'Last Updated', 'Days in System'
+      ];
+      
+      const csvData = leads.map((lead: any) => {
+        const createdDate = new Date(lead.createdAt);
+        const daysInSystem = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        return [
+          lead.id,
+          `${lead.firstName} ${lead.lastName}`,
+          lead.mbi || 'N/A',
+          lead.phone || 'N/A',
+          lead.status,
+          lead.testType || 'N/A',
+          lead.vendor?.name || 'Unknown',
+          lead.vendor?.code || 'Unknown',
+          lead.advocate ? `${lead.advocate.firstName} ${lead.advocate.lastName}` : 'Unassigned',
+          lead.collectionsAgent ? `${lead.collectionsAgent.firstName} ${lead.collectionsAgent.lastName}` : 'Unassigned',
+          lead.advocateDisposition || 'N/A',
+          lead.collectionsDisposition || 'N/A',
+          lead.contactAttempts || 0,
+          createdDate.toLocaleDateString(),
+          new Date(lead.updatedAt).toLocaleDateString(),
+          daysInSystem
+        ];
+      });
+
+      // Add summary statistics at the top
+      const summaryData = [
+        ['Report Generated', new Date().toLocaleString()],
+        ['Report Period', `${new Date(startOfMonth).toLocaleDateString()} - ${new Date(endOfMonth).toLocaleDateString()}`],
+        ['Total Leads', leads.length.toString()],
+        ['Total Vendors', new Set(leads.map((l: any) => l.vendorId)).size.toString()],
+        ['Conversion Rate', `${((analytics as any)?.conversionRates?.overallConversion * 100 || 0).toFixed(2)}%`],
+        ['Qualified Leads', leads.filter((l: any) => ['QUALIFIED', 'SENT_TO_CONSULT'].includes(l.status)).length.toString()],
+        ['Completed Kits', leads.filter((l: any) => l.status === 'KIT_COMPLETED').length.toString()],
+        ['', ''], // Empty row separator
+        ['Lead Details:', '']
+      ];
+
+      const csvContent = [
+        ...summaryData.map((row: any[]) => row.map((field: any) => `"${field}"`).join(',')),
+        '', // Empty line
+        headers.map((field: string) => `"${field}"`).join(','),
+        ...csvData.map((row: any[]) => row.map((field: any) => `"${field}"`).join(','))
+      ].join('\n');
+
+      // Download the file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `monthly_report_${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setSnackbar({
+        open: true,
+        message: `Monthly report generated successfully! ${leads.length} leads exported with analytics.`,
+        severity: 'success'
+      });
+
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: `Failed to generate monthly report: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
   return (
     <PortalLayout
       title="Healthcare Lead Management"
       userRole="admin"
-      showConnectionStatus={true}
-      showNotifications={true}
-      notifications={notifications}
+      showConnectionStatus={false}
+      showNotifications={false}
       fullWidth={true}
     >
       <Paper elevation={0} sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
@@ -244,6 +451,11 @@ export default function AdminDashboard() {
             iconPosition="start"
             label="Vendors"
           />
+          <Tab
+            icon={<AnalyticsIcon />}
+            iconPosition="start"
+            label="Vendor Metrics"
+          />
         </Tabs>
       </Paper>
 
@@ -265,7 +477,7 @@ export default function AdminDashboard() {
               <Typography variant="h6" gutterBottom>
                 Daily Reports
               </Typography>
-              <Button variant="outlined" fullWidth sx={{ mt: 2 }}>
+              <Button variant="outlined" fullWidth sx={{ mt: 2 }} onClick={generateDailyReport}>
                 Generate Daily Report
               </Button>
             </Paper>
@@ -275,7 +487,7 @@ export default function AdminDashboard() {
               <Typography variant="h6" gutterBottom>
                 Monthly Reports
               </Typography>
-              <Button variant="outlined" fullWidth sx={{ mt: 2 }}>
+              <Button variant="outlined" fullWidth sx={{ mt: 2 }} onClick={generateMonthlyReport}>
                 Generate Monthly Report
               </Button>
             </Paper>
@@ -288,42 +500,42 @@ export default function AdminDashboard() {
           File Uploads
         </Typography>
         <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3 }}>
-          {/* Master CSV Upload */}
+          {/* Bulk Lead Upload */}
           <Box sx={{ flex: '1 1 250px' }}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Upload sx={{ fontSize: 48, color: 'secondary.main', mb: 2 }} />
+              <Upload sx={{ fontSize: 48, color: 'info.main', mb: 2 }} />
               <Typography variant="h6" gutterBottom>
-                Master CSV Data
+                Bulk Lead Upload
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Upload a single CSV containing all patient, shipping, and status data
+              <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
+                Import historical leads from old CRM system for data migration
               </Typography>
-              {uploadStates['master-data'].loading && <LinearProgress sx={{ mb: 2 }} />}
-              {uploadStates['master-data'].message && (
+              {uploadStates['bulk-lead'].loading && <LinearProgress sx={{ mb: 2 }} />}
+              {uploadStates['bulk-lead'].message && (
                 <Alert 
-                  severity={uploadStates['master-data'].error ? 'error' : 'success'} 
+                  severity={uploadStates['bulk-lead'].error ? 'error' : 'success'} 
                   sx={{ mb: 2, textAlign: 'left' }}
                 >
-                  {uploadStates['master-data'].message}
+                  {uploadStates['bulk-lead'].message}
                 </Alert>
               )}
               <Button 
                 variant="contained" 
                 component="label"
-                disabled={uploadStates['master-data'].loading}
-                color="secondary"
+                disabled={uploadStates['bulk-lead'].loading}
               >
-                {uploadStates['master-data'].loading ? 'Processing...' : 'Upload Master CSV'}
+                {uploadStates['bulk-lead'].loading ? 'Processing...' : 'Upload CSV'}
                 <input 
                   type="file" 
                   hidden 
                   accept=".csv" 
-                  onChange={handleFileChange('master-data')} 
+                  onChange={handleFileChange('bulk-lead')} 
                 />
               </Button>
             </Paper>
           </Box>
 
+ main
           {/* Bulk Lead Upload */}
           <Box sx={{ flex: '1 1 250px' }}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
@@ -361,11 +573,17 @@ export default function AdminDashboard() {
           </Box>
           
           {/* Doctor Approvals */}
+
+          {/* Approvals and Denials */}
+ main
           <Box sx={{ flex: '1 1 250px' }}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Upload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
               <Typography variant="h6" gutterBottom>
-                Doctor Approvals
+                Approvals and Denials
+              </Typography>
+              <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
+                Upload CSV with approval/denial decisions to update lead statuses
               </Typography>
               {uploadStates['doctor-approval'].loading && <LinearProgress sx={{ mb: 2 }} />}
               {uploadStates['doctor-approval'].message && (
@@ -392,12 +610,12 @@ export default function AdminDashboard() {
             </Paper>
           </Box>
           
-          {/* Shipping Reports */}
+          {/* Outgoing Samples */}
           <Box sx={{ flex: '1 1 250px' }}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Upload sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
               <Typography variant="h6" gutterBottom>
-                Shipping Reports
+                Outgoing Samples
               </Typography>
               {uploadStates['shipping-report'].loading && <LinearProgress sx={{ mb: 2 }} />}
               {uploadStates['shipping-report'].message && (
@@ -424,12 +642,12 @@ export default function AdminDashboard() {
             </Paper>
           </Box>
           
-          {/* Kit Returns */}
+          {/* Completed Samples */}
           <Box sx={{ flex: '1 1 250px' }}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Upload sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
               <Typography variant="h6" gutterBottom>
-                Kit Returns
+                Completed Samples
               </Typography>
               {uploadStates['kit-return'].loading && <LinearProgress sx={{ mb: 2 }} />}
               {uploadStates['kit-return'].message && (
@@ -460,6 +678,10 @@ export default function AdminDashboard() {
 
       <TabPanel value={tabValue} index={4}>
         <VendorManagement />
+      </TabPanel>
+
+      <TabPanel value={tabValue} index={5}>
+        <VendorMetricsDisplay mode="admin" refreshInterval={15} />
       </TabPanel>
 
       {/* Upload Results Dialog */}
@@ -544,14 +766,15 @@ export default function AdminDashboard() {
         </DialogActions>
       </Dialog>
 
-      {/* Notification Snackbar */}
+      {/* Success/Error Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert 
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
           severity={snackbar.severity}
           sx={{ width: '100%' }}
         >

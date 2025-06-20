@@ -20,7 +20,8 @@ import {
   Skeleton,
   Divider,
   Button,
-  Grid
+  Grid,
+  CircularProgress
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -119,39 +120,44 @@ export default function LeadSearch({
   const [error, setError] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<string | null>(null);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Search function
-  const performSearch = useCallback(async (searchQuery: string) => {
-    if (searchQuery.length < 2) {
-      setResults([]);
-      return;
-    }
+  // Debounced search function to reduce API calls
+  const debouncedSearch = useCallback(
+    useDebounce(async (searchQuery: string) => {
+      if (searchQuery.length < 2) {
+        setResults([]);
+        setLoading(false);
+        setIsSearching(false);
+        return;
+      }
 
-    try {
       setLoading(true);
-      setError(null);
+      setIsSearching(true);
       
-      // apiClient.get() already extracts the data from {success: true, data: [...]}
-      const leads = await apiClient.get<Lead[]>(`leads/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
-      
-      console.log('Search results received:', leads);
-      setResults(leads || []);
-      
-    } catch (err: any) {
-      console.error('Search error:', err);
-      setError(err.message || 'Search failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, []); // No dependencies needed since we're not using external variables
+      try {
+        // apiClient.get() already extracts the data from {success: true, data: [...]}
+        const leads = await apiClient.get<Lead[]>(`leads/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
+        
+        console.log('🔍 Search results received:', leads);
+        setResults(leads || []);
+        setError(null);
+      } catch (err: any) {
+        console.error('Search error:', err);
+        setError(err.message || 'Failed to search leads');
+        setResults([]);
+      } finally {
+        setLoading(false);
+        // Keep isSearching true while user is actively typing
+        setTimeout(() => setIsSearching(false), 1000);
+      }
+    }, 300), // 300ms debounce
+    []
+  );
 
-  // Debounced search function
-  const debouncedSearch = useDebounce(performSearch, 300);
-
-  // Effect to trigger search when query changes
   useEffect(() => {
     debouncedSearch(query);
-  }, [query]); // Only depend on query, not debouncedSearch
+  }, [query, debouncedSearch]);
 
   const handleClearSearch = () => {
     setQuery('');
@@ -159,6 +165,7 @@ export default function LeadSearch({
     setError(null);
     setSelectedLead(null);
     setExpandedCard(null);
+    setIsSearching(false);
   };
 
   const handleLeadClick = (lead: Lead) => {
@@ -201,7 +208,11 @@ export default function LeadSearch({
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <SearchIcon color="action" />
+              {loading ? (
+                <CircularProgress size={20} color="primary" />
+              ) : (
+                <SearchIcon color="action" />
+              )}
             </InputAdornment>
           ),
           endAdornment: query && (
@@ -213,6 +224,11 @@ export default function LeadSearch({
           ),
         }}
         sx={{ mb: 2 }}
+        helperText={
+          isSearching ? "🔍 Searching leads..." : 
+          query.length >= 2 && results.length > 0 ? `Found ${results.length} result${results.length !== 1 ? 's' : ''}` :
+          query.length === 1 ? "Type at least 2 characters to search" : ""
+        }
       />
 
       {/* Error Message */}

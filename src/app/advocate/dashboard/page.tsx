@@ -43,6 +43,7 @@ interface Lead {
   lastName: string;
   phone: string;
   status: string;
+  advocateId?: string;
   isDuplicate: boolean;
   hasActiveAlerts: boolean;
   createdAt: string;
@@ -103,38 +104,77 @@ export default function AdvocateDashboard() {
     }
   }, [user?.id]);
 
+  // Auto-refresh every 60 seconds (increased from 15) and pause during search activity
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const refreshInterval = setInterval(() => {
+      // Only refresh if user is not actively searching (based on tab)
+      if (selectedTab === 0) { // Only refresh "My Leads" tab
+        console.log('🔄 Auto-refreshing advocate dashboard for updated lead statuses');
+        loadAdvocateData();
+      }
+    }, 60000); // Refresh every 60 seconds instead of 15
+
+    return () => clearInterval(refreshInterval);
+  }, [user?.id, selectedTab]); // Add selectedTab as dependency
+
+  // Refresh when user returns to the tab (for immediate status updates)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.id) {
+        console.log('🔄 Tab became visible - refreshing advocate dashboard for latest lead statuses');
+        loadAdvocateData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user?.id]);
+
   const loadAdvocateData = async () => {
     try {
       setLoading(true);
       
-      // Debug logging
-      console.log('🔍 Dashboard loading advocate data for user:', user);
-      console.log('🔍 Using user.id:', user?.id);
+      // Ensure we have a valid user ID
+      if (!user?.id) {
+        setError('User ID not available - please refresh the page');
+        return;
+      }
       
-      // Get leads assigned to this advocate
-      const apiResponse = await apiClient.get<{success: boolean; data: Lead[]; pagination: any}>(`leads?advocateId=${user?.id}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT`);
+      // Get leads assigned to this advocate (include all statuses they might have set)
+      const advocateId = String(user.id);
+      const queryUrl = `leads?advocateId=${advocateId}&status=ADVOCATE_REVIEW,QUALIFIED,SENT_TO_CONSULT,DOESNT_QUALIFY,PATIENT_DECLINED,DUPLICATE,COMPLIANCE_ISSUE`;
+      
+      // API client returns the data array directly, not the full response object
+      const leadsData = await apiClient.get<Lead[]>(queryUrl);
 
-      console.log('🔍 API response for My Leads:', apiResponse);
-
-      if (apiResponse?.success && apiResponse.data) {
-        console.log('🔍 Found leads assigned to advocate:', apiResponse.data.length);
-        setLeads(apiResponse.data);
+      if (Array.isArray(leadsData) && leadsData.length > 0) {
+        setLeads(leadsData);
         
         // Calculate stats
-        const data = apiResponse.data;
         setStats({
-          totalAssigned: data.length,
-          pendingReview: data.filter((l: Lead) => l.status === 'ADVOCATE_REVIEW').length,
-          qualified: data.filter((l: Lead) => l.status === 'QUALIFIED').length,
-          completedToday: data.filter((l: Lead) => 
+          totalAssigned: leadsData.length,
+          pendingReview: leadsData.filter((l: Lead) => l.status === 'ADVOCATE_REVIEW').length,
+          qualified: leadsData.filter((l: Lead) => ['QUALIFIED', 'SENT_TO_CONSULT'].includes(l.status)).length,
+          completedToday: leadsData.filter((l: Lead) => 
+            ['QUALIFIED', 'SENT_TO_CONSULT', 'DOESNT_QUALIFY', 'PATIENT_DECLINED', 'DUPLICATE', 'COMPLIANCE_ISSUE'].includes(l.status) &&
             new Date(l.createdAt).toDateString() === new Date().toDateString()
           ).length,
         });
       } else {
-        console.log('🔍 No leads found or API failed:', apiResponse);
+        setLeads([]);
+        setStats({
+          totalAssigned: 0,
+          pendingReview: 0,
+          qualified: 0,
+          completedToday: 0,
+        });
       }
     } catch (err: any) {
-      console.error('🔍 Error loading advocate data:', err);
+      console.error('🔍 === MY LEADS QUERY ERROR ===');
+      console.error('🔍 Error details:', err);
+      console.error('🔍 Error message:', err.message);
       setError(err.message || 'Failed to load advocate data');
     } finally {
       setLoading(false);
@@ -159,20 +199,22 @@ export default function AdvocateDashboard() {
 
   const handleLeadUpdated = (updatedLead: any) => {
     console.log('Lead updated:', updatedLead);
-    // Optionally refresh the leads list or update the selected lead
+    // Update the selected lead
     setSelectedLead(updatedLead);
     
-    // If we're viewing assigned leads, refresh the list
-    if (selectedTab === 0) {
-      loadAdvocateData();
-    }
+    // Always refresh the leads list to show updated status
+    loadAdvocateData();
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ADVOCATE_REVIEW': return 'warning';
       case 'QUALIFIED': return 'success';
-      case 'SENT_TO_CONSULT': return 'info';
+      case 'SENT_TO_CONSULT': return 'success';
+      case 'DOESNT_QUALIFY': return 'error';
+      case 'PATIENT_DECLINED': return 'error';
+      case 'DUPLICATE': return 'error';
+      case 'COMPLIANCE_ISSUE': return 'error';
       default: return 'default';
     }
   };
@@ -206,7 +248,7 @@ export default function AdvocateDashboard() {
       onErrorClose={() => setError(null)}
     >
       <Box mb={3}>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" color="text.primary">
           {welcomeMessage}
         </Typography>
       </Box>
@@ -243,7 +285,7 @@ export default function AdvocateDashboard() {
                 <Box display="flex" alignItems="center">
                   <AssignmentIcon color="primary" sx={{ mr: 2 }} />
                   <Box>
-                    <Typography color="text.secondary" gutterBottom>
+                    <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Total Assigned
                     </Typography>
                     <Typography variant="h4">
@@ -261,7 +303,7 @@ export default function AdvocateDashboard() {
                 <Box display="flex" alignItems="center">
                   <Warning color="warning" sx={{ mr: 2 }} />
                   <Box>
-                    <Typography color="text.secondary" gutterBottom>
+                    <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Pending Review
                     </Typography>
                     <Typography variant="h4">
@@ -279,7 +321,7 @@ export default function AdvocateDashboard() {
                 <Box display="flex" alignItems="center">
                   <CheckCircle color="success" sx={{ mr: 2 }} />
                   <Box>
-                    <Typography color="text.secondary" gutterBottom>
+                    <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Qualified
                     </Typography>
                     <Typography variant="h4">
@@ -297,7 +339,7 @@ export default function AdvocateDashboard() {
                 <Box display="flex" alignItems="center">
                   <Phone color="info" sx={{ mr: 2 }} />
                   <Box>
-                    <Typography color="text.secondary" gutterBottom>
+                    <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Completed Today
                     </Typography>
                     <Typography variant="h4">
@@ -382,7 +424,7 @@ export default function AdvocateDashboard() {
 
             {leads.length === 0 && !loading && (
               <Box textAlign="center" py={4}>
-                <Typography color="text.secondary">
+                <Typography color="text.primary" variant="body1">
                   No leads assigned yet.
                 </Typography>
               </Box>
@@ -400,7 +442,7 @@ export default function AdvocateDashboard() {
                 <Typography variant="h6" gutterBottom>
                   Search Existing Leads
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography variant="body2" color="text.primary" sx={{ mb: 3 }}>
                   When answering calls, search for existing patient records by name, phone, MBI, or location.
                 </Typography>
                 

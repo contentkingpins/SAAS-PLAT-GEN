@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AlertService } from '@/lib/services/alertService';
 import { prisma } from '@/lib/prisma';
+import { verifyAuth } from '@/lib/auth/middleware';
 
 declare global {
   var broadcastMBIAlert: ((alert: any) => void) | undefined;
@@ -308,6 +309,24 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 === LEADS API QUERY DEBUG ===');
+    
+    // Verify authentication first
+    const authResult = await verifyAuth(request);
+    if (authResult.error) {
+      console.log('🔍 Authentication failed:', authResult.error);
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    console.log('🔍 Auth successful. User:', authResult.user?.role, authResult.user?.userId);
+
+    // Only allow ADMIN, ADVOCATE, and COLLECTIONS to query leads
+    const allowedRoles = ['ADMIN', 'ADVOCATE', 'COLLECTIONS'];
+    if (!allowedRoles.includes(authResult.user?.role || '')) {
+      console.log('🔍 Access denied. User role:', authResult.user?.role);
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+    
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
@@ -317,23 +336,50 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const hasAlerts = searchParams.get('hasAlerts');
 
+    console.log('🔍 Query parameters received:', {
+      page,
+      limit,
+      vendorId,
+      advocateId,
+      advocateIdType: typeof advocateId,
+      collectionsAgentId,
+      status,
+      hasAlerts
+    });
+
     const skip = (page - 1) * limit;
 
     // Build where clause
     const where: any = {};
-    if (vendorId) where.vendorId = vendorId;
-    if (advocateId) where.advocateId = advocateId;
-    if (collectionsAgentId) where.collectionsAgentId = collectionsAgentId;
+    if (vendorId) {
+      where.vendorId = vendorId;
+      console.log('🔍 Added vendorId filter:', vendorId);
+    }
+    if (advocateId) {
+      where.advocateId = advocateId; // Use advocateId as-is (should be string)
+      console.log('🔍 Added advocateId filter:', advocateId, 'type:', typeof advocateId);
+    }
+    if (collectionsAgentId) {
+      where.collectionsAgentId = collectionsAgentId;
+      console.log('🔍 Added collectionsAgentId filter:', collectionsAgentId);
+    }
     if (status) {
       // Handle multiple status values separated by comma
       const statusArray = status.split(',');
       if (statusArray.length > 1) {
         where.status = { in: statusArray };
+        console.log('🔍 Added multiple status filter:', statusArray);
       } else {
         where.status = status;
+        console.log('🔍 Added single status filter:', status);
       }
     }
-    if (hasAlerts === 'true') where.hasActiveAlerts = true;
+    if (hasAlerts === 'true') {
+      where.hasActiveAlerts = true;
+      console.log('🔍 Added hasActiveAlerts filter: true');
+    }
+
+    console.log('🔍 Final where clause:', JSON.stringify(where, null, 2));
 
     // Get leads with pagination
     const [leads, total] = await Promise.all([
@@ -367,6 +413,23 @@ export async function GET(request: NextRequest) {
       prisma.lead.count({ where })
     ]);
 
+    console.log('🔍 === QUERY RESULTS ===');
+    console.log('🔍 Total leads found:', leads.length);
+    console.log('🔍 Total count in database:', total);
+    
+    // Log each lead's advocate assignment for debugging
+    leads.forEach((lead, index) => {
+      console.log(`🔍 Lead ${index + 1}:`, {
+        id: lead.id,
+        firstName: lead.firstName,
+        lastName: lead.lastName,
+        advocateId: lead.advocateId,
+        advocateIdType: typeof lead.advocateId,
+        status: lead.status,
+        advocateDetails: lead.advocate
+      });
+    });
+
     // Format response
     const formattedLeads = leads.map(lead => ({
       id: lead.id,
@@ -375,6 +438,7 @@ export async function GET(request: NextRequest) {
       lastName: lead.lastName,
       dateOfBirth: lead.dateOfBirth,
       phone: lead.phone,
+      advocateId: lead.advocateId, // Include advocateId in response
       address: {
         street: lead.street,
         city: lead.city,
@@ -397,6 +461,15 @@ export async function GET(request: NextRequest) {
       updatedAt: lead.updatedAt
     }));
 
+    console.log('🔍 === FORMATTED RESPONSE ===');
+    console.log('🔍 Returning', formattedLeads.length, 'leads');
+    console.log('🔍 First lead sample:', formattedLeads[0] ? {
+      id: formattedLeads[0].id,
+      name: `${formattedLeads[0].firstName} ${formattedLeads[0].lastName}`,
+      advocateId: formattedLeads[0].advocateId,
+      status: formattedLeads[0].status
+    } : 'No leads');
+
     return NextResponse.json({
       success: true,
       data: formattedLeads,
@@ -409,7 +482,8 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching leads:', error);
+    console.error('🔍 === LEADS API ERROR ===');
+    console.error('🔍 Error details:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -418,3 +492,4 @@ export async function GET(request: NextRequest) {
     await prisma.$disconnect();
   }
 }
+
