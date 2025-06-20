@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
         const rejectionReason = row['REJECTION REASON:'] || row['REJECTION_REASON'] || '';
 
         // Handle address - you don't have this in your CSV, so we'll use a default or extract from other fields
-        const address = row['ADDRESS'] || row['Patient Comple'] || '123 Main St'; // Use patient complete as fallback
+        const address = row['ADDRESS'] || row['Patient Comple'] || '123 Main St';
         const city = row['CITY'] || 'Unknown';
         const state = row['STATE'] || 'Unknown';  
         const zipCode = row['ZIP'] || '00000';
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Map test types from your CSV format
-        let finalTestType = 'IMMUNE'; // default
+        let finalTestType = 'IMMUNE';
         if (testType) {
           const testTypeLower = testType.toLowerCase();
           if (testTypeLower.includes('neuro') || testTypeLower.includes('neurological')) {
@@ -272,7 +272,6 @@ export async function POST(request: NextRequest) {
           vendorId: vendorId,
           vendorCode: finalVendorCode,
           contactAttempts: 0,
-          // Optional: store additional data in notes or custom fields
           notes: rejectionReason ? `Rejection Reason: ${rejectionReason}` : undefined
         };
 
@@ -282,7 +281,7 @@ export async function POST(request: NextRequest) {
             where: { id: existingLead.id },
             data: {
               ...leadData,
-              mbi: existingLead.mbi, // Keep existing MBI
+              mbi: existingLead.mbi,
               updatedAt: new Date()
             }
           });
@@ -333,7 +332,7 @@ export async function POST(request: NextRequest) {
         errors: results.errors.length,
         fileUploadId: fileUpload.id
       },
-      errors: results.errors.slice(0, 10) // Return first 10 errors for review
+      errors: results.errors.slice(0, 10)
     });
 
   } catch (error: any) {

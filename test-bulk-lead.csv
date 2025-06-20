@@ -1,4 +1,0 @@
-Patient First Na,Patient Last Na,Phone Number:,Medicare #:,Date Of Birth,Test :,Platform:,Agent Name:,Lab:,Gender,Patient Comple,REJECTION REASON:
-John,Doe,555-123-4567,1A2B3C4D5E6,01/15/1980,Immune,TestPlatform,Agent Smith,TestLab,Male,Complete,
-Jane,Smith,555-987-6543,2B3C4D5E6F7,02/20/1975,Neuro,TestPlatform,Agent Jones,TestLab,Female,Complete,
-Bob,Johnson,555-555-5555,3C4D5E6F7G8,03/25/1970,Immune,TestPlatform,Agent Brown,TestLab,Male,Incomplete,Missing documents 
