@@ -82,16 +82,11 @@ export default function AdminDashboard() {
   
   // Upload state management
   const [uploadStates, setUploadStates] = useState({
-    'bulk-lead': { loading: false, message: '', error: false },
     'doctor-approval': { loading: false, message: '', error: false },
     'shipping-report': { loading: false, message: '', error: false },
- main
     'kit-return': { loading: false, message: '', error: false },
     'master-data': { loading: false, message: '', error: false },
     'bulk-lead': { loading: false, message: '', error: false }
-
-    'kit-return': { loading: false, message: '', error: false }
- main
   });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
   const [uploadResults, setUploadResults] = useState<any>(null);
@@ -137,15 +132,12 @@ export default function AdminDashboard() {
         case 'kit-return':
           endpoint = '/api/admin/uploads/kit-return';
           break;
- main
         case 'master-data':
           endpoint = '/api/admin/uploads/master-data';
           break;
         case 'bulk-lead':
           endpoint = '/api/admin/uploads/bulk-lead';
           break;
-
- main
         default:
           const invalidTypeMsg = 'Invalid upload type';
           throw { message: invalidTypeMsg };
@@ -183,15 +175,11 @@ export default function AdminDashboard() {
         severity: 'success'
       });
 
- main
       // Show detailed results for master data and bulk lead uploads
       if ((uploadType === 'master-data' || uploadType === 'bulk-lead') && result.results) {
         setUploadResults(result);
         setResultsDialog(true);
       }
-
-
- main
 
     } catch (error) {
       const errorMessage = error && typeof error === 'object' && 'message' in error 
