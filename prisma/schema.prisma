@@ -294,6 +294,7 @@ enum FileUploadType {
   SHIPPING_REPORT
   KIT_RETURN
   MASTER_DATA
+  BULK_LEAD
 }
 
 model FileUpload {
