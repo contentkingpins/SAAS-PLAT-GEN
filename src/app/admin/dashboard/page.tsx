@@ -85,7 +85,13 @@ export default function AdminDashboard() {
     'bulk-lead': { loading: false, message: '', error: false },
     'doctor-approval': { loading: false, message: '', error: false },
     'shipping-report': { loading: false, message: '', error: false },
+ main
+    'kit-return': { loading: false, message: '', error: false },
+    'master-data': { loading: false, message: '', error: false },
+    'bulk-lead': { loading: false, message: '', error: false }
+
     'kit-return': { loading: false, message: '', error: false }
+ main
   });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
   const [uploadResults, setUploadResults] = useState<any>(null);
@@ -131,6 +137,15 @@ export default function AdminDashboard() {
         case 'kit-return':
           endpoint = '/api/admin/uploads/kit-return';
           break;
+ main
+        case 'master-data':
+          endpoint = '/api/admin/uploads/master-data';
+          break;
+        case 'bulk-lead':
+          endpoint = '/api/admin/uploads/bulk-lead';
+          break;
+
+ main
         default:
           const invalidTypeMsg = 'Invalid upload type';
           throw { message: invalidTypeMsg };
@@ -168,7 +183,15 @@ export default function AdminDashboard() {
         severity: 'success'
       });
 
+ main
+      // Show detailed results for master data and bulk lead uploads
+      if ((uploadType === 'master-data' || uploadType === 'bulk-lead') && result.results) {
+        setUploadResults(result);
+        setResultsDialog(true);
+      }
 
+
+ main
 
     } catch (error) {
       const errorMessage = error && typeof error === 'object' && 'message' in error 
@@ -512,7 +535,47 @@ export default function AdminDashboard() {
             </Paper>
           </Box>
 
+ main
+          {/* Bulk Lead Upload */}
+          <Box sx={{ flex: '1 1 250px' }}>
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Upload sx={{ fontSize: 48, color: 'info.main', mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                Bulk Lead Upload
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Upload historical lead data with smart column mapping
+              </Typography>
+              {uploadStates['bulk-lead'].loading && <LinearProgress sx={{ mb: 2 }} />}
+              {uploadStates['bulk-lead'].message && (
+                <Alert 
+                  severity={uploadStates['bulk-lead'].error ? 'error' : 'success'} 
+                  sx={{ mb: 2, textAlign: 'left' }}
+                >
+                  {uploadStates['bulk-lead'].message}
+                </Alert>
+              )}
+              <Button 
+                variant="contained" 
+                component="label"
+                disabled={uploadStates['bulk-lead'].loading}
+                color="info"
+              >
+                {uploadStates['bulk-lead'].loading ? 'Processing...' : 'Upload Bulk Leads'}
+                <input 
+                  type="file" 
+                  hidden 
+                  accept=".csv" 
+                  onChange={handleFileChange('bulk-lead')} 
+                />
+              </Button>
+            </Paper>
+          </Box>
+          
+          {/* Doctor Approvals */}
+
           {/* Approvals and Denials */}
+ main
           <Box sx={{ flex: '1 1 250px' }}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Upload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
@@ -631,7 +694,7 @@ export default function AdminDashboard() {
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CheckCircle color="success" />
-            Master CSV Upload Results
+            Upload Results
           </Box>
         </DialogTitle>
         <DialogContent>
