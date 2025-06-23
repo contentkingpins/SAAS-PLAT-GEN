@@ -296,14 +296,6 @@ export async function GET(
         dateOfBirth: updatedLead!.dateOfBirth.toISOString(),
         phone: updatedLead!.phone,
         
-        // Additional demographics
-        middleInitial: updatedLead!.middleInitial,
-        gender: updatedLead!.gender,
-        ethnicity: updatedLead!.ethnicity,
-        maritalStatus: updatedLead!.maritalStatus,
-        height: updatedLead!.height,
-        weight: updatedLead!.weight,
-        
         // Address
         address: {
           street: updatedLead!.street,
@@ -311,23 +303,6 @@ export async function GET(
           state: updatedLead!.state,
           zipCode: updatedLead!.zipCode,
         },
-        
-        // Insurance information
-        insurance: {
-          primaryCompany: updatedLead!.primaryInsuranceCompany,
-          primaryPolicyNumber: updatedLead!.primaryPolicyNumber,
-        },
-        
-        // Medical history
-        medicalHistory: {
-          past: updatedLead!.medicalHistory,
-          surgical: updatedLead!.surgicalHistory,
-          medications: updatedLead!.currentMedications,
-          conditions: updatedLead!.conditionsHistory,
-        },
-        
-        // Family history (already parsed by Prisma)
-        familyHistory: updatedLead!.familyHistory || null,
         
         vendorId: updatedLead!.vendorId,
         vendorCode: updatedLead!.vendorCode,
