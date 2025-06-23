@@ -160,16 +160,6 @@ export async function POST(request: NextRequest) {
         const state = row['STATE'] || 'Unknown';  
         const zipCode = row['ZIP'] || '00000';
 
-        // Debug logging
-        console.log(`Processing row ${rowNumber}:`, {
-          firstName,
-          lastName,
-          phone,
-          mbi,
-          testType,
-          address
-        });
-
         // Validate required fields (relaxed for your CSV format)
         if (!firstName || !lastName || !phone) {
           results.errors.push({
@@ -180,24 +170,42 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Handle missing address fields
-        let finalAddress = address;
-        let finalCity = city;
-        let finalState = state;
-        let finalZipCode = zipCode;
+        // Process phone and validate
+        const cleanPhone = normalizePhone(phone);
+        if (!cleanPhone || cleanPhone.length < 10) {
+          results.errors.push({
+            row: rowNumber,
+            error: 'Invalid phone number - must be at least 10 digits',
+            data: { phone, cleanPhone }
+          });
+          continue;
+        }
 
-        // If no proper address, create defaults to satisfy database requirements
-        if (!finalAddress || finalAddress === '123 Main St') {
-          finalAddress = `Address for ${firstName} ${lastName}`;
-        }
-        if (finalCity === 'Unknown') {
-          finalCity = 'City Unknown';
-        }
-        if (finalState === 'Unknown') {
-          finalState = 'ST';
-        }
-        if (finalZipCode === '00000') {
-          finalZipCode = '12345';
+        // Handle missing address fields with better defaults
+        let finalAddress = address && address.trim() ? address.trim() : `Address for ${firstName} ${lastName}`;
+        let finalCity = city && city.trim() && city !== 'Unknown' ? city.trim() : 'City Unknown';
+        let finalState = state && state.trim() && state !== 'Unknown' ? state.trim() : 'ST';
+        let finalZipCode = zipCode && zipCode.trim() && zipCode !== '00000' ? zipCode.trim() : '12345';
+
+        // Ensure address fields are not empty
+        if (!finalAddress) finalAddress = `Address for ${firstName} ${lastName}`;
+        if (!finalCity) finalCity = 'City Unknown';
+        if (!finalState) finalState = 'ST';
+        if (!finalZipCode) finalZipCode = '12345';
+
+        // Debug logging for first few rows
+        if (i < 3) {
+          console.log(`✅ Processing row ${rowNumber}:`, {
+            firstName,
+            lastName,
+            phone: phone ? `${phone} -> ${cleanPhone}` : 'empty',
+            mbi,
+            testType,
+            address: finalAddress,
+            city: finalCity,
+            state: finalState,
+            zipCode: finalZipCode
+          });
         }
 
         // Map test types from your CSV format
@@ -244,8 +252,7 @@ export async function POST(request: NextRequest) {
           vendorMap.set(finalVendorCode, vendorId);
         }
 
-        // Process phone and date
-        const cleanPhone = normalizePhone(phone);
+        // Process date
         const parsedDateOfBirth = parseDate(dateOfBirth);
 
         // Check for existing lead by name, DOB, and phone
@@ -287,8 +294,20 @@ export async function POST(request: NextRequest) {
           });
           results.updated++;
         } else {
-          // Create new lead with MBI
-          const finalMbi = mbi ? mbi.trim() : generateMBI();
+          // Create new lead with MBI - ensure uniqueness
+          let finalMbi = mbi ? mbi.trim() : generateMBI();
+          
+          // Check for MBI uniqueness and generate new one if needed
+          let mbiExists = await prisma.lead.findUnique({
+            where: { mbi: finalMbi }
+          });
+          
+          while (mbiExists) {
+            finalMbi = generateMBI();
+            mbiExists = await prisma.lead.findUnique({
+              where: { mbi: finalMbi }
+            });
+          }
           
           await prisma.lead.create({
             data: {
@@ -321,9 +340,23 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Log final results
+    console.log('🎉 Bulk lead upload completed:', {
+      totalRows: csvData.length,
+      processed: results.processed,
+      created: results.created,
+      updated: results.updated,
+      errors: results.errors.length,
+      fileUploadId: fileUpload.id
+    });
+
+    if (results.errors.length > 0) {
+      console.log('❌ First few errors:', results.errors.slice(0, 5));
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Bulk lead CSV processed successfully`,
+      message: `Successfully processed ${results.processed} records. Created: ${results.created}, Updated: ${results.updated}, Errors: ${results.errors.length}`,
       results: {
         totalRows: csvData.length,
         processed: results.processed,
