@@ -120,6 +120,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get column names for debugging
+    const columnNames = Object.keys(csvData[0] || {});
+    console.log(`📋 CSV column names found:`, columnNames);
+
     console.log(`🔄 Starting bulk lead upload with ${csvData.length} rows`);
 
     // Create file upload record
@@ -144,77 +148,171 @@ export async function POST(request: NextRequest) {
     // Vendor map for caching
     const vendorMap = new Map<string, string>();
     
+    // Helper function to find column value with smart mapping
+    function findColumnValue(row: any, possibleNames: string[]): string {
+      for (const name of possibleNames) {
+        // Try exact match (case-sensitive)
+        if (row[name] !== undefined && row[name] !== null) {
+          return String(row[name]).trim();
+        }
+        
+        // Try case-insensitive match
+        const keys = Object.keys(row);
+        const matchingKey = keys.find(key => 
+          key.toLowerCase() === name.toLowerCase()
+        );
+        if (matchingKey && row[matchingKey] !== undefined && row[matchingKey] !== null) {
+          return String(row[matchingKey]).trim();
+        }
+        
+        // Try partial match (case-insensitive)
+        const partialMatch = keys.find(key => 
+          key.toLowerCase().includes(name.toLowerCase()) || 
+          name.toLowerCase().includes(key.toLowerCase())
+        );
+        if (partialMatch && row[partialMatch] !== undefined && row[partialMatch] !== null) {
+          return String(row[partialMatch]).trim();
+        }
+      }
+      return '';
+    }
+    
     // Process each row
     for (let i = 0; i < csvData.length; i++) {
       const row = csvData[i];
       const rowNumber = i + 2; // Account for header row
       
       try {
-        // Smart column mapping for your specific CSV format
+        // Smart column mapping with extensive variations
         const firstName = ensureNonEmptyString(
-          row['Patient First Na'] || row['FIRST_NAME'] || row['First Name'] || row['firstName'],
+          findColumnValue(row, [
+            'firstName', 'first_name', 'FIRST_NAME', 'First Name', 'firstname',
+            'Patient First Na', 'Patient First Name', 'F_NAME', 'fname',
+            'FNAME', 'first', 'FIRST', 'given_name', 'givenName'
+          ]),
           ''
         );
+        
         const lastName = ensureNonEmptyString(
-          row['Patient Last Na'] || row['LAST_NAME'] || row['Last Name'] || row['lastName'],
+          findColumnValue(row, [
+            'lastName', 'last_name', 'LAST_NAME', 'Last Name', 'lastname',
+            'Patient Last Na', 'Patient Last Name', 'L_NAME', 'lname',
+            'LNAME', 'last', 'LAST', 'surname', 'family_name', 'familyName'
+          ]),
           ''
         );
+        
         const phone = ensureNonEmptyString(
-          row['Phone Number:'] || row['PHONE'] || row['Phone'] || row['phone'],
+          findColumnValue(row, [
+            'phone', 'PHONE', 'Phone', 'phoneNumber', 'phone_number',
+            'Phone Number', 'Phone Number:', 'PHONE_NUMBER', 'tel',
+            'telephone', 'mobile', 'cell', 'cellphone', 'contact_number',
+            'contact', 'ph', 'PH'
+          ]),
           ''
         );
+        
         const mbi = ensureNonEmptyString(
-          row['Medicare #:'] || row['MBI'] || row['mbi'] || row['MEDICARE_ID'],
+          findColumnValue(row, [
+            'mbi', 'MBI', 'medicare', 'MEDICARE', 'Medicare #', 'Medicare #:',
+            'medicare_id', 'MEDICARE_ID', 'medicare_number', 'MEDICARE_NUMBER',
+            'medicareId', 'medicareNumber'
+          ]),
           ''
         );
+        
         const email = ensureNonEmptyString(
-          row['EMAIL'] || row['Email'] || row['email'],
+          findColumnValue(row, [
+            'email', 'EMAIL', 'Email', 'e_mail', 'E_MAIL', 'E-mail',
+            'email_address', 'EMAIL_ADDRESS', 'emailAddress'
+          ]),
           ''
         );
+        
         const dateOfBirth = ensureNonEmptyString(
-          row['Date Of Birth'] || row['DOB'] || row['dateOfBirth'],
+          findColumnValue(row, [
+            'dateOfBirth', 'date_of_birth', 'DOB', 'dob', 'Date Of Birth',
+            'birthdate', 'birth_date', 'BIRTH_DATE', 'birthday', 'BIRTHDAY'
+          ]),
           ''
         );
+        
         const testType = ensureNonEmptyString(
-          row['Test :'] || row['TEST_TYPE'] || row['Test Type'],
+          findColumnValue(row, [
+            'testType', 'test_type', 'TEST_TYPE', 'Test Type', 'Test :',
+            'test', 'TEST', 'type', 'TYPE'
+          ]),
           'IMMUNE'
         );
+        
         const vendorCode = ensureNonEmptyString(
-          row['Platform:'] || row['VENDOR_CODE'] || row['Vendor Code'],
+          findColumnValue(row, [
+            'vendorCode', 'vendor_code', 'VENDOR_CODE', 'Vendor Code',
+            'Platform:', 'platform', 'PLATFORM', 'vendor', 'VENDOR'
+          ]),
           ''
         );
+        
         const agentName = ensureNonEmptyString(
-          row['Agent Name:'] || row['AGENT'] || row['Agent'],
+          findColumnValue(row, [
+            'agentName', 'agent_name', 'AGENT_NAME', 'Agent Name', 'Agent Name:',
+            'agent', 'AGENT', 'representative', 'rep'
+          ]),
           ''
         );
+        
         const lab = ensureNonEmptyString(
-          row['Lab:'] || row['LAB'] || row['Lab'],
+          findColumnValue(row, [
+            'lab', 'LAB', 'Lab', 'Lab:', 'laboratory', 'LABORATORY'
+          ]),
           ''
         );
+        
         const gender = ensureNonEmptyString(
-          row['Gender'] || row['GENDER'],
+          findColumnValue(row, [
+            'gender', 'GENDER', 'Gender', 'sex', 'SEX', 'Sex'
+          ]),
           ''
         );
+        
         const rejectionReason = ensureNonEmptyString(
-          row['REJECTION REASON:'] || row['REJECTION_REASON'],
+          findColumnValue(row, [
+            'rejectionReason', 'rejection_reason', 'REJECTION_REASON',
+            'REJECTION REASON:', 'rejection', 'REJECTION'
+          ]),
           ''
         );
 
-        // Handle address with better defaults
+        // Handle address with extensive mapping
         const address = ensureNonEmptyString(
-          row['ADDRESS'] || row['Patient Comple'],
+          findColumnValue(row, [
+            'address', 'ADDRESS', 'Address', 'street', 'STREET', 'Street',
+            'Patient Comple', 'street_address', 'STREET_ADDRESS',
+            'address1', 'ADDRESS1', 'addr', 'ADDR'
+          ]),
           '123 Main St'
         );
+        
         const city = ensureNonEmptyString(
-          row['CITY'],
+          findColumnValue(row, [
+            'city', 'CITY', 'City', 'town', 'TOWN', 'Town'
+          ]),
           'Unknown City'
         );
+        
         const state = ensureNonEmptyString(
-          row['STATE'],
+          findColumnValue(row, [
+            'state', 'STATE', 'State', 'province', 'PROVINCE',
+            'st', 'ST'
+          ]),
           'ST'
         );
+        
         const zipCode = ensureNonEmptyString(
-          row['ZIP'],
+          findColumnValue(row, [
+            'zipCode', 'zip_code', 'ZIP_CODE', 'Zip Code', 'zip', 'ZIP',
+            'postal_code', 'POSTAL_CODE', 'postalCode'
+          ]),
           '12345'
         );
 
@@ -222,8 +320,13 @@ export async function POST(request: NextRequest) {
         if (!firstName || !lastName || !phone) {
           results.errors.push({
             row: rowNumber,
-            error: 'Missing required fields: firstName, lastName, phone',
-            data: { firstName, lastName, phone }
+            error: `Missing required fields: ${!firstName ? 'firstName ' : ''}${!lastName ? 'lastName ' : ''}${!phone ? 'phone' : ''}`,
+            data: { 
+              firstName_found: firstName, 
+              lastName_found: lastName, 
+              phone_found: phone,
+              available_columns: Object.keys(row)
+            }
           });
           continue;
         }
