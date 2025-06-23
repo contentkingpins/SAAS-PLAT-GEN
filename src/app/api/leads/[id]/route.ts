@@ -35,31 +35,12 @@ const leadUpdateSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   phone: z.string().optional(),
-  middleInitial: z.string().optional(),
-  gender: z.string().optional(),
-  ethnicity: z.string().optional(),
-  maritalStatus: z.string().optional(),
-  height: z.string().optional(),
-  weight: z.string().optional(),
   
   // Address fields
   street: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   zipCode: z.string().optional(),
-  
-  // Insurance fields
-  primaryInsuranceCompany: z.string().optional(),
-  primaryPolicyNumber: z.string().optional(),
-  
-  // Medical history fields
-  medicalHistory: z.string().optional(),
-  surgicalHistory: z.string().optional(),
-  currentMedications: z.string().optional(),
-  conditionsHistory: z.string().optional(),
-  
-  // Family history field (JSON)
-  familyHistory: z.any().optional(),
 }).partial();
 
 // GET /api/leads/[id] - Get lead with alert checking
@@ -571,14 +552,6 @@ export async function PATCH(
         dateOfBirth: updatedLead.dateOfBirth.toISOString(),
         phone: updatedLead.phone,
         
-        // Additional demographics
-        middleInitial: (updatedLead as any).middleInitial || null,
-        gender: (updatedLead as any).gender || null,
-        ethnicity: (updatedLead as any).ethnicity || null,
-        maritalStatus: (updatedLead as any).maritalStatus || null,
-        height: (updatedLead as any).height || null,
-        weight: (updatedLead as any).weight || null,
-        
         // Address
         address: {
           street: updatedLead.street,
@@ -586,23 +559,6 @@ export async function PATCH(
           state: updatedLead.state,
           zipCode: updatedLead.zipCode,
         },
-        
-        // Insurance information
-        insurance: {
-          primaryCompany: (updatedLead as any).primaryInsuranceCompany || null,
-          primaryPolicyNumber: (updatedLead as any).primaryPolicyNumber || null,
-        },
-        
-        // Medical history
-        medicalHistory: {
-          past: (updatedLead as any).medicalHistory || null,
-          surgical: (updatedLead as any).surgicalHistory || null,
-          medications: (updatedLead as any).currentMedications || null,
-          conditions: (updatedLead as any).conditionsHistory || null,
-        },
-        
-        // Family history (already parsed by Prisma)
-        familyHistory: updatedLead.familyHistory || null,
         
         vendorId: updatedLead.vendorId,
         vendorCode: updatedLead.vendorCode,

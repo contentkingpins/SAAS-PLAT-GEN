@@ -14,15 +14,7 @@ const leadSubmissionSchema = z.object({
   vendorCode: z.string().min(1, 'Vendor code is required'),
   vendorId: z.string().min(1, 'Vendor ID is required'),
 
-  // Demographics - now required (except middleInitial)
-  middleInitial: z.string().optional(),
-  primaryInsuranceCompany: z.string().min(1, 'Primary insurance company is required'),
-  primaryPolicyNumber: z.string().min(1, 'Primary policy number is required'),
-  gender: z.string().min(1, 'Gender is required'),
-  ethnicity: z.string().min(1, 'Ethnicity is required'),
-  maritalStatus: z.string().min(1, 'Marital status is required'),
-  height: z.string().min(1, 'Height is required'),
-  weight: z.string().min(1, 'Weight is required'),
+
   
   // Address - now required
   street: z.string().min(1, 'Street address is required'),
@@ -31,56 +23,7 @@ const leadSubmissionSchema = z.object({
   zipCode: z.string().min(5, 'Zip code is required'),
   testType: z.enum(['immune', 'neuro']).optional(),
 
-  // Additional comprehensive data - now required for medical history
-  additionalData: z.object({
-    primaryCareProvider: z.object({
-      name: z.string().optional(),
-      phone: z.string().optional(),
-      address: z.string().optional(),
-    }).optional(),
-    healthAssessment: z.object({
-      generalHealth: z.string().optional(),
-      sleepHours: z.string().optional(),
-      exercise: z.string().optional(),
-      stressProblem: z.string().optional(),
-      specialDiet: z.string().optional(),
-      stressHandling: z.string().optional(),
-      socialSupport: z.string().optional(),
-      lifeSatisfaction: z.string().optional(),
-    }).optional(),
-    screenings: z.object({
-      prostate: z.boolean().optional(),
-      colonoscopy: z.boolean().optional(),
-      dexaScan: z.boolean().optional(),
-      colorectal: z.boolean().optional(),
-      mammogram: z.boolean().optional(),
-      hivScreen: z.boolean().optional(),
-      papSmear: z.boolean().optional(),
-    }).optional(),
-    vaccinations: z.object({
-      flu: z.boolean().optional(),
-      pneumococcal: z.boolean().optional(),
-      covid: z.boolean().optional(),
-      shingles: z.boolean().optional(),
-      hepB: z.boolean().optional(),
-    }).optional(),
-    medicalHistory: z.object({
-      past: z.string().min(1, 'Medical history is required'),
-      surgical: z.string().min(1, 'Surgical history is required'),
-      medications: z.string().min(1, 'Current medications are required'),
-      conditions: z.string().min(1, 'Conditions history is required'),
-    }),
-    substanceUse: z.object({
-      tobacco: z.string().optional(),
-      alcohol: z.string().optional(),
-      drugs: z.string().optional(),
-    }).optional(),
-    familyHistory: z.array(z.object({
-      relation: z.string().min(1, 'Family member relation is required'),
-      conditions: z.string().min(1, 'Family member conditions are required'),
-      ageOfDiagnosis: z.string().min(1, 'Family member age of diagnosis is required'),
-    })).min(2, 'At least 2 family members are required'),
-  }),
+
 });
 
 export async function POST(request: NextRequest) {
@@ -163,35 +106,14 @@ export async function POST(request: NextRequest) {
         mbi: data.mbi,
         firstName: data.firstName,
         lastName: data.lastName,
-        middleInitial: data.middleInitial || '',
         dateOfBirth: new Date(data.dateOfBirth),
         phone: data.phone,
-        
-        // Demographics
-        gender: data.gender || '',
-        ethnicity: data.ethnicity || '',
-        maritalStatus: data.maritalStatus || '',
-        height: data.height || '',
-        weight: data.weight || '',
         
         // Address
         street: data.street || '',
         city: data.city || '',
         state: data.state || '',
         zipCode: data.zipCode || '',
-        
-        // Insurance
-        primaryInsuranceCompany: data.primaryInsuranceCompany || '',
-        primaryPolicyNumber: data.primaryPolicyNumber || '',
-        
-        // Medical history
-        medicalHistory: data.additionalData?.medicalHistory?.past || '',
-        surgicalHistory: data.additionalData?.medicalHistory?.surgical || '',
-        currentMedications: data.additionalData?.medicalHistory?.medications || '',
-        conditionsHistory: data.additionalData?.medicalHistory?.conditions || '',
-        
-        // Family history as JSON
-        familyHistory: data.additionalData?.familyHistory || [],
         
         // Vendor info
         vendorId: vendor.id,
@@ -221,10 +143,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Log additional comprehensive data for future processing
-    if (data.additionalData) {
-      console.log(`Comprehensive data for lead ${newLead.id}:`, JSON.stringify(data.additionalData, null, 2));
-    }
+
 
     // Log the lead creation for tracking
     console.log(`✅ New lead submitted successfully: ${newLead.id} by vendor ${vendor.code}`);
