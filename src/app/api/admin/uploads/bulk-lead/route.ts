@@ -94,6 +94,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check file size (limit to 10MB to prevent timeouts)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: 'File too large. Maximum size is 10MB. Please split large files into smaller chunks.' },
+        { status: 400 }
+      );
+    }
+
     // Read file content
     const fileContent = await file.text();
     
@@ -120,11 +129,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Limit row count to prevent timeouts
+    const maxRows = 5000;
+    if (csvData.length > maxRows) {
+      return NextResponse.json(
+        { error: `Too many rows (${csvData.length}). Maximum is ${maxRows} rows per upload. Please split your file into smaller chunks.` },
+        { status: 400 }
+      );
+    }
+
     // Get column names for debugging
     const columnNames = Object.keys(csvData[0] || {});
     console.log(`📋 CSV column names found:`, columnNames);
-
-    console.log(`🔄 Starting bulk lead upload with ${csvData.length} rows`);
+    console.log(`🔄 Starting optimized bulk lead upload with ${csvData.length} rows`);
 
     // Create file upload record
     const fileUpload = await prisma.fileUpload.create({
@@ -145,8 +162,24 @@ export async function POST(request: NextRequest) {
       errors: [] as Array<{ row: number; error: string; data?: any }>
     };
 
-    // Vendor map for caching
-    const vendorMap = new Map<string, string>();
+    // Pre-fetch BULK_UPLOAD vendor to avoid repeated lookups
+    let bulkUploadVendor = await prisma.vendor.findFirst({
+      where: { code: 'BULK_UPLOAD' }
+    });
+
+    if (!bulkUploadVendor) {
+      bulkUploadVendor = await prisma.vendor.create({
+        data: {
+          name: 'BULK_UPLOAD',
+          code: 'BULK_UPLOAD',
+          staticCode: 'BULK_UPLOAD',
+          isActive: true
+        }
+      });
+      console.log('✅ Created BULK_UPLOAD vendor for tracking bulk imports');
+    }
+
+    const vendorId = bulkUploadVendor.id;
     
     // Helper function to find column value with smart mapping
     function findColumnValue(row: any, possibleNames: string[]): string {
@@ -176,308 +209,290 @@ export async function POST(request: NextRequest) {
       }
       return '';
     }
+
+    // OPTIMIZED: Process in batches to prevent timeouts
+    const BATCH_SIZE = 100;
+    const totalBatches = Math.ceil(csvData.length / BATCH_SIZE);
     
-    // Process each row
-    for (let i = 0; i < csvData.length; i++) {
-      const row = csvData[i];
-      const rowNumber = i + 2; // Account for header row
+    console.log(`📦 Processing ${csvData.length} rows in ${totalBatches} batches of ${BATCH_SIZE}`);
+
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const startIdx = batchIndex * BATCH_SIZE;
+      const endIdx = Math.min(startIdx + BATCH_SIZE, csvData.length);
+      const batch = csvData.slice(startIdx, endIdx);
       
-      try {
-        // Smart column mapping with extensive variations
-        const firstName = ensureNonEmptyString(
-          findColumnValue(row, [
-            'firstName', 'first_name', 'FIRST_NAME', 'First Name', 'firstname',
-            'Patient First Na', 'Patient First Name', 'F_NAME', 'fname',
-            'FNAME', 'first', 'FIRST', 'given_name', 'givenName'
-          ]),
-          ''
-        );
-        
-        const lastName = ensureNonEmptyString(
-          findColumnValue(row, [
-            'lastName', 'last_name', 'LAST_NAME', 'Last Name', 'lastname',
-            'Patient Last Na', 'Patient Last Name', 'L_NAME', 'lname',
-            'LNAME', 'last', 'LAST', 'surname', 'family_name', 'familyName'
-          ]),
-          ''
-        );
-        
-        const phone = ensureNonEmptyString(
-          findColumnValue(row, [
-            'phone', 'PHONE', 'Phone', 'phoneNumber', 'phone_number',
-            'Phone Number', 'Phone Number:', 'PHONE_NUMBER', 'tel',
-            'telephone', 'mobile', 'cell', 'cellphone', 'contact_number',
-            'contact', 'ph', 'PH'
-          ]),
-          ''
-        );
-        
-        const mbi = ensureNonEmptyString(
-          findColumnValue(row, [
-            'mbi', 'MBI', 'medicare', 'MEDICARE', 'Medicare #', 'Medicare #:',
-            'medicare_id', 'MEDICARE_ID', 'medicare_number', 'MEDICARE_NUMBER',
-            'medicareId', 'medicareNumber'
-          ]),
-          ''
-        );
-        
-        const email = ensureNonEmptyString(
-          findColumnValue(row, [
-            'email', 'EMAIL', 'Email', 'e_mail', 'E_MAIL', 'E-mail',
-            'email_address', 'EMAIL_ADDRESS', 'emailAddress'
-          ]),
-          ''
-        );
-        
-        const dateOfBirth = ensureNonEmptyString(
-          findColumnValue(row, [
-            'dateOfBirth', 'date_of_birth', 'DOB', 'dob', 'Date Of Birth',
-            'birthdate', 'birth_date', 'BIRTH_DATE', 'birthday', 'BIRTHDAY'
-          ]),
-          ''
-        );
-        
-        const testType = ensureNonEmptyString(
-          findColumnValue(row, [
-            'testType', 'test_type', 'TEST_TYPE', 'Test Type', 'Test :',
-            'test', 'TEST', 'type', 'TYPE'
-          ]),
-          'IMMUNE'
-        );
-        
-        const vendorCode = ensureNonEmptyString(
-          findColumnValue(row, [
-            'vendorCode', 'vendor_code', 'VENDOR_CODE', 'Vendor Code',
-            'Platform:', 'platform', 'PLATFORM', 'vendor', 'VENDOR'
-          ]),
-          ''
-        );
-        
-        const agentName = ensureNonEmptyString(
-          findColumnValue(row, [
-            'agentName', 'agent_name', 'AGENT_NAME', 'Agent Name', 'Agent Name:',
-            'agent', 'AGENT', 'representative', 'rep'
-          ]),
-          ''
-        );
-        
-        const lab = ensureNonEmptyString(
-          findColumnValue(row, [
-            'lab', 'LAB', 'Lab', 'Lab:', 'laboratory', 'LABORATORY'
-          ]),
-          ''
-        );
-        
-        const gender = ensureNonEmptyString(
-          findColumnValue(row, [
-            'gender', 'GENDER', 'Gender', 'sex', 'SEX', 'Sex'
-          ]),
-          ''
-        );
-        
-        const rejectionReason = ensureNonEmptyString(
-          findColumnValue(row, [
-            'rejectionReason', 'rejection_reason', 'REJECTION_REASON',
-            'REJECTION REASON:', 'rejection', 'REJECTION'
-          ]),
-          ''
-        );
+      console.log(`📦 Processing batch ${batchIndex + 1}/${totalBatches} (rows ${startIdx + 1}-${endIdx})`);
 
-        // Handle address with extensive mapping
-        const address = ensureNonEmptyString(
-          findColumnValue(row, [
-            'address', 'ADDRESS', 'Address', 'street', 'STREET', 'Street',
-            'Patient Comple', 'street_address', 'STREET_ADDRESS',
-            'address1', 'ADDRESS1', 'addr', 'ADDR'
-          ]),
-          '123 Main St'
-        );
+      // Process batch
+      const batchLeads = [];
+      const batchPhones = [];
+      
+      for (let i = 0; i < batch.length; i++) {
+        const row = batch[i];
+        const rowNumber = startIdx + i + 2; // Account for header row
         
-        const city = ensureNonEmptyString(
-          findColumnValue(row, [
-            'city', 'CITY', 'City', 'town', 'TOWN', 'Town'
-          ]),
-          'Unknown City'
-        );
-        
-        const state = ensureNonEmptyString(
-          findColumnValue(row, [
-            'state', 'STATE', 'State', 'province', 'PROVINCE',
-            'st', 'ST'
-          ]),
-          'ST'
-        );
-        
-        const zipCode = ensureNonEmptyString(
-          findColumnValue(row, [
-            'zipCode', 'zip_code', 'ZIP_CODE', 'Zip Code', 'zip', 'ZIP',
-            'postal_code', 'POSTAL_CODE', 'postalCode'
-          ]),
-          '12345'
-        );
+        try {
+          // Smart column mapping with extensive variations
+          const firstName = ensureNonEmptyString(
+            findColumnValue(row, [
+              'firstName', 'first_name', 'FIRST_NAME', 'First Name', 'firstname',
+              'Patient First Na', 'Patient First Name', 'F_NAME', 'fname',
+              'FNAME', 'first', 'FIRST', 'given_name', 'givenName'
+            ]),
+            ''
+          );
+          
+          const lastName = ensureNonEmptyString(
+            findColumnValue(row, [
+              'lastName', 'last_name', 'LAST_NAME', 'Last Name', 'lastname',
+              'Patient Last Na', 'Patient Last Name', 'L_NAME', 'lname',
+              'LNAME', 'last', 'LAST', 'surname', 'family_name', 'familyName'
+            ]),
+            ''
+          );
+          
+          const phone = ensureNonEmptyString(
+            findColumnValue(row, [
+              'phone', 'PHONE', 'Phone', 'phoneNumber', 'phone_number',
+              'Phone Number', 'Phone Number:', 'PHONE_NUMBER', 'tel',
+              'telephone', 'mobile', 'cell', 'cellphone', 'contact_number',
+              'contact', 'ph', 'PH'
+            ]),
+            ''
+          );
+          
+          const mbi = ensureNonEmptyString(
+            findColumnValue(row, [
+              'mbi', 'MBI', 'medicare', 'MEDICARE', 'Medicare #', 'Medicare #:',
+              'medicare_id', 'MEDICARE_ID', 'medicare_number', 'MEDICARE_NUMBER',
+              'medicareId', 'medicareNumber'
+            ]),
+            ''
+          );
+          
+          const dateOfBirth = ensureNonEmptyString(
+            findColumnValue(row, [
+              'dateOfBirth', 'date_of_birth', 'DOB', 'dob', 'Date Of Birth',
+              'birthdate', 'birth_date', 'BIRTH_DATE', 'birthday', 'BIRTHDAY'
+            ]),
+            ''
+          );
+          
+          const testType = ensureNonEmptyString(
+            findColumnValue(row, [
+              'testType', 'test_type', 'TEST_TYPE', 'Test Type', 'Test :',
+              'test', 'TEST', 'type', 'TYPE'
+            ]),
+            'IMMUNE'
+          );
 
-        // Validate required fields
-        if (!firstName || !lastName || !phone) {
-          results.errors.push({
-            row: rowNumber,
-            error: `Missing required fields: ${!firstName ? 'firstName ' : ''}${!lastName ? 'lastName ' : ''}${!phone ? 'phone' : ''}`,
-            data: { 
-              firstName_found: firstName, 
-              lastName_found: lastName, 
-              phone_found: phone,
-              available_columns: Object.keys(row)
-            }
-          });
-          continue;
-        }
+          // Handle address with extensive mapping
+          const address = ensureNonEmptyString(
+            findColumnValue(row, [
+              'address', 'ADDRESS', 'Address', 'street', 'STREET', 'Street',
+              'Patient Comple', 'street_address', 'STREET_ADDRESS',
+              'address1', 'ADDRESS1', 'addr', 'ADDR'
+            ]),
+            '123 Main St'
+          );
+          
+          const city = ensureNonEmptyString(
+            findColumnValue(row, [
+              'city', 'CITY', 'City', 'town', 'TOWN', 'Town'
+            ]),
+            'Unknown City'
+          );
+          
+          const state = ensureNonEmptyString(
+            findColumnValue(row, [
+              'state', 'STATE', 'State', 'province', 'PROVINCE',
+              'st', 'ST'
+            ]),
+            'ST'
+          );
+          
+          const zipCode = ensureNonEmptyString(
+            findColumnValue(row, [
+              'zipCode', 'zip_code', 'ZIP_CODE', 'Zip Code', 'zip', 'ZIP',
+              'postal_code', 'POSTAL_CODE', 'postalCode'
+            ]),
+            '12345'
+          );
 
-        // Process phone and validate
-        const cleanPhone = normalizePhone(phone);
-        if (!cleanPhone || cleanPhone.length < 10) {
-          results.errors.push({
-            row: rowNumber,
-            error: 'Invalid phone number - must be at least 10 digits',
-            data: { phone, cleanPhone }
-          });
-          continue;
-        }
-
-        // Ensure all address fields are non-empty
-        const finalAddress = ensureNonEmptyString(address, `${firstName} ${lastName} Address`);
-        const finalCity = ensureNonEmptyString(city, 'Unknown City');
-        const finalState = ensureNonEmptyString(state, 'ST');
-        const finalZipCode = ensureNonEmptyString(zipCode, '12345');
-
-        // Debug logging for first few rows
-        if (i < 3) {
-          console.log(`✅ Processing row ${rowNumber}:`, {
-            firstName,
-            lastName,
-            phone: phone ? `${phone} -> ${cleanPhone}` : 'empty',
-            mbi,
-            testType,
-            address: finalAddress,
-            city: finalCity,
-            state: finalState,
-            zipCode: finalZipCode
-          });
-        }
-
-        // Map test types from your CSV format
-        let finalTestType = 'IMMUNE';
-        if (testType) {
-          const testTypeLower = testType.toLowerCase();
-          if (testTypeLower.includes('neuro') || testTypeLower.includes('neurological')) {
-            finalTestType = 'NEURO';
-          } else if (testTypeLower.includes('immune') || testTypeLower.includes('immunological')) {
-            finalTestType = 'IMMUNE';
-          }
-        }
-
-        // Handle vendor - ALL bulk uploads use "BULK_UPLOAD" vendor for tracking
-        let vendorId = '';
-        const finalVendorCode = 'BULK_UPLOAD';
-        
-        if (vendorMap.has(finalVendorCode)) {
-          vendorId = vendorMap.get(finalVendorCode)!;
-        } else {
-          // Find or create the BULK_UPLOAD vendor
-          let vendor = await prisma.vendor.findFirst({
-            where: { code: 'BULK_UPLOAD' }
-          });
-
-          // Create BULK_UPLOAD vendor if not found
-          if (!vendor) {
-            vendor = await prisma.vendor.create({
-              data: {
-                name: 'BULK_UPLOAD',
-                code: 'BULK_UPLOAD',
-                staticCode: 'BULK_UPLOAD',
-                isActive: true
+          // Validate required fields
+          if (!firstName || !lastName || !phone) {
+            results.errors.push({
+              row: rowNumber,
+              error: `Missing required fields: ${!firstName ? 'firstName ' : ''}${!lastName ? 'lastName ' : ''}${!phone ? 'phone' : ''}`,
+              data: { 
+                firstName_found: firstName, 
+                lastName_found: lastName, 
+                phone_found: phone,
+                available_columns: Object.keys(row)
               }
             });
-            console.log('✅ Created BULK_UPLOAD vendor for tracking bulk imports');
+            continue;
           }
 
-          vendorId = vendor.id;
-          vendorMap.set(finalVendorCode, vendorId);
+          // Process phone and validate
+          const cleanPhone = normalizePhone(phone);
+          if (!cleanPhone || cleanPhone.length < 10) {
+            results.errors.push({
+              row: rowNumber,
+              error: 'Invalid phone number - must be at least 10 digits',
+              data: { phone, cleanPhone }
+            });
+            continue;
+          }
+
+          // Map test types from your CSV format
+          let finalTestType = 'IMMUNE';
+          if (testType) {
+            const testTypeLower = testType.toLowerCase();
+            if (testTypeLower.includes('neuro') || testTypeLower.includes('neurological')) {
+              finalTestType = 'NEURO';
+            } else if (testTypeLower.includes('immune') || testTypeLower.includes('immunological')) {
+              finalTestType = 'IMMUNE';
+            }
+          }
+
+          // Process date with fallback
+          const parsedDateOfBirth = parseDate(dateOfBirth) || new Date('1950-01-01');
+
+          // Prepare lead data
+          const leadData = {
+            firstName: firstName,
+            lastName: lastName,
+            phone: cleanPhone,
+            street: address,
+            city: city,
+            state: state,
+            zipCode: zipCode,
+            dateOfBirth: parsedDateOfBirth,
+            testType: finalTestType as 'IMMUNE' | 'NEURO',
+            status: 'SUBMITTED' as LeadStatus,
+            vendorId: vendorId,
+            vendorCode: 'BULK_UPLOAD',
+            contactAttempts: 0,
+            mbi: mbi || generateMBI(),
+            rowNumber: rowNumber
+          };
+
+          batchLeads.push(leadData);
+          batchPhones.push(cleanPhone);
+
+        } catch (error: any) {
+          console.error(`❌ Error processing row ${rowNumber}:`, error);
+          results.errors.push({
+            row: rowNumber,
+            error: error.message || 'Unknown error processing row',
+            data: row
+          });
         }
+      }
 
-        // Process date with fallback
-        const parsedDateOfBirth = parseDate(dateOfBirth) || new Date('1950-01-01');
+      if (batchLeads.length === 0) {
+        continue; // Skip empty batch
+      }
 
-        // Check for existing lead by name, DOB, and phone
-        const existingLead = await prisma.lead.findFirst({
-          where: {
-            firstName: { equals: firstName, mode: 'insensitive' },
-            lastName: { equals: lastName, mode: 'insensitive' },
-            phone: cleanPhone
-          }
-        });
+      // OPTIMIZED: Batch check for existing leads
+      const existingLeads = await prisma.lead.findMany({
+        where: {
+          phone: { in: batchPhones }
+        },
+        select: { phone: true, id: true, firstName: true, lastName: true }
+      });
 
-        // Prepare lead data with only fields that exist in the database
-        const leadData = {
-          firstName: firstName,
-          lastName: lastName,
-          phone: cleanPhone,
-          street: finalAddress,
-          city: finalCity,
-          state: finalState,
-          zipCode: finalZipCode,
-          dateOfBirth: parsedDateOfBirth,
-          testType: finalTestType as 'IMMUNE' | 'NEURO',
-          status: 'SUBMITTED' as LeadStatus,
-          vendorId: vendorId,
-          vendorCode: finalVendorCode,
-          contactAttempts: 0
-        };
+      const existingPhoneMap = new Map();
+      existingLeads.forEach(lead => {
+        const key = `${lead.firstName.toLowerCase()}_${lead.lastName.toLowerCase()}_${lead.phone}`;
+        existingPhoneMap.set(key, lead);
+      });
+
+      // OPTIMIZED: Batch operations
+      const leadsToCreate = [];
+      const leadsToUpdate = [];
+
+      for (const leadData of batchLeads) {
+        const key = `${leadData.firstName.toLowerCase()}_${leadData.lastName.toLowerCase()}_${leadData.phone}`;
+        const existingLead = existingPhoneMap.get(key);
 
         if (existingLead) {
-          // Update existing lead
-          await prisma.lead.update({
-            where: { id: existingLead.id },
-            data: {
-              ...leadData,
-              mbi: existingLead.mbi,
-              updatedAt: new Date()
-            }
+          // Update existing
+          leadsToUpdate.push({
+            id: existingLead.id,
+            data: leadData
           });
-          results.updated++;
         } else {
-          // Create new lead with MBI - ensure uniqueness
-          let finalMbi = mbi || generateMBI();
-          
-          // Check for MBI uniqueness and generate new one if needed
-          let mbiExists = await prisma.lead.findUnique({
-            where: { mbi: finalMbi }
-          });
-          
-          while (mbiExists) {
+          // Create new - ensure unique MBI
+          let finalMbi = leadData.mbi;
+          if (!finalMbi || finalMbi === '') {
             finalMbi = generateMBI();
-            mbiExists = await prisma.lead.findUnique({
-              where: { mbi: finalMbi }
-            });
           }
           
-          await prisma.lead.create({
-            data: {
-              ...leadData,
-              mbi: finalMbi
-            }
+          leadsToCreate.push({
+            ...leadData,
+            mbi: finalMbi
           });
-          results.created++;
+        }
+      }
+
+      // OPTIMIZED: Batch create new leads
+      if (leadsToCreate.length > 0) {
+        // Check for MBI conflicts in batch
+        const mbis = leadsToCreate.map(l => l.mbi).filter(mbi => mbi);
+        if (mbis.length > 0) {
+          const existingMbis = await prisma.lead.findMany({
+            where: { mbi: { in: mbis } },
+            select: { mbi: true }
+          });
+          const existingMbiSet = new Set(existingMbis.map(l => l.mbi));
+
+          // Generate new MBIs for conflicts
+          for (const lead of leadsToCreate) {
+            while (existingMbiSet.has(lead.mbi)) {
+              lead.mbi = generateMBI();
+            }
+            existingMbiSet.add(lead.mbi); // Track new MBIs to avoid duplicates within batch
+          }
         }
 
-        results.processed++;
-
-      } catch (error: any) {
-        console.error(`❌ Error processing row ${rowNumber}:`, error);
-        results.errors.push({
-          row: rowNumber,
-          error: error.message || 'Unknown error processing row',
-          data: row
+        await prisma.lead.createMany({
+          data: leadsToCreate.map(({ rowNumber, ...lead }) => lead),
+          skipDuplicates: true
         });
+        results.created += leadsToCreate.length;
+        console.log(`✅ Created ${leadsToCreate.length} new leads in batch ${batchIndex + 1}`);
       }
+
+      // OPTIMIZED: Batch update existing leads
+      if (leadsToUpdate.length > 0) {
+        const updatePromises = leadsToUpdate.map(({ id, data }) =>
+          prisma.lead.update({
+            where: { id },
+            data: {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              phone: data.phone,
+              street: data.street,
+              city: data.city,
+              state: data.state,
+              zipCode: data.zipCode,
+              dateOfBirth: data.dateOfBirth,
+              testType: data.testType,
+              vendorId: data.vendorId,
+              vendorCode: data.vendorCode,
+              updatedAt: new Date()
+            }
+          })
+        );
+
+        await Promise.all(updatePromises);
+        results.updated += leadsToUpdate.length;
+        console.log(`✅ Updated ${leadsToUpdate.length} existing leads in batch ${batchIndex + 1}`);
+      }
+
+      results.processed += batchLeads.length;
     }
 
     // Update file upload record
@@ -491,7 +506,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Log final results
-    console.log('🎉 Bulk lead upload completed:', {
+    console.log('🎉 Optimized bulk lead upload completed:', {
       totalRows: csvData.length,
       processed: results.processed,
       created: results.created,
@@ -506,13 +521,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully processed ${results.processed} records. Created: ${results.created}, Updated: ${results.updated}, Errors: ${results.errors.length}`,
+      message: `Successfully processed ${results.processed} records in ${totalBatches} batches. Created: ${results.created}, Updated: ${results.updated}, Errors: ${results.errors.length}`,
       results: {
         totalRows: csvData.length,
         processed: results.processed,
         created: results.created,
         updated: results.updated,
         errors: results.errors.length,
+        batches: totalBatches,
         fileUploadId: fileUpload.id
       },
       errors: results.errors.slice(0, 10)
