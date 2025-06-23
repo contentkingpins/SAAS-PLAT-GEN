@@ -59,6 +59,14 @@ function generateMBI(): string {
   return mbi;
 }
 
+// Utility function to ensure string is not empty
+function ensureNonEmptyString(value: string | undefined | null, defaultValue: string): string {
+  if (!value || value.trim() === '') {
+    return defaultValue;
+  }
+  return value.trim();
+}
+
 export async function POST(request: NextRequest) {
   // Verify admin authentication
   const authResult = await verifyAdminAuth(request);
@@ -98,6 +106,7 @@ export async function POST(request: NextRequest) {
         trim: true
       });
     } catch (parseError) {
+      console.error('CSV parse error:', parseError);
       return NextResponse.json(
         { error: 'Invalid CSV format', details: parseError },
         { status: 400 }
@@ -110,6 +119,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    console.log(`🔄 Starting bulk lead upload with ${csvData.length} rows`);
 
     // Create file upload record
     const fileUpload = await prisma.fileUpload.create({
@@ -140,27 +151,74 @@ export async function POST(request: NextRequest) {
       
       try {
         // Smart column mapping for your specific CSV format
-        const firstName = row['Patient First Na'] || row['FIRST_NAME'] || row['First Name'] || row['firstName'] || '';
-        const lastName = row['Patient Last Na'] || row['LAST_NAME'] || row['Last Name'] || row['lastName'] || '';
-        const phone = row['Phone Number:'] || row['PHONE'] || row['Phone'] || row['phone'] || '';
-        const mbi = row['Medicare #:'] || row['MBI'] || row['mbi'] || row['MEDICARE_ID'] || '';
-        const email = row['EMAIL'] || row['Email'] || row['email'] || '';
-        const dateOfBirth = row['Date Of Birth'] || row['DOB'] || row['dateOfBirth'] || '';
-        const testType = row['Test :'] || row['TEST_TYPE'] || row['Test Type'] || 'IMMUNE';
-        const vendorCode = row['Platform:'] || row['VENDOR_CODE'] || row['Vendor Code'] || '';
-        const agentName = row['Agent Name:'] || row['AGENT'] || row['Agent'] || '';
-        const lab = row['Lab:'] || row['LAB'] || row['Lab'] || '';
-        const gender = row['Gender'] || row['GENDER'] || '';
-        const patientComplete = row['Patient Comple'] || row['PATIENT_COMPLETE'] || '';
-        const rejectionReason = row['REJECTION REASON:'] || row['REJECTION_REASON'] || '';
+        const firstName = ensureNonEmptyString(
+          row['Patient First Na'] || row['FIRST_NAME'] || row['First Name'] || row['firstName'],
+          ''
+        );
+        const lastName = ensureNonEmptyString(
+          row['Patient Last Na'] || row['LAST_NAME'] || row['Last Name'] || row['lastName'],
+          ''
+        );
+        const phone = ensureNonEmptyString(
+          row['Phone Number:'] || row['PHONE'] || row['Phone'] || row['phone'],
+          ''
+        );
+        const mbi = ensureNonEmptyString(
+          row['Medicare #:'] || row['MBI'] || row['mbi'] || row['MEDICARE_ID'],
+          ''
+        );
+        const email = ensureNonEmptyString(
+          row['EMAIL'] || row['Email'] || row['email'],
+          ''
+        );
+        const dateOfBirth = ensureNonEmptyString(
+          row['Date Of Birth'] || row['DOB'] || row['dateOfBirth'],
+          ''
+        );
+        const testType = ensureNonEmptyString(
+          row['Test :'] || row['TEST_TYPE'] || row['Test Type'],
+          'IMMUNE'
+        );
+        const vendorCode = ensureNonEmptyString(
+          row['Platform:'] || row['VENDOR_CODE'] || row['Vendor Code'],
+          ''
+        );
+        const agentName = ensureNonEmptyString(
+          row['Agent Name:'] || row['AGENT'] || row['Agent'],
+          ''
+        );
+        const lab = ensureNonEmptyString(
+          row['Lab:'] || row['LAB'] || row['Lab'],
+          ''
+        );
+        const gender = ensureNonEmptyString(
+          row['Gender'] || row['GENDER'],
+          ''
+        );
+        const rejectionReason = ensureNonEmptyString(
+          row['REJECTION REASON:'] || row['REJECTION_REASON'],
+          ''
+        );
 
-        // Handle address - you don't have this in your CSV, so we'll use a default or extract from other fields
-        const address = row['ADDRESS'] || row['Patient Comple'] || '123 Main St';
-        const city = row['CITY'] || 'Unknown';
-        const state = row['STATE'] || 'Unknown';  
-        const zipCode = row['ZIP'] || '00000';
+        // Handle address with better defaults
+        const address = ensureNonEmptyString(
+          row['ADDRESS'] || row['Patient Comple'],
+          '123 Main St'
+        );
+        const city = ensureNonEmptyString(
+          row['CITY'],
+          'Unknown City'
+        );
+        const state = ensureNonEmptyString(
+          row['STATE'],
+          'ST'
+        );
+        const zipCode = ensureNonEmptyString(
+          row['ZIP'],
+          '12345'
+        );
 
-        // Validate required fields (relaxed for your CSV format)
+        // Validate required fields
         if (!firstName || !lastName || !phone) {
           results.errors.push({
             row: rowNumber,
@@ -181,17 +239,11 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Handle missing address fields with better defaults
-        let finalAddress = address && address.trim() ? address.trim() : `Address for ${firstName} ${lastName}`;
-        let finalCity = city && city.trim() && city !== 'Unknown' ? city.trim() : 'City Unknown';
-        let finalState = state && state.trim() && state !== 'Unknown' ? state.trim() : 'ST';
-        let finalZipCode = zipCode && zipCode.trim() && zipCode !== '00000' ? zipCode.trim() : '12345';
-
-        // Ensure address fields are not empty
-        if (!finalAddress) finalAddress = `Address for ${firstName} ${lastName}`;
-        if (!finalCity) finalCity = 'City Unknown';
-        if (!finalState) finalState = 'ST';
-        if (!finalZipCode) finalZipCode = '12345';
+        // Ensure all address fields are non-empty
+        const finalAddress = ensureNonEmptyString(address, `${firstName} ${lastName} Address`);
+        const finalCity = ensureNonEmptyString(city, 'Unknown City');
+        const finalState = ensureNonEmptyString(state, 'ST');
+        const finalZipCode = ensureNonEmptyString(zipCode, '12345');
 
         // Debug logging for first few rows
         if (i < 3) {
@@ -221,7 +273,7 @@ export async function POST(request: NextRequest) {
 
         // Handle vendor
         let vendorId = '';
-        let finalVendorCode = vendorCode || lab || 'BULK_UPLOAD';
+        let finalVendorCode = ensureNonEmptyString(vendorCode || lab, 'BULK_UPLOAD');
         
         if (vendorMap.has(finalVendorCode)) {
           vendorId = vendorMap.get(finalVendorCode)!;
@@ -252,34 +304,33 @@ export async function POST(request: NextRequest) {
           vendorMap.set(finalVendorCode, vendorId);
         }
 
-        // Process date
-        const parsedDateOfBirth = parseDate(dateOfBirth);
+        // Process date with fallback
+        const parsedDateOfBirth = parseDate(dateOfBirth) || new Date('1950-01-01');
 
         // Check for existing lead by name, DOB, and phone
         const existingLead = await prisma.lead.findFirst({
           where: {
-            firstName: { equals: firstName.trim(), mode: 'insensitive' },
-            lastName: { equals: lastName.trim(), mode: 'insensitive' },
+            firstName: { equals: firstName, mode: 'insensitive' },
+            lastName: { equals: lastName, mode: 'insensitive' },
             phone: cleanPhone
           }
         });
 
-        // Prepare lead data
+        // Prepare lead data with only fields that exist in the database
         const leadData = {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
+          firstName: firstName,
+          lastName: lastName,
           phone: cleanPhone,
-          street: finalAddress.trim(),
-          city: finalCity.trim(),
-          state: finalState.trim(),
-          zipCode: finalZipCode.trim(),
-          dateOfBirth: parsedDateOfBirth || new Date('1950-01-01'),
+          street: finalAddress,
+          city: finalCity,
+          state: finalState,
+          zipCode: finalZipCode,
+          dateOfBirth: parsedDateOfBirth,
           testType: finalTestType as 'IMMUNE' | 'NEURO',
           status: 'SUBMITTED' as LeadStatus,
           vendorId: vendorId,
           vendorCode: finalVendorCode,
-          contactAttempts: 0,
-          notes: rejectionReason ? `Rejection Reason: ${rejectionReason}` : undefined
+          contactAttempts: 0
         };
 
         if (existingLead) {
@@ -295,7 +346,7 @@ export async function POST(request: NextRequest) {
           results.updated++;
         } else {
           // Create new lead with MBI - ensure uniqueness
-          let finalMbi = mbi ? mbi.trim() : generateMBI();
+          let finalMbi = mbi || generateMBI();
           
           // Check for MBI uniqueness and generate new one if needed
           let mbiExists = await prisma.lead.findUnique({
@@ -321,7 +372,7 @@ export async function POST(request: NextRequest) {
         results.processed++;
 
       } catch (error: any) {
-        console.error(`Error processing row ${rowNumber}:`, error);
+        console.error(`❌ Error processing row ${rowNumber}:`, error);
         results.errors.push({
           row: rowNumber,
           error: error.message || 'Unknown error processing row',
@@ -369,7 +420,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Error processing bulk lead CSV:', error);
+    console.error('❌ Error processing bulk lead CSV:', error);
     return NextResponse.json(
       { error: 'Failed to process bulk lead CSV', details: error.message },
       { status: 500 }

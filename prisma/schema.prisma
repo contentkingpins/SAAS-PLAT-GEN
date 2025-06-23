@@ -1,9 +1,7 @@
-// This is your Prisma schema file
-
 generator client {
-  provider = "prisma-client-js"
-  engineType = "library"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-1.0.x", "linux-arm64-openssl-1.1.x"]
+  engineType    = "library"
 }
 
 datasource db {
@@ -11,40 +9,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User Management
-enum UserRole {
-  ADMIN
-  VENDOR
-  ADVOCATE
-  COLLECTIONS
-}
-
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  role      UserRole
-  isActive  Boolean  @default(true)
-  
-  // Relations
-  vendorId String?
-  vendor   Vendor? @relation(fields: [vendorId], references: [id])
-  
-  teamId String?
-  team   Team?   @relation(fields: [teamId], references: [id])
-  
-  // Activity tracking
-  leadsAsAdvocate     Lead[]          @relation("AdvocateLead")
-  leadsAsCollections  Lead[]          @relation("CollectionsLead")
-  contactAttempts     ContactAttempt[]
-  callbacks           Callback[]
-  fileUploads         FileUpload[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  id                 String           @id @default(cuid())
+  email              String           @unique
+  password           String
+  firstName          String
+  lastName           String
+  role               UserRole
+  isActive           Boolean          @default(true)
+  vendorId           String?
+  teamId             String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  callbacks          Callback[]
+  contactAttempts    ContactAttempt[]
+  fileUploads        FileUpload[]
+  leadsAsAdvocate    Lead[]           @relation("AdvocateLead")
+  leadsAsCollections Lead[]           @relation("CollectionsLead")
+  team               Team?            @relation(fields: [teamId], references: [id])
+  vendor             Vendor?          @relation(fields: [vendorId], references: [id])
+
   @@index([email])
   @@index([role])
 }
@@ -52,39 +36,196 @@ model User {
 model Team {
   id          String   @id @default(cuid())
   name        String
-  type        String   // 'advocates' or 'collections'
+  type        String
   description String?
   isActive    Boolean  @default(true)
-  
-  members User[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  members     User[]
 }
 
-// Vendor Management
 model Vendor {
-  id              String   @id @default(cuid())
-  name            String
-  code            String   @unique
-  staticCode      String   @unique
-  parentVendorId  String?
-  parentVendor    Vendor?  @relation("VendorHierarchy", fields: [parentVendorId], references: [id])
-  subVendors      Vendor[] @relation("VendorHierarchy")
-  isActive        Boolean  @default(true)
-  
-  // Relations
-  users User[]
-  leads Lead[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  id             String   @id @default(cuid())
+  name           String
+  code           String   @unique
+  staticCode     String   @unique
+  parentVendorId String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  leads          Lead[]
+  users          User[]
+  parentVendor   Vendor?  @relation("VendorHierarchy", fields: [parentVendorId], references: [id])
+  subVendors     Vendor[] @relation("VendorHierarchy")
+
   @@index([code])
   @@index([staticCode])
 }
 
-// Lead Management
+model Lead {
+  id                     String                  @id @default(cuid())
+  mbi                    String                  @unique
+  firstName              String
+  lastName               String
+  dateOfBirth            DateTime
+  phone                  String
+  street                 String
+  city                   String
+  state                  String
+  zipCode                String
+  vendorId               String
+  subVendorId            String?
+  vendorCode             String
+  status                 LeadStatus
+  testType               TestType?
+  isDuplicate            Boolean                 @default(false)
+  hasActiveAlerts        Boolean                 @default(false)
+  advocateId             String?
+  advocateDisposition    AdvocateDisposition?
+  advocateNotes          String?
+  advocateReviewedAt     DateTime?
+  collectionsAgentId     String?
+  collectionsDisposition CollectionsDisposition?
+  contactAttempts        Int                     @default(0)
+  lastContactAttempt     DateTime?
+  nextCallbackDate       DateTime?
+  collectionsNotes       String?
+  doctorApprovalStatus   DoctorApprovalStatus?
+  doctorApprovalDate     DateTime?
+  consultDate            DateTime?
+  kitShippedDate         DateTime?
+  trackingNumber         String?
+  kitReturnedDate        DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  callbacks              Callback[]
+  complianceChecklist    ComplianceChecklist?
+  contactAttemptRecords  ContactAttempt[]
+  advocate               User?                   @relation("AdvocateLead", fields: [advocateId], references: [id])
+  collectionsAgent       User?                   @relation("CollectionsLead", fields: [collectionsAgentId], references: [id])
+  vendor                 Vendor                  @relation(fields: [vendorId], references: [id])
+  alerts                 LeadAlert[]
+
+  @@index([mbi])
+  @@index([status])
+  @@index([vendorId])
+  @@index([advocateId])
+  @@index([collectionsAgentId])
+  @@index([isDuplicate])
+  @@index([hasActiveAlerts])
+}
+
+model ComplianceChecklist {
+  id                    String    @id @default(cuid())
+  leadId                String    @unique
+  verifyDobAddress      Boolean
+  patientConsent        Boolean
+  notInCareFacility     Boolean
+  makesMedicalDecisions Boolean
+  understandsBilling    Boolean
+  noCognitiveImpairment Boolean
+  agentNotMedicare      Boolean
+  noIncentives          Boolean
+  futureContactConsent  Boolean
+  completedAt           DateTime?
+  completedBy           String?
+  createdAt             DateTime  @default(now())
+  lead                  Lead      @relation(fields: [leadId], references: [id])
+}
+
+model ContactAttempt {
+  id          String   @id @default(cuid())
+  leadId      String
+  agentId     String
+  attemptDate DateTime @default(now())
+  outcome     String
+  notes       String?
+  agent       User     @relation(fields: [agentId], references: [id])
+  lead        Lead     @relation(fields: [leadId], references: [id])
+
+  @@index([leadId])
+  @@index([agentId])
+}
+
+model Callback {
+  id            String    @id @default(cuid())
+  leadId        String
+  agentId       String
+  scheduledDate DateTime
+  completed     Boolean   @default(false)
+  completedDate DateTime?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  agent         User      @relation(fields: [agentId], references: [id])
+  lead          Lead      @relation(fields: [leadId], references: [id])
+
+  @@index([scheduledDate])
+  @@index([agentId])
+}
+
+model FileUpload {
+  id               String         @id @default(cuid())
+  type             FileUploadType
+  fileName         String
+  fileUrl          String
+  uploadedById     String
+  uploadedAt       DateTime       @default(now())
+  processedAt      DateTime?
+  recordsProcessed Int            @default(0)
+  errors           Json?
+  uploadedBy       User           @relation(fields: [uploadedById], references: [id])
+
+  @@index([type])
+  @@index([uploadedAt])
+}
+
+model DailyMetrics {
+  id             String   @id @default(cuid())
+  date           DateTime @unique
+  totalLeads     Int
+  qualifiedLeads Int
+  approvedLeads  Int
+  shippedKits    Int
+  completedKits  Int
+  immuneLeads    Int
+  neuroLeads     Int
+  conversionData Json
+  createdAt      DateTime @default(now())
+
+  @@index([date])
+}
+
+model LeadAlert {
+  id             String        @id @default(cuid())
+  leadId         String
+  type           AlertType
+  severity       AlertSeverity
+  message        String
+  isAcknowledged Boolean       @default(false)
+  acknowledgedBy String?
+  acknowledgedAt DateTime?
+  relatedLeadId  String?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  lead           Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([type])
+  @@index([severity])
+  @@index([isAcknowledged])
+  @@index([createdAt])
+  @@index([relatedLeadId])
+}
+
+enum UserRole {
+  ADMIN
+  VENDOR
+  ADVOCATE
+  COLLECTIONS
+}
+
 enum TestType {
   IMMUNE
   NEURO
@@ -101,13 +242,8 @@ enum LeadStatus {
   COLLECTIONS
   KIT_COMPLETED
   RETURNED
-  DOESNT_QUALIFY
-  PATIENT_DECLINED
-  DUPLICATE
-  COMPLIANCE_ISSUE
 }
 
-// Alert System Enums
 enum AlertType {
   MBI_DUPLICATE
   COMPLIANCE_ISSUE
@@ -137,162 +273,12 @@ enum CollectionsDisposition {
   KIT_COMPLETED
 }
 
-model Lead {
-  id              String   @id @default(cuid())
-  mbi             String   @unique
-  firstName       String
-  lastName        String
-  dateOfBirth     DateTime
-  phone           String
-  
-  // Additional patient demographics
-  middleInitial   String?
-  gender          String?
-  ethnicity       String?
-  maritalStatus   String?
-  height          String?
-  weight          String?
-  
-  // Address
-  street          String
-  city            String
-  state           String
-  zipCode         String
-  
-  // Insurance information
-  primaryInsuranceCompany String?
-  primaryPolicyNumber     String?
-  
-  // Medical history information
-  medicalHistory          String?   // Past medical history
-  surgicalHistory         String?   // Surgical history
-  currentMedications      String?   // Current medications
-  conditionsHistory       String?   // Medical conditions specific to test type
-  
-  // Family history information (JSON field to store array of family members)
-  familyHistory           Json?     // Array of {relation, conditions, ageOfDiagnosis}
-  
-  // Vendor tracking
-  vendorId        String
-  vendor          Vendor   @relation(fields: [vendorId], references: [id])
-  subVendorId     String?
-  vendorCode      String
-  
-  // Status
-  status          LeadStatus
-  testType        TestType?
-  
-  // Alert System Fields
-  isDuplicate     Boolean  @default(false)
-  hasActiveAlerts Boolean  @default(false)
-  
-  // Advocate information
-  advocateId      String?
-  advocate        User?    @relation("AdvocateLead", fields: [advocateId], references: [id])
-  advocateDisposition AdvocateDisposition?
-  advocateNotes   String?
-  advocateReviewedAt DateTime?
-  
-  // Compliance checklist
-  complianceChecklist ComplianceChecklist?
-  
-  // Collections information
-  collectionsAgentId String?
-  collectionsAgent   User?   @relation("CollectionsLead", fields: [collectionsAgentId], references: [id])
-  collectionsDisposition CollectionsDisposition?
-  contactAttempts    Int     @default(0)
-  lastContactAttempt DateTime?
-  nextCallbackDate   DateTime?
-  collectionsNotes   String?
-  
-  // Medical information
-  doctorApprovalStatus DoctorApprovalStatus?
-  doctorApprovalDate   DateTime?
-  consultDate          DateTime?
-  
-  // Shipping information
-  kitShippedDate    DateTime?
-  trackingNumber    String?
-  kitReturnedDate   DateTime?
-  
-  // Relations
-  contactAttemptRecords ContactAttempt[]
-  callbacks             Callback[]
-  alerts                LeadAlert[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  @@index([mbi])
-  @@index([status])
-  @@index([vendorId])
-  @@index([advocateId])
-  @@index([collectionsAgentId])
-  @@index([isDuplicate])
-  @@index([hasActiveAlerts])
-}
-
 enum DoctorApprovalStatus {
   PENDING
   APPROVED
   DECLINED
 }
 
-model ComplianceChecklist {
-  id                    String   @id @default(cuid())
-  leadId                String   @unique
-  lead                  Lead     @relation(fields: [leadId], references: [id])
-  
-  verifyDobAddress      Boolean
-  patientConsent        Boolean
-  notInCareFacility     Boolean
-  makesMedicalDecisions Boolean
-  understandsBilling    Boolean
-  noCognitiveImpairment Boolean
-  agentNotMedicare      Boolean
-  noIncentives          Boolean
-  futureContactConsent  Boolean
-  
-  completedAt           DateTime?
-  completedBy           String?
-  
-  createdAt DateTime @default(now())
-}
-
-// Contact Management
-model ContactAttempt {
-  id          String   @id @default(cuid())
-  leadId      String
-  lead        Lead     @relation(fields: [leadId], references: [id])
-  agentId     String
-  agent       User     @relation(fields: [agentId], references: [id])
-  attemptDate DateTime @default(now())
-  outcome     String
-  notes       String?
-  
-  @@index([leadId])
-  @@index([agentId])
-}
-
-model Callback {
-  id            String   @id @default(cuid())
-  leadId        String
-  lead          Lead     @relation(fields: [leadId], references: [id])
-  agentId       String
-  agent         User     @relation(fields: [agentId], references: [id])
-  scheduledDate DateTime
-  completed     Boolean  @default(false)
-  completedDate DateTime?
-  notes         String?
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  @@index([scheduledDate])
-  @@index([agentId])
-}
-
-// File Uploads
 enum FileUploadType {
   DOCTOR_APPROVAL
   SHIPPING_REPORT
@@ -300,73 +286,3 @@ enum FileUploadType {
   MASTER_DATA
   BULK_LEAD
 }
-
-model FileUpload {
-  id               String         @id @default(cuid())
-  type             FileUploadType
-  fileName         String
-  fileUrl          String
-  uploadedById     String
-  uploadedBy       User           @relation(fields: [uploadedById], references: [id])
-  uploadedAt       DateTime       @default(now())
-  processedAt      DateTime?
-  recordsProcessed Int            @default(0)
-  errors           Json?          // Array of {row: number, error: string}
-  
-  @@index([type])
-  @@index([uploadedAt])
-}
-
-// Analytics & Reporting
-model DailyMetrics {
-  id              String   @id @default(cuid())
-  date            DateTime @unique
-  totalLeads      Int
-  qualifiedLeads  Int
-  approvedLeads   Int
-  shippedKits     Int
-  completedKits   Int
-  
-  // By test type
-  immuneLeads     Int
-  neuroLeads      Int
-  
-  // Conversion rates
-  conversionData  Json     // Detailed conversion metrics
-  
-  createdAt DateTime @default(now())
-  
-  @@index([date])
-}
-
-// Alert System Model
-model LeadAlert {
-  id              String        @id @default(cuid())
-  leadId          String
-  lead            Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  
-  type            AlertType
-  severity        AlertSeverity
-  message         String
-  
-  // Acknowledgment tracking
-  isAcknowledged  Boolean       @default(false)
-  acknowledgedBy  String?
-  acknowledgedAt  DateTime?
-  
-  // For duplicate alerts - references the related lead ID
-  relatedLeadId   String?
-  
-  // Additional context data
-  metadata        Json?         // Store additional alert context
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
-  @@index([leadId])
-  @@index([type])
-  @@index([severity])
-  @@index([isAcknowledged])
-  @@index([createdAt])
-  @@index([relatedLeadId])
-} 
