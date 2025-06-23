@@ -87,7 +87,8 @@ export default function AdminDashboard() {
     'kit-return': { loading: false, message: '', error: false },
     'master-data': { loading: false, message: '', error: false },
     'bulk-lead': { loading: false, message: '', error: false },
-    'cleanup': { loading: false, message: '', error: false }
+    'cleanup': { loading: false, message: '', error: false },
+    'reset': { loading: false, message: '', error: false }
   });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
   const [uploadResults, setUploadResults] = useState<any>(null);
@@ -153,6 +154,89 @@ export default function AdminDashboard() {
       setUploadStates(prev => ({
         ...prev,
         'cleanup': { loading: false, message: error.message, error: true }
+      }));
+    }
+  };
+
+  const handleSystemReset = async () => {
+    // Confirmation dialog
+    const confirmed = window.confirm(
+      '⚠️ WARNING: This will DELETE ALL leads, vendors, and related data!\n\n' +
+      'This action cannot be undone. Are you absolutely sure you want to reset the entire system?\n\n' +
+      'Type "RESET" to confirm:'
+    );
+    
+    if (!confirmed) return;
+    
+    const confirmText = window.prompt('Type "RESET" to confirm system reset:');
+    if (confirmText !== 'RESET') {
+      alert('Reset cancelled - confirmation text did not match.');
+      return;
+    }
+
+    setUploadStates(prev => ({
+      ...prev,
+      'reset': { loading: true, message: '', error: false }
+    }));
+
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('/api/admin/reset-system-data', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'System reset failed';
+        
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorResult = await response.json();
+            errorMessage = errorResult.error || errorResult.message || 'System reset failed';
+          } else {
+            errorMessage = `System reset failed: ${response.status} ${response.statusText}`;
+          }
+        } catch (parseError) {
+          errorMessage = `System reset failed: ${response.status} ${response.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      
+      setUploadStates(prev => ({
+        ...prev,
+        'reset': { 
+          loading: false, 
+          message: `✅ ${result.message}\n\nDeleted ${result.summary.totalRecordsDeleted} records:\n` +
+                   `• ${result.deletionStats.leads} leads\n` +
+                   `• ${result.deletionStats.vendors} vendors\n` +
+                   `• ${result.deletionStats.fileUploads} file uploads\n` +
+                   `• ${result.deletionStats.leadAlerts} alerts\n\n` +
+                   `✅ Created fresh BULK_UPLOAD vendor\n` +
+                   `✅ Preserved user accounts and settings\n\n` +
+                   `🎉 System is ready for clean data upload!`,
+          error: false 
+        }
+      }));
+
+    } catch (error: any) {
+      console.error('System reset error:', error);
+      setUploadStates(prev => ({
+        ...prev,
+        'reset': { 
+          loading: false, 
+          message: `❌ Error: ${error.message}`, 
+          error: true 
+        }
       }));
     }
   };
@@ -564,31 +648,67 @@ export default function AdminDashboard() {
           File Uploads
         </Typography>
         
-        {/* Cleanup Section */}
+        {/* Data Management Section */}
         <Box sx={{ mb: 4 }}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom color="warning.main">
-              🔧 Data Cleanup Tools
+              🔧 Data Management Tools
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Consolidate ALL existing leads under BULK_UPLOAD vendor for clean tracking
-            </Typography>
-            <Button 
-              variant="outlined" 
-              color="warning"
-              onClick={handleCleanupBulkVendors}
-              disabled={uploadStates['cleanup']?.loading}
-            >
-              {uploadStates['cleanup']?.loading ? 'Consolidating...' : 'Consolidate All Historical Data'}
-            </Button>
-            {uploadStates['cleanup']?.message && (
-              <Alert 
-                severity={uploadStates['cleanup']?.error ? 'error' : 'success'} 
-                sx={{ mt: 2, textAlign: 'left' }}
+            
+            {/* Vendor Cleanup */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Vendor Consolidation
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Consolidate ALL existing leads under BULK_UPLOAD vendor for clean tracking
+              </Typography>
+              <Button 
+                variant="outlined" 
+                color="warning"
+                onClick={handleCleanupBulkVendors}
+                disabled={uploadStates['cleanup']?.loading}
+                sx={{ mr: 2 }}
               >
-                {uploadStates['cleanup'].message}
-              </Alert>
-            )}
+                {uploadStates['cleanup']?.loading ? 'Consolidating...' : 'Consolidate All Historical Data'}
+              </Button>
+              {uploadStates['cleanup']?.message && (
+                <Alert 
+                  severity={uploadStates['cleanup']?.error ? 'error' : 'success'} 
+                  sx={{ mt: 2, textAlign: 'left' }}
+                >
+                  {uploadStates['cleanup'].message}
+                </Alert>
+              )}
+            </Box>
+            
+            {/* System Reset */}
+            <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 3 }}>
+              <Typography variant="subtitle2" gutterBottom color="error.main">
+                ⚠️ Complete System Reset
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Clear ALL leads, vendors, and related data. Start completely fresh. 
+                <strong> This cannot be undone!</strong>
+              </Typography>
+              <Button 
+                variant="outlined" 
+                color="error"
+                onClick={handleSystemReset}
+                disabled={uploadStates['reset']?.loading}
+                startIcon={uploadStates['reset']?.loading ? <></> : <>🗑️</>}
+              >
+                {uploadStates['reset']?.loading ? 'Resetting System...' : 'Reset All Data'}
+              </Button>
+              {uploadStates['reset']?.message && (
+                <Alert 
+                  severity={uploadStates['reset']?.error ? 'error' : 'success'} 
+                  sx={{ mt: 2, textAlign: 'left', whiteSpace: 'pre-line' }}
+                >
+                  {uploadStates['reset'].message}
+                </Alert>
+              )}
+            </Box>
           </Paper>
         </Box>
 
