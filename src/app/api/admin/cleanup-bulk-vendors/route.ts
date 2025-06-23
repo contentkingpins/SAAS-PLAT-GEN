@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    console.log('🔄 Starting bulk vendor cleanup...');
+    console.log('🔄 Starting COMPREHENSIVE bulk vendor cleanup...');
 
     // First, ensure BULK_UPLOAD vendor exists
     let bulkUploadVendor = await prisma.vendor.findFirst({
@@ -29,36 +29,40 @@ export async function POST(request: NextRequest) {
       console.log('✅ Created BULK_UPLOAD vendor');
     }
 
-    // Find all vendors that look like bulk upload vendors
-    // These typically have codes like VENDOR001, VENDOR002, etc. or match CSV data
-    const bulkVendors = await prisma.vendor.findMany({
+    // Find ALL vendors EXCEPT BULK_UPLOAD (since all existing vendors are from bulk imports)
+    // We'll exclude any system/admin vendors if they exist
+    const allBulkVendors = await prisma.vendor.findMany({
       where: {
-        OR: [
-          { code: { startsWith: 'VENDOR' } },
-          { code: { in: ['VENDOR001', 'VENDOR002', 'VENDOR003', 'VENDOR004', 'VENDOR005'] } },
-          { name: { startsWith: 'VENDOR' } },
-          // Add other patterns that might indicate bulk upload vendors
-          { code: { contains: 'BULK' } },
-          { name: { contains: 'BULK' } }
-        ],
-        // Don't include the actual BULK_UPLOAD vendor
-        NOT: { code: 'BULK_UPLOAD' }
+        AND: [
+          { code: { not: 'BULK_UPLOAD' } },
+          // Exclude any potential system vendors
+          { code: { not: { in: ['SYSTEM', 'ADMIN', 'DEFAULT'] } } },
+          { name: { not: { in: ['SYSTEM', 'ADMIN', 'DEFAULT'] } } }
+        ]
       },
       include: {
         leads: {
           select: { id: true, firstName: true, lastName: true }
+        },
+        users: {
+          select: { id: true, email: true }
         }
       }
     });
 
-    console.log(`📊 Found ${bulkVendors.length} potential bulk upload vendors to clean up`);
+    console.log(`📊 Found ${allBulkVendors.length} bulk import vendors to consolidate:`);
+    allBulkVendors.forEach(vendor => {
+      console.log(`   - ${vendor.name} (${vendor.code}): ${vendor.leads.length} leads, ${vendor.users.length} users`);
+    });
 
     let totalLeadsMigrated = 0;
     let vendorsToDelete: string[] = [];
+    let usersToReassign: string[] = [];
 
     // Process each bulk vendor
-    for (const vendor of bulkVendors) {
+    for (const vendor of allBulkVendors) {
       const leadCount = vendor.leads.length;
+      const userCount = vendor.users.length;
       
       if (leadCount > 0) {
         console.log(`📦 Migrating ${leadCount} leads from vendor "${vendor.name}" (${vendor.code}) to BULK_UPLOAD`);
@@ -73,17 +77,35 @@ export async function POST(request: NextRequest) {
         });
 
         totalLeadsMigrated += leadCount;
-        vendorsToDelete.push(vendor.id);
-        
         console.log(`  ✅ Migrated ${leadCount} leads from ${vendor.name}`);
-      } else {
-        // No leads, just mark for deletion
-        vendorsToDelete.push(vendor.id);
-        console.log(`  🗑️ Marking empty vendor "${vendor.name}" for deletion`);
       }
+
+      if (userCount > 0) {
+        console.log(`👥 Found ${userCount} users associated with vendor "${vendor.name}"`);
+        // We'll need to handle users separately - either reassign or note them
+        vendor.users.forEach(user => {
+          usersToReassign.push(`${user.email} (from ${vendor.name})`);
+        });
+      }
+
+      // Mark vendor for deletion (we'll handle users separately)
+      vendorsToDelete.push(vendor.id);
     }
 
-    // Delete the now-empty bulk vendors
+    // Handle users before deleting vendors
+    if (usersToReassign.length > 0) {
+      console.log(`⚠️  Warning: Found ${usersToReassign.length} users that need to be handled:`);
+      usersToReassign.forEach(userInfo => console.log(`   - ${userInfo}`));
+      
+      // For now, we'll just log this and not delete vendors with users
+      // You can manually handle these users through the admin interface
+      const vendorsWithUsers = allBulkVendors.filter(v => v.users.length > 0).map(v => v.id);
+      vendorsToDelete = vendorsToDelete.filter(id => !vendorsWithUsers.includes(id));
+      
+      console.log(`🔄 Skipping deletion of ${vendorsWithUsers.length} vendors with users - handle manually`);
+    }
+
+    // Delete the now-empty bulk vendors (only those without users)
     if (vendorsToDelete.length > 0) {
       await prisma.vendor.deleteMany({
         where: {
@@ -94,22 +116,25 @@ export async function POST(request: NextRequest) {
     }
 
     const summary = {
-      vendorsProcessed: bulkVendors.length,
+      vendorsFound: allBulkVendors.length,
       leadsMigrated: totalLeadsMigrated,
       vendorsDeleted: vendorsToDelete.length,
+      vendorsWithUsersSkipped: allBulkVendors.length - vendorsToDelete.length,
+      usersNeedingAttention: usersToReassign.length,
       bulkUploadVendorId: bulkUploadVendor.id
     };
 
-    console.log('🎉 Bulk vendor cleanup completed:', summary);
+    console.log('🎉 COMPREHENSIVE bulk vendor cleanup completed:', summary);
 
     return NextResponse.json({
       success: true,
       message: `Successfully migrated ${totalLeadsMigrated} leads to BULK_UPLOAD vendor and cleaned up ${vendorsToDelete.length} old vendors`,
-      summary
+      summary,
+      usersNeedingAttention: usersToReassign.length > 0 ? usersToReassign : undefined
     });
 
   } catch (error: any) {
-    console.error('❌ Error during bulk vendor cleanup:', error);
+    console.error('❌ Error during comprehensive bulk vendor cleanup:', error);
     return NextResponse.json(
       { error: 'Failed to cleanup bulk vendors', details: error.message },
       { status: 500 }

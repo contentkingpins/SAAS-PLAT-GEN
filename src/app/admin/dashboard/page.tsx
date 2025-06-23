@@ -571,7 +571,7 @@ export default function AdminDashboard() {
               🔧 Data Cleanup Tools
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Fix existing bulk upload data to use proper BULK_UPLOAD vendor tracking
+              Consolidate ALL existing leads under BULK_UPLOAD vendor for clean tracking
             </Typography>
             <Button 
               variant="outlined" 
@@ -579,7 +579,7 @@ export default function AdminDashboard() {
               onClick={handleCleanupBulkVendors}
               disabled={uploadStates['cleanup']?.loading}
             >
-              {uploadStates['cleanup']?.loading ? 'Cleaning...' : 'Fix Bulk Upload Vendors'}
+              {uploadStates['cleanup']?.loading ? 'Consolidating...' : 'Consolidate All Historical Data'}
             </Button>
             {uploadStates['cleanup']?.message && (
               <Alert 
