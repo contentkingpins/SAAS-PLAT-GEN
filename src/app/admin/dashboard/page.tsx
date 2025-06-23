@@ -496,43 +496,7 @@ export default function AdminDashboard() {
                 Bulk Lead Upload
               </Typography>
               <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
-                Import historical leads from old CRM system for data migration
-              </Typography>
-              {uploadStates['bulk-lead'].loading && <LinearProgress sx={{ mb: 2 }} />}
-              {uploadStates['bulk-lead'].message && (
-                <Alert 
-                  severity={uploadStates['bulk-lead'].error ? 'error' : 'success'} 
-                  sx={{ mb: 2, textAlign: 'left' }}
-                >
-                  {uploadStates['bulk-lead'].message}
-                </Alert>
-              )}
-              <Button 
-                variant="contained" 
-                component="label"
-                disabled={uploadStates['bulk-lead'].loading}
-              >
-                {uploadStates['bulk-lead'].loading ? 'Processing...' : 'Upload CSV'}
-                <input 
-                  type="file" 
-                  hidden 
-                  accept=".csv" 
-                  onChange={handleFileChange('bulk-lead')} 
-                />
-              </Button>
-            </Paper>
-          </Box>
-
- main
-          {/* Bulk Lead Upload */}
-          <Box sx={{ flex: '1 1 250px' }}>
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Upload sx={{ fontSize: 48, color: 'info.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Bulk Lead Upload
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Upload historical lead data with smart column mapping
+                Import historical leads from old CRM system for data migration with smart column mapping
               </Typography>
               {uploadStates['bulk-lead'].loading && <LinearProgress sx={{ mb: 2 }} />}
               {uploadStates['bulk-lead'].message && (
@@ -549,7 +513,7 @@ export default function AdminDashboard() {
                 disabled={uploadStates['bulk-lead'].loading}
                 color="info"
               >
-                {uploadStates['bulk-lead'].loading ? 'Processing...' : 'Upload Bulk Leads'}
+                {uploadStates['bulk-lead'].loading ? 'Processing...' : 'Upload CSV'}
                 <input 
                   type="file" 
                   hidden 
@@ -559,8 +523,6 @@ export default function AdminDashboard() {
               </Button>
             </Paper>
           </Box>
-          
-          {/* Doctor Approvals */}
 
           {/* Approvals and Denials */}
  main
