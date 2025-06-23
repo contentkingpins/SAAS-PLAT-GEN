@@ -151,12 +151,30 @@ export default function AdminDashboard() {
         body: formData,
       });
 
-      const result = await response.json();
-
+      // Handle response based on status
       if (!response.ok) {
-        const failureMsg = result.error || 'Upload failed';
-        throw { message: failureMsg };
+        let errorMessage = 'Upload failed';
+        
+        try {
+          // Try to parse JSON error response
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorResult = await response.json();
+            errorMessage = errorResult.error || errorResult.message || 'Upload failed';
+          } else {
+            // If not JSON, use status text or generic message
+            errorMessage = `Upload failed: ${response.status} ${response.statusText}`;
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, use status-based message
+          errorMessage = `Upload failed: ${response.status} ${response.statusText}`;
+        }
+        
+        throw { message: errorMessage };
       }
+
+      // Parse successful JSON response
+      const result = await response.json();
 
       // Update success state
       setUploadStates(prev => ({
@@ -525,7 +543,6 @@ export default function AdminDashboard() {
           </Box>
 
           {/* Approvals and Denials */}
- main
           <Box sx={{ flex: '1 1 250px' }}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Upload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
