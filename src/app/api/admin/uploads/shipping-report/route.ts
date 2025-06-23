@@ -42,29 +42,28 @@ function normalizePhone(phone: string): string {
 }
 
 // Helper function to find column value with smart mapping
-function findColumnValue(row: any, possibleNames: string[]): string {
+function findColumnName(headers: string[], possibleNames: string[]): string {
   for (const name of possibleNames) {
     // Try exact match (case-sensitive)
-    if (row[name] !== undefined && row[name] !== null) {
-      return String(row[name]).trim();
+    if (headers.includes(name)) {
+      return name;
     }
     
     // Try case-insensitive match
-    const keys = Object.keys(row);
-    const matchingKey = keys.find(key => 
+    const matchingKey = headers.find(key => 
       key.toLowerCase() === name.toLowerCase()
     );
-    if (matchingKey && row[matchingKey] !== undefined && row[matchingKey] !== null) {
-      return String(row[matchingKey]).trim();
+    if (matchingKey) {
+      return matchingKey;
     }
     
     // Try partial match (case-insensitive)
-    const partialMatch = keys.find(key => 
+    const partialMatch = headers.find(key => 
       key.toLowerCase().includes(name.toLowerCase()) || 
       name.toLowerCase().includes(key.toLowerCase())
     );
-    if (partialMatch && row[partialMatch] !== undefined && row[partialMatch] !== null) {
-      return String(row[partialMatch]).trim();
+    if (partialMatch) {
+      return partialMatch;
     }
   }
   return '';
@@ -146,172 +145,301 @@ export async function POST(request: NextRequest) {
 
     console.log(`📦 Processing shipping report CSV with ${csvData.length} rows`);
 
+    // Enhanced column mapping for shipping reports
+    const columnMapping = {
+      // Patient identifiers
+      mbi: findColumnName(columnNames, ['mbi', 'medicare_beneficiary_identifier', 'medicare_id', 'member_id']),
+      patientId: findColumnName(columnNames, ['patient_id', 'patientid', 'id', 'lead_id', 'customer_id']),
+      
+      // Name fields - including exact shipping format
+      firstName: findColumnName(columnNames, ['first_name', 'firstname', 'fname', 'given_name', 'patient_first_name']),
+      lastName: findColumnName(columnNames, ['last_name', 'lastname', 'lname', 'family_name', 'surname', 'patient_last_name']),
+      fullName: findColumnName(columnNames, [
+        'full_name', 'fullname', 'name', 'patient_name', 'customer_name',
+        'shiptocompanyorname', 'shipto_company_or_name', 'ship_to_company_or_name'  // Exact shipping format
+      ]),
+      
+      // Contact information - including exact shipping format
+      phone: findColumnName(columnNames, ['phone', 'phone_number', 'tel', 'telephone', 'mobile', 'cell', 'contact_number']),
+      email: findColumnName(columnNames, [
+        'email', 'email_address', 'e_mail', 'contact_email',
+        'shiptoemailaddress', 'shipto_email_address', 'ship_to_email_address'  // Exact shipping format
+      ]),
+      
+      // Address fields - including exact shipping format with all address lines
+      address1: findColumnName(columnNames, [
+        'address', 'street', 'street_address', 'addr1', 'address1',
+        'shiptoaddress1', 'shipto_address1', 'ship_to_address1'  // Exact shipping format
+      ]),
+      address2: findColumnName(columnNames, [
+        'address2', 'addr2', 'street2',
+        'shiptoaddress2', 'shipto_address2', 'ship_to_address2'  // Exact shipping format
+      ]),
+      address3: findColumnName(columnNames, [
+        'address3', 'addr3', 'street3',
+        'shiptoaddress3', 'shipto_address3', 'ship_to_address3'  // Exact shipping format
+      ]),
+      city: findColumnName(columnNames, [
+        'city', 'town',
+        'cityortown', 'city_or_town', 'ship_to_city',
+        'shiptocityortown', 'shipto_city_or_town'  // Exact shipping format
+      ]),
+              state: findColumnName(columnNames, [
+          'state', 'province', 'region', 'county',
+          'ship_to_state',
+          'shiptostateprovincecount', 'shipto_state_province_county'  // Exact shipping format
+        ]),
+      zip: findColumnName(columnNames, [
+        'zip', 'zipcode', 'zip_code', 'postal_code', 'postcode',
+        'postalcode', 'ship_to_zip',
+        'shiptopostalcode', 'shipto_postal_code'  // Exact shipping format
+      ]),
+      zip2: findColumnName(columnNames, [
+        'zip2', 'zipcode2', 'zip_code2', 'postal_code2', 'postcode2',
+        'shiptopostalcode2', 'shipto_postal_code2'  // Exact shipping format
+      ]),
+      country: findColumnName(columnNames, [
+        'country', 'territory',
+        'shiptocountryterritory', 'shipto_country_territory', 'ship_to_country'  // Exact shipping format
+      ]),
+      
+      // Date of birth
+      dateOfBirth: findColumnName(columnNames, ['dob', 'date_of_birth', 'dateofbirth', 'birth_date', 'birthdate']),
+      
+      // Shipping information - including exact shipping format
+      trackingNumber: findColumnName(columnNames, [
+        'tracking_number', 'tracking', 'track_num', 'shipment_id', 'tracking_id',
+        'packagetrackingnumber', 'package_tracking_number'  // Exact shipping format!
+      ]),
+      shippedDate: findColumnName(columnNames, ['shipped_date', 'ship_date', 'date_shipped', 'shipping_date']),
+      
+      // Additional shipping fields - exact format
+      attention: findColumnName(columnNames, ['shiptoattention', 'shipto_attention', 'ship_to_attention', 'attention'])
+    };
+
+    console.log(`📦 Enhanced column mapping for shipping format:`, columnMapping);
+
     // Process each row
     for (let i = 0; i < csvData.length; i++) {
       const row = csvData[i];
       const rowNumber = i + 2; // Account for header row
       
       try {
-        // Smart column mapping for shipping data
-        const mbi = findColumnValue(row, [
-          'mbi', 'MBI', 'medicare', 'MEDICARE', 'Medicare #', 'Medicare #:',
-          'medicare_id', 'MEDICARE_ID', 'patient_id', 'PATIENT_ID'
-        ]);
+        // Extract data using flexible column mapping
+        const mbi = row[columnMapping.mbi] || '';
+        const patientId = row[columnMapping.patientId] || '';
         
-        const firstName = findColumnValue(row, [
-          'firstName', 'first_name', 'FIRST_NAME', 'First Name', 'firstname',
-          'FNAME', 'fname', 'first', 'FIRST'
-        ]);
+        // Handle name fields (full name or first/last) - prioritize shipping format
+        let firstName = row[columnMapping.firstName] || '';
+        let lastName = row[columnMapping.lastName] || '';
         
-        const lastName = findColumnValue(row, [
-          'lastName', 'last_name', 'LAST_NAME', 'Last Name', 'lastname',
-          'LNAME', 'lname', 'last', 'LAST'
-        ]);
-        
-        const phone = findColumnValue(row, [
-          'phone', 'PHONE', 'Phone', 'phoneNumber', 'phone_number',
-          'Phone Number', 'PHONE_NUMBER', 'tel', 'telephone'
-        ]);
-        
-        const trackingNumber = findColumnValue(row, [
-          'trackingNumber', 'tracking_number', 'TRACKING_NUMBER', 'Tracking Number',
-          'tracking', 'TRACKING', 'track', 'TRACK', 'shipment_id', 'SHIPMENT_ID'
-        ]);
-        
-        const shippedDate = findColumnValue(row, [
-          'shippedDate', 'shipped_date', 'SHIPPED_DATE', 'Shipped Date',
-          'ship_date', 'SHIP_DATE', 'date_shipped', 'DATE_SHIPPED',
-          'shipment_date', 'SHIPMENT_DATE'
-        ]);
-        
-        const carrier = findColumnValue(row, [
-          'carrier', 'CARRIER', 'Carrier', 'shipping_carrier', 'SHIPPING_CARRIER',
-          'shipper', 'SHIPPER'
-        ]);
-        
-        const kitType = findColumnValue(row, [
-          'kitType', 'kit_type', 'KIT_TYPE', 'Kit Type',
-          'test_type', 'TEST_TYPE', 'type', 'TYPE'
-        ]);
-
-        // Skip rows with missing critical identifiers
-        if (!mbi && !firstName && !lastName && !phone && !trackingNumber) {
-          results.errors.push({
-            row: rowNumber,
-            error: 'Missing patient identifier (need MBI, name, phone, or tracking number)',
-            data: { 
-              mbi, firstName, lastName, phone, trackingNumber,
-              available_columns: Object.keys(row)
-            }
-          });
-          continue;
+        // If fullName provided (like ShipToCompanyorName), try to split it
+        if (!firstName && !lastName && row[columnMapping.fullName]) {
+          const fullNameValue = row[columnMapping.fullName].trim();
+          console.log(`📦 Parsing patient name from shipping field: "${fullNameValue}"`);
+          
+          // Handle various name formats
+          if (fullNameValue.includes(',')) {
+            // Format: "Smith, John" or "Smith, John M"
+            const [lastPart, firstPart] = fullNameValue.split(',').map((s: string) => s.trim());
+            lastName = lastPart;
+            firstName = firstPart.split(' ')[0]; // Take first word as first name
+          } else {
+            // Format: "John Smith" or "John M Smith"
+            const nameParts = fullNameValue.split(/\s+/);
+            firstName = nameParts[0] || '';
+            lastName = nameParts.slice(-1)[0] || ''; // Take last word as last name
+          }
+          console.log(`📦 Parsed name: "${firstName}" "${lastName}"`);
         }
+        
+        // Extract shipping address information
+        const phone = row[columnMapping.phone] || '';
+        const email = row[columnMapping.email] || '';
+        const address1 = row[columnMapping.address1] || '';
+        const address2 = row[columnMapping.address2] || '';
+        const address3 = row[columnMapping.address3] || '';
+        const city = row[columnMapping.city] || '';
+        const state = row[columnMapping.state] || '';
+        const zip = row[columnMapping.zip] || '';
+        const zip2 = row[columnMapping.zip2] || '';
+        const dateOfBirth = row[columnMapping.dateOfBirth] || '';
+        const trackingNumber = row[columnMapping.trackingNumber] || ''; // No auto-generation
+        const shippedDate = row[columnMapping.shippedDate] || ''; // No auto-generation
+        const attention = row[columnMapping.attention] || '';
+        const country = row[columnMapping.country] || '';
 
-        // Parse shipped date
-        const parsedShippedDate = parseDate(shippedDate) || new Date();
+        console.log(`📦 Row ${rowNumber}: Processing shipping to ${firstName} ${lastName} - Address-based matching`);
+        console.log(`🔍 Available shipping data:`, {
+          patientName: `${firstName} ${lastName}`,
+          fullAddress: `${address1}, ${city}, ${state} ${zip}`,
+          mbi: mbi || 'not provided',
+          phone: phone ? `${phone} -> ${normalizePhone(phone)}` : 'not provided',
+          email: email || 'not provided',
+          attention: attention || 'not provided',
+          trackingNumber: trackingNumber || 'not provided',
+          shippedDate: shippedDate || 'not provided',
+          country: country || 'not provided'
+        });
 
-        console.log(`📦 Row ${rowNumber}: Processing ${firstName} ${lastName} (${mbi}) - Tracking: ${trackingNumber}`);
-
-        // Find matching lead(s) using multiple criteria
+        // Enhanced matching strategies - prioritize address-based matching for shipping
         let matchingLeads = [];
+        let matchStrategy = '';
 
-        // First try MBI if available
+        // Strategy 1: MBI (if available)
         if (mbi && mbi.trim() !== '') {
           const leadsByMbi = await prisma.lead.findMany({
             where: { mbi: mbi.trim() }
           });
-          matchingLeads.push(...leadsByMbi);
+          if (leadsByMbi.length > 0) {
+            matchingLeads.push(...leadsByMbi);
+            matchStrategy = 'MBI';
+            console.log(`✅ Strategy 1 - MBI "${mbi}": found ${leadsByMbi.length} leads`);
+          }
         }
 
-        // If no MBI matches, try name and phone
-        if (matchingLeads.length === 0 && firstName && lastName) {
-          const leadsByName = await prisma.lead.findMany({
+        // Strategy 2: Patient ID (if available)
+        if (matchingLeads.length === 0 && patientId && patientId.trim() !== '') {
+          const leadsByPatientId = await prisma.lead.findMany({
+            where: { id: patientId.trim() }
+          });
+          if (leadsByPatientId.length > 0) {
+            matchingLeads.push(...leadsByPatientId);
+            matchStrategy = 'Patient ID';
+            console.log(`✅ Strategy 2 - Patient ID "${patientId}": found ${leadsByPatientId.length} leads`);
+          }
+        }
+
+        // Strategy 3: Name + Full Address (perfect match for shipping)
+        if (matchingLeads.length === 0 && firstName && lastName && address1 && city && state) {
+          const leadsByNameFullAddress = await prisma.lead.findMany({
             where: {
               firstName: { equals: firstName.trim(), mode: 'insensitive' },
               lastName: { equals: lastName.trim(), mode: 'insensitive' },
-              ...(phone && { phone: normalizePhone(phone) })
+              street: { contains: address1.trim(), mode: 'insensitive' },
+              city: { equals: city.trim(), mode: 'insensitive' },
+              state: { equals: state.trim(), mode: 'insensitive' }
             }
           });
-          matchingLeads.push(...leadsByName);
+          if (leadsByNameFullAddress.length > 0) {
+            matchingLeads.push(...leadsByNameFullAddress);
+            matchStrategy = 'Name + Full Address';
+            console.log(`✅ Strategy 3 - Name + Full Address "${firstName} ${lastName}" at "${address1}, ${city}, ${state}": found ${leadsByNameFullAddress.length} leads`);
+          }
         }
 
-        // If still no matches, try just phone
-        if (matchingLeads.length === 0 && phone) {
-          const leadsByPhone = await prisma.lead.findMany({
-            where: { phone: normalizePhone(phone) }
+        // Strategy 4: Name + Address + ZIP
+        if (matchingLeads.length === 0 && firstName && lastName && address1 && zip) {
+          const leadsByNameAddressZip = await prisma.lead.findMany({
+            where: {
+              firstName: { equals: firstName.trim(), mode: 'insensitive' },
+              lastName: { equals: lastName.trim(), mode: 'insensitive' },
+              street: { contains: address1.trim(), mode: 'insensitive' },
+              zipCode: zip.trim()
+            }
           });
-          matchingLeads.push(...leadsByPhone);
+          if (leadsByNameAddressZip.length > 0) {
+            matchingLeads.push(...leadsByNameAddressZip);
+            matchStrategy = 'Name + Address + ZIP';
+            console.log(`✅ Strategy 4 - Name + Address + ZIP "${firstName} ${lastName}" + "${address1}" + "${zip}": found ${leadsByNameAddressZip.length} leads`);
+          }
+        }
+
+        // Strategy 5: Name + City + State (broader address match)
+        if (matchingLeads.length === 0 && firstName && lastName && city && state) {
+          const leadsByNameCityState = await prisma.lead.findMany({
+            where: {
+              firstName: { equals: firstName.trim(), mode: 'insensitive' },
+              lastName: { equals: lastName.trim(), mode: 'insensitive' },
+              city: { equals: city.trim(), mode: 'insensitive' },
+              state: { equals: state.trim(), mode: 'insensitive' }
+            }
+          });
+          if (leadsByNameCityState.length > 0) {
+            matchingLeads.push(...leadsByNameCityState);
+            matchStrategy = 'Name + City + State';
+            console.log(`✅ Strategy 5 - Name + City + State "${firstName} ${lastName}" in "${city}, ${state}": found ${leadsByNameCityState.length} leads`);
+          }
+        }
+
+        // Strategy 6: Address + ZIP only (if patient name parsing failed)
+        if (matchingLeads.length === 0 && address1 && zip) {
+          const leadsByAddressZip = await prisma.lead.findMany({
+            where: {
+              street: { contains: address1.trim(), mode: 'insensitive' },
+              zipCode: zip.trim()
+            }
+          });
+          if (leadsByAddressZip.length > 0) {
+            matchingLeads.push(...leadsByAddressZip);
+            matchStrategy = 'Address + ZIP';
+            console.log(`✅ Strategy 6 - Address + ZIP "${address1}" + "${zip}": found ${leadsByAddressZip.length} leads`);
+          }
+        }
+
+        // Strategy 7: Name + Phone (if phone provided in attention or other field)
+        if (matchingLeads.length === 0 && firstName && lastName && phone) {
+          const leadsByNamePhone = await prisma.lead.findMany({
+            where: {
+              firstName: { equals: firstName.trim(), mode: 'insensitive' },
+              lastName: { equals: lastName.trim(), mode: 'insensitive' },
+              phone: normalizePhone(phone)
+            }
+          });
+          if (leadsByNamePhone.length > 0) {
+            matchingLeads.push(...leadsByNamePhone);
+            matchStrategy = 'Name + Phone';
+            console.log(`✅ Strategy 7 - Name + Phone "${firstName} ${lastName}" + "${normalizePhone(phone)}": found ${leadsByNamePhone.length} leads`);
+          }
         }
 
         if (matchingLeads.length === 0) {
+          console.log(`❌ No matching lead found using any strategy. Searched with:`, {
+            patientName: `${firstName} ${lastName}`,
+            fullAddress: `${address1}, ${city}, ${state} ${zip}`,
+            mbi: mbi || 'none',
+            phone: phone ? `${phone} -> ${normalizePhone(phone)}` : 'none',
+            email: email || 'none',
+            available_columns: Object.keys(row)
+          });
           results.errors.push({
             row: rowNumber,
-            error: `No matching lead found for ${firstName} ${lastName} (${mbi})`,
+            error: `No matching lead found for ${firstName} ${lastName} at ${address1}, ${city}, ${state} ${zip}`,
             data: row
           });
           continue;
+        } else {
+          console.log(`✅ Found ${matchingLeads.length} matching lead(s) using strategy: ${matchStrategy}`, 
+            matchingLeads.map(l => `${l.id}: ${l.firstName} ${l.lastName} at ${l.street}, ${l.city}, ${l.state}`)
+          );
         }
 
-        // Update all matching leads with shipping information
+        // Process each matching lead
         for (const lead of matchingLeads) {
-          const updateData: any = {
-            updatedAt: new Date()
-          };
-
-          // Update tracking number if provided
-          if (trackingNumber) {
-            updateData.trackingNumber = trackingNumber;
-          }
-
-          // Update shipped date if provided
-          if (shippedDate) {
-            updateData.kitShippedDate = parsedShippedDate;
-          }
-
-          // CRITICAL FIX: If a sample is going out, that means it's been approved!
-          // Auto-approve and ship leads based on current status
-          if (lead.status !== LeadStatus.SHIPPED && 
-              lead.status !== LeadStatus.KIT_COMPLETED && 
-              lead.status !== LeadStatus.RETURNED) {
-            
-            // Business Logic: If lead is being shipped, it must be approved first
-            // Auto-approve leads that aren't already approved/ready to ship
-            if (lead.status !== LeadStatus.APPROVED && 
-                lead.status !== LeadStatus.READY_TO_SHIP) {
-              
-              console.log(`📋 Auto-approving lead ${lead.id} (${lead.firstName} ${lead.lastName}) - Status: ${lead.status} → APPROVED → SHIPPED`);
-              
-              // First approve, then ship (business workflow)
-              updateData.status = LeadStatus.SHIPPED;
-              
-              // Log the status progression for audit trail
-              const statusProgression = `${lead.status} → APPROVED → SHIPPED (via shipping report)`;
-              if (lead.collectionsNotes) {
-                updateData.collectionsNotes = `${lead.collectionsNotes}\n\nStatus: ${statusProgression}`;
-              } else {
-                updateData.collectionsNotes = `Status: ${statusProgression}`;
-              }
-              
-            } else {
-              // Lead is already approved/ready, just mark as shipped
-              console.log(`📦 Marking lead ${lead.id} (${lead.firstName} ${lead.lastName}) as shipped - Status: ${lead.status} → SHIPPED`);
-              updateData.status = LeadStatus.SHIPPED;
-            }
-          } else {
+          // Check if lead is already in a final status
+          if (lead.status === 'SHIPPED' || lead.status === 'KIT_COMPLETED' || lead.status === 'RETURNED') {
             console.log(`⚠️ Lead ${lead.id} (${lead.firstName} ${lead.lastName}) already in final status: ${lead.status}`);
+          } else {
+            // Auto-approve and ship leads that haven't been shipped yet
+            console.log(`📋 Auto-approving lead ${lead.id} (${lead.firstName} ${lead.lastName}) - Status: ${lead.status} → APPROVED → SHIPPED`);
           }
 
-          // Store additional shipping metadata in collections notes if available
-          const shippingMetadata = {
-            carrier: carrier || null,
-            kitType: kitType || null,
-            processedFrom: 'shipping-report-csv'
+          // Update lead with shipping information
+          const updateData: any = {
+            status: 'SHIPPED' as const,
+            collectionsNotes: lead.collectionsNotes 
+              ? `${lead.collectionsNotes}\n\n📦 Shipping Update: Kit shipped${trackingNumber ? ` with tracking ${trackingNumber}` : ''}${shippedDate ? ` on ${shippedDate}` : ''}`
+              : `📦 Shipping Update: Kit shipped${trackingNumber ? ` with tracking ${trackingNumber}` : ''}${shippedDate ? ` on ${shippedDate}` : ''}`
           };
-          
-          if (lead.collectionsNotes) {
-            updateData.collectionsNotes = `${lead.collectionsNotes}\n\nShipping Info: ${JSON.stringify(shippingMetadata)}`;
-          } else {
-            updateData.collectionsNotes = `Shipping Info: ${JSON.stringify(shippingMetadata)}`;
+
+          // Only update tracking number if provided
+          if (trackingNumber && trackingNumber.trim() !== '') {
+            updateData.trackingNumber = trackingNumber.trim();
+          }
+
+          // Only update shipped date if provided
+          if (shippedDate && shippedDate.trim() !== '') {
+            updateData.kitShippedDate = parseDate(shippedDate) || new Date();
           }
 
           await prisma.lead.update({
@@ -320,9 +448,15 @@ export async function POST(request: NextRequest) {
           });
 
           console.log(`✅ Updated lead ${lead.id} (${lead.firstName} ${lead.lastName}) with shipping info`);
+          results.updated++;
+
+          // Store additional shipping metadata in collections notes if available
+          const shippingMetadata = {
+            processedFrom: 'shipping-report-csv',
+            matchedBy: matchStrategy
+          };
         }
 
-        results.updated += matchingLeads.length;
         results.processed++;
 
       } catch (error: any) {
