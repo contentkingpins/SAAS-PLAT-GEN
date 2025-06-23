@@ -86,7 +86,8 @@ export default function AdminDashboard() {
     'shipping-report': { loading: false, message: '', error: false },
     'kit-return': { loading: false, message: '', error: false },
     'master-data': { loading: false, message: '', error: false },
-    'bulk-lead': { loading: false, message: '', error: false }
+    'bulk-lead': { loading: false, message: '', error: false },
+    'cleanup': { loading: false, message: '', error: false }
   });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
   const [uploadResults, setUploadResults] = useState<any>(null);
@@ -99,6 +100,63 @@ export default function AdminDashboard() {
   };
 
   // File upload handler
+  const handleCleanupBulkVendors = async () => {
+    setUploadStates(prev => ({
+      ...prev,
+      'cleanup': { loading: true, message: '', error: false }
+    }));
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('/api/admin/cleanup-bulk-vendors', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Cleanup failed';
+        
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorResult = await response.json();
+            errorMessage = errorResult.error || errorResult.message || 'Cleanup failed';
+          } else {
+            errorMessage = `Cleanup failed: ${response.status} ${response.statusText}`;
+          }
+        } catch (parseError) {
+          errorMessage = `Cleanup failed: ${response.status} ${response.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      
+      setUploadStates(prev => ({
+        ...prev,
+        'cleanup': { 
+          loading: false, 
+          message: result.message || 'Bulk vendor cleanup completed successfully!', 
+          error: false 
+        }
+      }));
+
+    } catch (error: any) {
+      console.error('Cleanup error:', error);
+      setUploadStates(prev => ({
+        ...prev,
+        'cleanup': { loading: false, message: error.message, error: true }
+      }));
+    }
+  };
+
   const handleFileUpload = async (uploadType: string, file: File) => {
     // Update loading state
     setUploadStates(prev => ({
@@ -505,6 +563,35 @@ export default function AdminDashboard() {
         <Typography variant="h5" gutterBottom>
           File Uploads
         </Typography>
+        
+        {/* Cleanup Section */}
+        <Box sx={{ mb: 4 }}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom color="warning.main">
+              🔧 Data Cleanup Tools
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Fix existing bulk upload data to use proper BULK_UPLOAD vendor tracking
+            </Typography>
+            <Button 
+              variant="outlined" 
+              color="warning"
+              onClick={handleCleanupBulkVendors}
+              disabled={uploadStates['cleanup']?.loading}
+            >
+              {uploadStates['cleanup']?.loading ? 'Cleaning...' : 'Fix Bulk Upload Vendors'}
+            </Button>
+            {uploadStates['cleanup']?.message && (
+              <Alert 
+                severity={uploadStates['cleanup']?.error ? 'error' : 'success'} 
+                sx={{ mt: 2, textAlign: 'left' }}
+              >
+                {uploadStates['cleanup'].message}
+              </Alert>
+            )}
+          </Paper>
+        </Box>
+
         <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3 }}>
           {/* Bulk Lead Upload */}
           <Box sx={{ flex: '1 1 250px' }}>
