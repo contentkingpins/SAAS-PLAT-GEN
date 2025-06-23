@@ -268,9 +268,37 @@ export async function POST(request: NextRequest) {
             updateData.kitShippedDate = parsedShippedDate;
           }
 
-          // Update status to indicate kit has been shipped
-          if (lead.status === LeadStatus.QUALIFIED || lead.status === LeadStatus.APPROVED) {
-            updateData.status = LeadStatus.SHIPPED;
+          // CRITICAL FIX: If a sample is going out, that means it's been approved!
+          // Auto-approve and ship leads based on current status
+          if (lead.status !== LeadStatus.SHIPPED && 
+              lead.status !== LeadStatus.KIT_COMPLETED && 
+              lead.status !== LeadStatus.RETURNED) {
+            
+            // Business Logic: If lead is being shipped, it must be approved first
+            // Auto-approve leads that aren't already approved/ready to ship
+            if (lead.status !== LeadStatus.APPROVED && 
+                lead.status !== LeadStatus.READY_TO_SHIP) {
+              
+              console.log(`📋 Auto-approving lead ${lead.id} (${lead.firstName} ${lead.lastName}) - Status: ${lead.status} → APPROVED → SHIPPED`);
+              
+              // First approve, then ship (business workflow)
+              updateData.status = LeadStatus.SHIPPED;
+              
+              // Log the status progression for audit trail
+              const statusProgression = `${lead.status} → APPROVED → SHIPPED (via shipping report)`;
+              if (lead.collectionsNotes) {
+                updateData.collectionsNotes = `${lead.collectionsNotes}\n\nStatus: ${statusProgression}`;
+              } else {
+                updateData.collectionsNotes = `Status: ${statusProgression}`;
+              }
+              
+            } else {
+              // Lead is already approved/ready, just mark as shipped
+              console.log(`📦 Marking lead ${lead.id} (${lead.firstName} ${lead.lastName}) as shipped - Status: ${lead.status} → SHIPPED`);
+              updateData.status = LeadStatus.SHIPPED;
+            }
+          } else {
+            console.log(`⚠️ Lead ${lead.id} (${lead.firstName} ${lead.lastName}) already in final status: ${lead.status}`);
           }
 
           // Store additional shipping metadata in collections notes if available

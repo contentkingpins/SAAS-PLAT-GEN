@@ -280,6 +280,50 @@ export async function POST(request: NextRequest) {
             updateData.collectionsNotes = `Kit Completion: ${JSON.stringify(completionMetadata)}`;
           }
 
+          // Update completion date if provided
+          if (returnedDate) {
+            updateData.kitReturnedDate = parsedReturnedDate;
+          }
+
+          // CRITICAL FIX: Kit return workflow - ensure proper status progression
+          if (lead.status !== LeadStatus.KIT_COMPLETED && 
+              lead.status !== LeadStatus.RETURNED) {
+            
+            // Business Logic: Kit completion requires prior shipping
+            // Auto-progress leads through the workflow if needed
+            if (lead.status === LeadStatus.SUBMITTED || 
+                lead.status === LeadStatus.ADVOCATE_REVIEW ||
+                lead.status === LeadStatus.QUALIFIED ||
+                lead.status === LeadStatus.SENT_TO_CONSULT ||
+                lead.status === LeadStatus.APPROVED ||
+                lead.status === LeadStatus.READY_TO_SHIP) {
+              
+              console.log(`📋 Auto-progressing lead ${lead.id} (${lead.firstName} ${lead.lastName}) - Status: ${lead.status} → KIT_COMPLETED`);
+              
+              // Mark as completed (implies it was shipped and returned)
+              updateData.status = LeadStatus.KIT_COMPLETED;
+              
+              // Log the status progression for audit trail
+              const statusProgression = `${lead.status} → SHIPPED → KIT_COMPLETED (via kit return report)`;
+              if (lead.collectionsNotes) {
+                updateData.collectionsNotes = `${lead.collectionsNotes}\n\nStatus: ${statusProgression}`;
+              } else {
+                updateData.collectionsNotes = `Status: ${statusProgression}`;
+              }
+              
+            } else if (lead.status === LeadStatus.SHIPPED) {
+              // Lead was shipped, now completed
+              console.log(`📦 Marking shipped lead ${lead.id} (${lead.firstName} ${lead.lastName}) as completed - Status: SHIPPED → KIT_COMPLETED`);
+              updateData.status = LeadStatus.KIT_COMPLETED;
+            } else {
+              // Lead in collections or other status, still mark as completed
+              console.log(`📦 Marking lead ${lead.id} (${lead.firstName} ${lead.lastName}) as completed - Status: ${lead.status} → KIT_COMPLETED`);
+              updateData.status = LeadStatus.KIT_COMPLETED;
+            }
+          } else {
+            console.log(`⚠️ Lead ${lead.id} (${lead.firstName} ${lead.lastName}) already completed: ${lead.status}`);
+          }
+
           await prisma.lead.update({
             where: { id: lead.id },
             data: updateData
