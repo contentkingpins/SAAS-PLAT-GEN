@@ -197,7 +197,7 @@ export function AnalyticsDashboard() {
         <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
           <MetricCard
             title="Kits Shipped"
-            value={metrics?.leadsThisMonth || 0}
+            value={metrics?.shippedLeadsCount || 0}
             icon={<LocalShipping sx={{ color: 'white' }} />}
             trend={8}
             color="warning.main"

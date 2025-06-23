@@ -131,6 +131,7 @@ export async function GET(request: NextRequest) {
       leadsToday,
       leadsThisWeek,
       leadsThisMonth,
+      shippedLeadsCount: shippedLeads,
       conversionRates: {
         submittedToQualified: submittedLeads > 0 ? qualifiedLeads / submittedLeads : 0,
         qualifiedToApproved: qualifiedLeads > 0 ? approvedLeads / qualifiedLeads : 0,

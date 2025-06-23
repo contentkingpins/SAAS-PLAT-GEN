@@ -374,33 +374,29 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Handle vendor
+        // Handle vendor - ALL bulk uploads use "BULK_UPLOAD" vendor for tracking
         let vendorId = '';
-        let finalVendorCode = ensureNonEmptyString(vendorCode || lab, 'BULK_UPLOAD');
+        const finalVendorCode = 'BULK_UPLOAD';
         
         if (vendorMap.has(finalVendorCode)) {
           vendorId = vendorMap.get(finalVendorCode)!;
         } else {
-          // Try to find existing vendor
+          // Find or create the BULK_UPLOAD vendor
           let vendor = await prisma.vendor.findFirst({
-            where: {
-              OR: [
-                { code: finalVendorCode },
-                { name: { contains: finalVendorCode, mode: 'insensitive' } }
-              ]
-            }
+            where: { code: 'BULK_UPLOAD' }
           });
 
-          // Create vendor if not found
+          // Create BULK_UPLOAD vendor if not found
           if (!vendor) {
             vendor = await prisma.vendor.create({
               data: {
-                name: finalVendorCode,
-                code: finalVendorCode,
-                staticCode: finalVendorCode,
+                name: 'BULK_UPLOAD',
+                code: 'BULK_UPLOAD',
+                staticCode: 'BULK_UPLOAD',
                 isActive: true
               }
             });
+            console.log('✅ Created BULK_UPLOAD vendor for tracking bulk imports');
           }
 
           vendorId = vendor.id;

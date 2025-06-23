@@ -148,6 +148,7 @@ export interface DashboardMetrics {
   leadsToday: number;
   leadsThisWeek: number;
   leadsThisMonth: number;
+  shippedLeadsCount: number;
 
   conversionRates: {
     submittedToQualified: number;
