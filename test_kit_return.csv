@@ -1,0 +1,3 @@
+firstName,lastName,mbi,phone,trackingNumber,returnedDate,status
+John,Smith,1AB2C3D4E5F,5551234567,1Z999AA1234567890,2025-01-15,completed
+Jane,Doe,2FG3H4I5J6K,5559876543,1Z999CC9999999999,2025-01-16,completed 

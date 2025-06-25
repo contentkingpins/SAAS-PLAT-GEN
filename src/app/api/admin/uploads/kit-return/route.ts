@@ -270,15 +270,26 @@ export async function POST(request: NextRequest) {
           // Store completion metadata in collections notes
           const completionMetadata = {
             completionStatus: completionStatus || 'completed',
-            returnTracking: trackingNumber || null,
-            processedFrom: 'kit-return-csv'
+            trackingNumber: trackingNumber || lead.trackingNumber || 'not available',
+            processedFrom: 'kit-return-csv',
+            completedDate: parsedReturnedDate.toISOString()
           };
           
+          // Build comprehensive collections notes
+          const completionNote = [
+            `📋 Kit Return Completed:`,
+            `  • Tracking number: ${trackingNumber || lead.trackingNumber || 'not available'}`,
+            `  • Completion status: ${completionStatus || 'completed'}`,
+            `  • Return date: ${parsedReturnedDate.toLocaleDateString()}`
+          ].join('\n');
+          
           if (lead.collectionsNotes) {
-            updateData.collectionsNotes = `${lead.collectionsNotes}\n\nKit Completion: ${JSON.stringify(completionMetadata)}`;
+            updateData.collectionsNotes = `${lead.collectionsNotes}\n\n${completionNote}`;
           } else {
-            updateData.collectionsNotes = `Kit Completion: ${JSON.stringify(completionMetadata)}`;
+            updateData.collectionsNotes = completionNote;
           }
+
+          // Note: Same tracking number for outbound and return is normal business behavior
 
           // Update completion date if provided
           if (returnedDate) {
@@ -305,11 +316,7 @@ export async function POST(request: NextRequest) {
               
               // Log the status progression for audit trail
               const statusProgression = `${lead.status} → SHIPPED → KIT_COMPLETED (via kit return report)`;
-              if (lead.collectionsNotes) {
-                updateData.collectionsNotes = `${lead.collectionsNotes}\n\nStatus: ${statusProgression}`;
-              } else {
-                updateData.collectionsNotes = `Status: ${statusProgression}`;
-              }
+              updateData.collectionsNotes += `\n\nStatus progression: ${statusProgression}`;
               
             } else if (lead.status === LeadStatus.SHIPPED) {
               // Lead was shipped, now completed
@@ -329,7 +336,7 @@ export async function POST(request: NextRequest) {
             data: updateData
           });
 
-          console.log(`✅ Marked lead ${lead.id} (${lead.firstName} ${lead.lastName}) as completed`);
+          console.log(`✅ Marked lead ${lead.id} (${lead.firstName} ${lead.lastName}) as completed${trackingNumber ? ` with return tracking ${trackingNumber}` : ''}`);
         }
 
         results.completed += matchingLeads.length;

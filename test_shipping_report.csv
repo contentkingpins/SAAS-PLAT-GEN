@@ -1,0 +1,3 @@
+ShipToCompanyorName,ShipToAttention,ShipToAddress1,ShipToAddress2,ShipToAddress3,ShipToCountryTerritory,ShipToPostalCode,ShipToCityorTown,ShipToStateProvinceCounty,ShipToEmailAddress,PackageTrackingNumber,ShipToPostalCode2
+John Smith,,123 Main St,,,USA,10001,New York,NY,john@email.com,1Z999AA1234567890,
+Jane Doe,,456 Oak Ave,,,USA,90210,Los Angeles,CA,jane@email.com,1Z999BB9876543210, 

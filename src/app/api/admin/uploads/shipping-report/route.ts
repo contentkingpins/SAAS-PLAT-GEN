@@ -136,6 +136,17 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Get available collections agents for auto-assignment
+    const collectionsAgents = await prisma.user.findMany({
+      where: { 
+        role: 'COLLECTIONS',
+        isActive: true 
+      },
+      select: { id: true, firstName: true, lastName: true }
+    });
+
+    console.log(`📋 Found ${collectionsAgents.length} active collections agents for auto-assignment`);
+
     // Process results tracking
     const results = {
       processed: 0,
@@ -424,17 +435,30 @@ export async function POST(request: NextRequest) {
             console.log(`📋 Auto-approving lead ${lead.id} (${lead.firstName} ${lead.lastName}) - Status: ${lead.status} → APPROVED → SHIPPED`);
           }
 
+          // CRITICAL FIX: Auto-assign to collections agent when shipped
+          let assignedCollectionsAgent = null;
+          if (!lead.collectionsAgentId && collectionsAgents.length > 0) {
+            // Simple round-robin assignment (you could implement more sophisticated logic)
+            const agentIndex = results.updated % collectionsAgents.length;
+            assignedCollectionsAgent = collectionsAgents[agentIndex];
+            console.log(`👥 Auto-assigning lead ${lead.id} to collections agent: ${assignedCollectionsAgent.firstName} ${assignedCollectionsAgent.lastName}`);
+          }
+
           // Update lead with shipping information
           const updateData: any = {
             status: 'SHIPPED' as const,
             collectionsNotes: lead.collectionsNotes 
               ? `${lead.collectionsNotes}\n\n📦 Shipping Update: Kit shipped${trackingNumber ? ` with tracking ${trackingNumber}` : ''}${shippedDate ? ` on ${shippedDate}` : ''}`
-              : `📦 Shipping Update: Kit shipped${trackingNumber ? ` with tracking ${trackingNumber}` : ''}${shippedDate ? ` on ${shippedDate}` : ''}`
+              : `📦 Shipping Update: Kit shipped${trackingNumber ? ` with tracking ${trackingNumber}` : ''}${shippedDate ? ` on ${shippedDate}` : ''}`,
+            
+            // CRITICAL: Assign to collections agent for visibility
+            collectionsAgentId: assignedCollectionsAgent?.id || lead.collectionsAgentId
           };
 
           // Only update tracking number if provided
           if (trackingNumber && trackingNumber.trim() !== '') {
             updateData.trackingNumber = trackingNumber.trim();
+            console.log(`📦 Setting tracking number: ${trackingNumber.trim()}`);
           }
 
           // Only update shipped date if provided
@@ -447,13 +471,14 @@ export async function POST(request: NextRequest) {
             data: updateData
           });
 
-          console.log(`✅ Updated lead ${lead.id} (${lead.firstName} ${lead.lastName}) with shipping info`);
+          console.log(`✅ Updated lead ${lead.id} (${lead.firstName} ${lead.lastName}) with shipping info${assignedCollectionsAgent ? ` and assigned to ${assignedCollectionsAgent.firstName} ${assignedCollectionsAgent.lastName}` : ''}`);
           results.updated++;
 
           // Store additional shipping metadata in collections notes if available
           const shippingMetadata = {
             processedFrom: 'shipping-report-csv',
-            matchedBy: matchStrategy
+            matchedBy: matchStrategy,
+            assignedToCollections: assignedCollectionsAgent ? `${assignedCollectionsAgent.firstName} ${assignedCollectionsAgent.lastName}` : 'existing agent'
           };
         }
 
