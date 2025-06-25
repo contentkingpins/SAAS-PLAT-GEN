@@ -90,9 +90,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!file.name.endsWith('.csv')) {
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.tsv')) {
       return NextResponse.json(
-        { error: 'File must be a CSV' },
+        { error: 'File must be a CSV or TSV file' },
         { status: 400 }
       );
     }

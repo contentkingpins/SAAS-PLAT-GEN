@@ -89,9 +89,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!file.name.endsWith('.csv')) {
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.tsv')) {
       return NextResponse.json(
-        { error: 'File must be a CSV' },
+        { error: 'File must be a CSV or TSV file' },
         { status: 400 }
       );
     }
@@ -99,17 +99,29 @@ export async function POST(request: NextRequest) {
     // Read file content
     const fileContent = await file.text();
     
-    // Parse CSV
+    // Parse CSV/TSV - Auto-detect delimiter
     let csvData;
     try {
+      // First, try to detect if it's tab-separated (TSV) or comma-separated (CSV)
+      const firstLine = fileContent.split('\n')[0];
+      const tabCount = (firstLine.match(/\t/g) || []).length;
+      const commaCount = (firstLine.match(/,/g) || []).length;
+      
+      // Use tab delimiter if there are more tabs than commas
+      const delimiter = tabCount > commaCount ? '\t' : ',';
+      const fileType = delimiter === '\t' ? 'TSV' : 'CSV';
+      
+      console.log(`📦 Detected file format: ${fileType} (tabs: ${tabCount}, commas: ${commaCount})`);
+      
       csvData = parse(fileContent, {
         columns: true,
         skip_empty_lines: true,
-        trim: true
+        trim: true,
+        delimiter: delimiter
       });
     } catch (parseError) {
       return NextResponse.json(
-        { error: 'Invalid CSV format', details: parseError },
+        { error: 'Invalid CSV/TSV format', details: parseError },
         { status: 400 }
       );
     }
