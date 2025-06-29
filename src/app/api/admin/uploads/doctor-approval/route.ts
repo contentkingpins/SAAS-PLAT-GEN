@@ -89,9 +89,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!file.name.endsWith('.csv')) {
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.tsv')) {
       return NextResponse.json(
-        { error: 'File must be a CSV' },
+        { error: 'File must be a CSV or TSV file' },
         { status: 400 }
       );
     }
@@ -99,17 +99,29 @@ export async function POST(request: NextRequest) {
     // Read file content
     const fileContent = await file.text();
     
-    // Parse CSV
+    // Parse CSV/TSV - Auto-detect delimiter
     let csvData;
     try {
+      // First, try to detect if it's tab-separated (TSV) or comma-separated (CSV)
+      const firstLine = fileContent.split('\n')[0];
+      const tabCount = (firstLine.match(/\t/g) || []).length;
+      const commaCount = (firstLine.match(/,/g) || []).length;
+      
+      // Use tab delimiter if there are more tabs than commas
+      const delimiter = tabCount > commaCount ? '\t' : ',';
+      const fileType = delimiter === '\t' ? 'TSV' : 'CSV';
+      
+      console.log(`🏥 Detected file format: ${fileType} (tabs: ${tabCount}, commas: ${commaCount})`);
+      
       csvData = parse(fileContent, {
         columns: true,
         skip_empty_lines: true,
-        trim: true
+        trim: true,
+        delimiter: delimiter
       });
     } catch (parseError) {
       return NextResponse.json(
-        { error: 'Invalid CSV format', details: parseError },
+        { error: 'Invalid CSV/TSV format', details: parseError },
         { status: 400 }
       );
     }
@@ -141,6 +153,10 @@ export async function POST(request: NextRequest) {
       errors: [] as Array<{ row: number; error: string; data?: any }>
     };
 
+    // Get column names for debugging
+    const columnNames = Object.keys(csvData[0] || {});
+    console.log(`🏥 Approval CSV column names found:`, columnNames);
+
     console.log('🏥 Processing doctor approval CSV with', csvData.length, 'rows');
 
     // Process each row
@@ -150,11 +166,34 @@ export async function POST(request: NextRequest) {
       
       try {
         // Extract patient identifiers - try multiple column name variations
-        const mbi = row['MBI'] || row['MEDICARE_ID'] || row['PATIENT_ID'] || '';
-        const firstName = row['FIRST_NAME'] || row['FIRSTNAME'] || row['FIRST NAME'] || '';
-        const lastName = row['LAST_NAME'] || row['LASTNAME'] || row['LAST NAME'] || '';
+        const mbi = row['MBI#'] || row['MBI'] || row['MEDICARE_ID'] || row['PATIENT_ID'] || '';
+        
+        // Handle both separate name fields and full name field
+        let firstName = row['FIRST_NAME'] || row['FIRSTNAME'] || row['FIRST NAME'] || '';
+        let lastName = row['LAST_NAME'] || row['LASTNAME'] || row['LAST NAME'] || '';
+        
+        // If no separate names, try to parse full name (PT_FULL_NAME format)
+        if (!firstName && !lastName && row['PT_FULL_NAME']) {
+          const fullNameValue = row['PT_FULL_NAME'].trim();
+          console.log(`🏥 Parsing full name: "${fullNameValue}"`);
+          
+          // Handle various name formats
+          if (fullNameValue.includes(',')) {
+            // Format: "LASTNAME, FIRSTNAME" or "LASTNAME, FIRSTNAME MIDDLE"
+            const [lastPart, firstPart] = fullNameValue.split(',').map((s: string) => s.trim());
+            lastName = lastPart;
+            firstName = firstPart.split(' ')[0]; // Take first word as first name
+          } else {
+            // Format: "FIRSTNAME LASTNAME" or "FIRSTNAME MIDDLE LASTNAME"
+            const nameParts = fullNameValue.split(/\s+/);
+            firstName = nameParts[0] || '';
+            lastName = nameParts.slice(-1)[0] || ''; // Take last word as last name
+          }
+          console.log(`🏥 Parsed name: "${firstName}" "${lastName}"`);
+        }
+        
         const phone = row['PHONE'] || row['PHONE_NUMBER'] || row['PHONE NUMBER'] || '';
-        const approvalDate = row['DATE'] || row['APPROVAL_DATE'] || row['DECISION_DATE'] || '';
+        const approvalDate = row['DATE_SEEN'] || row['DATE'] || row['APPROVAL_DATE'] || row['DECISION_DATE'] || '';
         
         // Skip rows with missing critical data
         if (!mbi && !firstName && !lastName && !phone) {
