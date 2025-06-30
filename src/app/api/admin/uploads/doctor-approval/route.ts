@@ -41,24 +41,57 @@ function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, '');
 }
 
-// Determine approval status from CSV data
-function determineApprovalStatus(row: any): DoctorApprovalStatus {
-  const status = row['STATUS'] || row['APPROVAL_STATUS'] || row['DECISION'] || '';
-  const decision = row['DECISION'] || row['APPROVAL'] || row['APPROVED'] || '';
+// Detect provider format based on column headers
+function detectProviderFormat(columnNames: string[]): string {
+  const hasTimeStamp = columnNames.some(col => col.toLowerCase().includes('time stamp'));
+  const hasDispo = columnNames.some(col => col.toUpperCase().includes('DISPO'));
+  const hasDateSeen = columnNames.some(col => col.toLowerCase().includes('date_seen'));
+  const hasPtFullName = columnNames.some(col => col.toLowerCase().includes('pt_full_name'));
+  const hasFirstName = columnNames.some(col => col.toLowerCase().includes('first name'));
+  const hasLastName = columnNames.some(col => col.toLowerCase().includes('last name'));
+  
+  if (hasTimeStamp && hasDispo && hasFirstName && hasLastName) {
+    return 'MEDICAL_INTAKE'; // Provider Group 2
+  } else if (hasDateSeen && hasPtFullName) {
+    return 'ICY_FORMAT'; // Provider Group 1  
+  } else {
+    return 'LEGACY'; // Fallback to existing logic
+  }
+}
+
+// Determine approval status from CSV data - supports multiple provider formats
+function determineApprovalStatus(row: any, format: string): DoctorApprovalStatus {
+  let status = '';
+  let decision = '';
+  
+  // Get status field based on provider format
+  if (format === 'MEDICAL_INTAKE') {
+    status = row['DISPO'] || '';
+    decision = row['PROVIDER NOTE'] || '';
+  } else if (format === 'ICY_FORMAT') {
+    status = row['STATUS'] || '';
+    decision = row['DECISION'] || '';
+  } else {
+    // Legacy format support
+    status = row['STATUS'] || row['APPROVAL_STATUS'] || row['DECISION'] || row['DISPO'] || '';
+    decision = row['DECISION'] || row['APPROVAL'] || row['APPROVED'] || row['PROVIDER NOTE'] || '';
+  }
   
   const statusLower = status.toLowerCase().trim();
   const decisionLower = decision.toLowerCase().trim();
   
-  // Check for approval indicators
+  // Check for approval indicators - enhanced for both provider groups
   if (statusLower.includes('approved') || statusLower.includes('approve') ||
+      statusLower.includes('completed/approved') || statusLower === 'confirm' ||
       decisionLower.includes('approved') || decisionLower.includes('approve') ||
       decisionLower === 'yes' || statusLower === 'yes') {
     return 'APPROVED';
   }
   
-  // Check for denial indicators
+  // Check for denial indicators - enhanced for both provider groups  
   if (statusLower.includes('denied') || statusLower.includes('deny') ||
       statusLower.includes('declined') || statusLower.includes('decline') ||
+      statusLower.includes('completed/denied') || statusLower === 'reject' ||
       decisionLower.includes('denied') || decisionLower.includes('deny') ||
       decisionLower.includes('declined') || decisionLower.includes('decline') ||
       decisionLower === 'no' || statusLower === 'no') {
@@ -153,9 +186,13 @@ export async function POST(request: NextRequest) {
       errors: [] as Array<{ row: number; error: string; data?: any }>
     };
 
-    // Get column names for debugging
+    // Get column names for debugging and format detection
     const columnNames = Object.keys(csvData[0] || {});
     console.log(`🏥 Approval CSV column names found:`, columnNames);
+
+    // Detect provider format
+    const providerFormat = detectProviderFormat(columnNames);
+    console.log(`🏥 Detected provider format: ${providerFormat}`);
 
     console.log('🏥 Processing doctor approval CSV with', csvData.length, 'rows');
 
@@ -165,35 +202,68 @@ export async function POST(request: NextRequest) {
       const rowNumber = i + 2; // Account for header row
       
       try {
-        // Extract patient identifiers - try multiple column name variations
-        const mbi = row['MBI#'] || row['MBI'] || row['MEDICARE_ID'] || row['PATIENT_ID'] || '';
+        // Extract patient identifiers based on provider format
+        let mbi = '';
+        let firstName = '';
+        let lastName = '';
+        let phone = '';
+        let approvalDate = '';
         
-        // Handle both separate name fields and full name field
-        let firstName = row['FIRST_NAME'] || row['FIRSTNAME'] || row['FIRST NAME'] || '';
-        let lastName = row['LAST_NAME'] || row['LASTNAME'] || row['LAST NAME'] || '';
-        
-        // If no separate names, try to parse full name (PT_FULL_NAME format)
-        if (!firstName && !lastName && row['PT_FULL_NAME']) {
-          const fullNameValue = row['PT_FULL_NAME'].trim();
-          console.log(`🏥 Parsing full name: "${fullNameValue}"`);
+        if (providerFormat === 'MEDICAL_INTAKE') {
+          // Provider Group 2: Medical intake format
+          mbi = row['Primary Policy #:*'] || row['Primary Policy #'] || '';
+          firstName = row['First Name:'] || row['First Name'] || '';
+          lastName = row['Last Name:*'] || row['Last Name:'] || row['Last Name'] || '';
+          phone = row['Phone Number:*'] || row['Phone Number:'] || row['Phone Number'] || '';
+          approvalDate = row['Time Stamp'] || '';
           
-          // Handle various name formats
-          if (fullNameValue.includes(',')) {
-            // Format: "LASTNAME, FIRSTNAME" or "LASTNAME, FIRSTNAME MIDDLE"
-            const [lastPart, firstPart] = fullNameValue.split(',').map((s: string) => s.trim());
-            lastName = lastPart;
-            firstName = firstPart.split(' ')[0]; // Take first word as first name
-          } else {
-            // Format: "FIRSTNAME LASTNAME" or "FIRSTNAME MIDDLE LASTNAME"
-            const nameParts = fullNameValue.split(/\s+/);
-            firstName = nameParts[0] || '';
-            lastName = nameParts.slice(-1)[0] || ''; // Take last word as last name
+          console.log(`🏥 Medical intake format - ${firstName} ${lastName} (${mbi})`);
+          
+        } else if (providerFormat === 'ICY_FORMAT') {
+          // Provider Group 1: ICY format
+          mbi = row['MBI#'] || row['MBI'] || '';
+          const fullName = row['PT_FULL_NAME'] || '';
+          phone = row['PHONE'] || '';
+          approvalDate = row['DATE_SEEN'] || '';
+          
+          // Parse PT_FULL_NAME for ICY format
+          if (fullName) {
+            console.log(`🏥 ICY format - parsing full name: "${fullName}"`);
+            
+            if (fullName.includes(',')) {
+              const [lastPart, firstPart] = fullName.split(',').map((s: string) => s.trim());
+              lastName = lastPart;
+              firstName = firstPart.split(' ')[0];
+            } else {
+              const nameParts = fullName.split(/\s+/);
+              firstName = nameParts[0] || '';
+              lastName = nameParts.slice(-1)[0] || '';
+            }
+            console.log(`🏥 ICY parsed name: "${firstName}" "${lastName}"`);
           }
-          console.log(`🏥 Parsed name: "${firstName}" "${lastName}"`);
+          
+        } else {
+          // Legacy format support
+          mbi = row['MBI#'] || row['MBI'] || row['MEDICARE_ID'] || row['PATIENT_ID'] || '';
+          firstName = row['FIRST_NAME'] || row['FIRSTNAME'] || row['FIRST NAME'] || row['First Name:'] || '';
+          lastName = row['LAST_NAME'] || row['LASTNAME'] || row['LAST NAME'] || row['Last Name:*'] || '';
+          phone = row['PHONE'] || row['PHONE_NUMBER'] || row['PHONE NUMBER'] || row['Phone Number:*'] || '';
+          approvalDate = row['DATE_SEEN'] || row['DATE'] || row['APPROVAL_DATE'] || row['DECISION_DATE'] || row['Time Stamp'] || '';
+          
+          // Try PT_FULL_NAME parsing for legacy
+          if (!firstName && !lastName && row['PT_FULL_NAME']) {
+            const fullNameValue = row['PT_FULL_NAME'].trim();
+            if (fullNameValue.includes(',')) {
+              const [lastPart, firstPart] = fullNameValue.split(',').map((s: string) => s.trim());
+              lastName = lastPart;
+              firstName = firstPart.split(' ')[0];
+            } else {
+              const nameParts = fullNameValue.split(/\s+/);
+              firstName = nameParts[0] || '';
+              lastName = nameParts.slice(-1)[0] || '';
+            }
+          }
         }
-        
-        const phone = row['PHONE'] || row['PHONE_NUMBER'] || row['PHONE NUMBER'] || '';
-        const approvalDate = row['DATE_SEEN'] || row['DATE'] || row['APPROVAL_DATE'] || row['DECISION_DATE'] || '';
         
         // Skip rows with missing critical data
         if (!mbi && !firstName && !lastName && !phone) {
@@ -205,8 +275,8 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Determine approval status
-        const approvalStatus = determineApprovalStatus(row);
+        // Determine approval status based on provider format
+        const approvalStatus = determineApprovalStatus(row, providerFormat);
         const parsedApprovalDate = parseDate(approvalDate) || new Date();
 
         console.log(`🏥 Row ${rowNumber}: Processing ${firstName} ${lastName} (${mbi}) - Status: ${approvalStatus}`);
