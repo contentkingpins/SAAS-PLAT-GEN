@@ -95,12 +95,16 @@ model Lead {
   consultDate            DateTime?
   kitShippedDate         DateTime?
   trackingNumber         String?
+  inboundTrackingNumber  String?
+  kitDeliveredDate       DateTime?
   kitReturnedDate        DateTime?
+  lastTrackingUpdate     DateTime?
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   callbacks              Callback[]
   complianceChecklist    ComplianceChecklist?
   contactAttemptRecords  ContactAttempt[]
+  trackingEvents         TrackingEvent[]
   advocate               User?                   @relation("AdvocateLead", fields: [advocateId], references: [id])
   collectionsAgent       User?                   @relation("CollectionsLead", fields: [collectionsAgentId], references: [id])
   vendor                 Vendor                  @relation(fields: [vendorId], references: [id])
@@ -113,6 +117,8 @@ model Lead {
   @@index([collectionsAgentId])
   @@index([isDuplicate])
   @@index([hasActiveAlerts])
+  @@index([trackingNumber])
+  @@index([inboundTrackingNumber])
 }
 
 model ComplianceChecklist {
@@ -219,6 +225,27 @@ model LeadAlert {
   @@index([relatedLeadId])
 }
 
+model TrackingEvent {
+  id             String   @id @default(cuid())
+  leadId         String
+  trackingNumber String
+  eventType      String   // 'OUTBOUND' or 'INBOUND'
+  activityType   String   // 'D', 'I', 'X', 'U'
+  activityCode   String?
+  description    String?
+  location       String?
+  eventDate      DateTime
+  eventTime      String?
+  createdAt      DateTime @default(now())
+  lead           Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([trackingNumber])
+  @@index([eventType])
+  @@index([activityType])
+  @@index([eventDate])
+}
+
 enum UserRole {
   ADMIN
   VENDOR
@@ -239,6 +266,8 @@ enum LeadStatus {
   APPROVED
   READY_TO_SHIP
   SHIPPED
+  DELIVERED
+  KIT_RETURNING
   COLLECTIONS
   KIT_COMPLETED
   RETURNED
@@ -248,6 +277,7 @@ enum AlertType {
   MBI_DUPLICATE
   COMPLIANCE_ISSUE
   DATA_QUALITY
+  SHIPPING_EXCEPTION
 }
 
 enum AlertSeverity {

@@ -60,6 +60,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { apiClient } from '@/lib/api/client';
 import { format } from 'date-fns';
+import LeadDetailModal from '@/components/leads/LeadDetailModal';
 
 interface Vendor {
   id: string;
@@ -161,6 +162,10 @@ export function VendorManagement() {
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Add modal states for lead details
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [leadModalOpen, setLeadModalOpen] = useState(false);
 
   const {
     register,
@@ -435,6 +440,23 @@ export function VendorManagement() {
       if (vendorStatusFilter === 'archived') return !vendor.isActive;
       return true; // Show all
     });
+  };
+
+  // Add lead click handler
+  const handleLeadClick = (leadId: string) => {
+    setSelectedLeadId(leadId);
+    setLeadModalOpen(true);
+  };
+
+  const handleCloseLeadModal = () => {
+    setLeadModalOpen(false);
+    setSelectedLeadId(null);
+  };
+
+  const handleLeadUpdated = (updatedLead: any) => {
+    console.log('Lead updated:', updatedLead);
+    // Refresh leads to show updated information
+    fetchAllLeads();
   };
 
   if (loading) {
@@ -923,7 +945,16 @@ export function VendorManagement() {
                     {filteredLeads
                       .slice(leadsPage * leadsRowsPerPage, leadsPage * leadsRowsPerPage + leadsRowsPerPage)
                       .map((lead) => (
-                        <TableRow key={lead.id}>
+                        <TableRow 
+                          key={lead.id}
+                          onClick={() => handleLeadClick(lead.id)}
+                          sx={{ 
+                            cursor: 'pointer',
+                            '&:hover': {
+                              backgroundColor: 'action.hover'
+                            }
+                          }}
+                        >
                           <TableCell>
                             <Typography variant="body2" fontFamily="monospace">
                               {lead.id.slice(0, 8)}...
@@ -1217,6 +1248,14 @@ export function VendorManagement() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Lead Detail Modal */}
+      <LeadDetailModal
+        open={leadModalOpen}
+        leadId={selectedLeadId}
+        onClose={handleCloseLeadModal}
+        onLeadUpdated={handleLeadUpdated}
+      />
     </Box>
   );
 }
