@@ -323,15 +323,31 @@ export async function POST(request: NextRequest) {
 
         // Update all matching leads
         for (const lead of matchingLeads) {
+                    // Determine proper lead status based on approval decision
+          let newLeadStatus = lead.status; // Default: keep current status
+          
+          if (approvalStatus === 'APPROVED') {
+            // Lead approved by doctor → advance to APPROVED status
+            newLeadStatus = LeadStatus.APPROVED;
+          } else if (approvalStatus === 'DECLINED') {
+            // Lead denied by doctor → terminal status, move to RETURNED
+            newLeadStatus = LeadStatus.RETURNED;
+          }
+          // If PENDING, keep current status
+          
           await prisma.lead.update({
             where: { id: lead.id },
             data: {
               doctorApprovalStatus: approvalStatus,
               doctorApprovalDate: parsedApprovalDate,
-                             // Update lead status based on approval decision
-               status: approvalStatus === 'APPROVED' ? LeadStatus.APPROVED : 
-                      approvalStatus === 'DECLINED' ? 'DOESNT_QUALIFY' as LeadStatus : 
-                      lead.status, // Keep current status if pending
+              status: newLeadStatus,
+              // Add denial reason for business intelligence
+              ...(approvalStatus === 'DECLINED' && {
+                advocateDisposition: 'DOESNT_QUALIFY' as any, // Track denial reason
+                collectionsNotes: lead.collectionsNotes 
+                  ? `${lead.collectionsNotes}\n\n🚫 Doctor Denied: ${parsedApprovalDate.toLocaleDateString()}`
+                  : `🚫 Doctor Denied: ${parsedApprovalDate.toLocaleDateString()}`
+              }),
               updatedAt: new Date()
             }
           });
