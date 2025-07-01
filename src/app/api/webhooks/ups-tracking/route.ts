@@ -149,15 +149,23 @@ export async function POST(request: NextRequest) {
 
 async function sendTrackingNotification(lead: any, newStatus: string, eventType: string, location: any) {
   try {
-    // Send SMS to patient
+    const { notificationService } = await import('@/lib/services/notificationService');
+    
+    // Send patient notifications
     if (eventType === 'OUTBOUND' && newStatus === 'DELIVERED') {
-      // Patient notification: "Your test kit has been delivered"
-      console.log('📱 SMS: Test kit delivered to', lead.firstName, lead.lastName);
+      await notificationService.sendShippingNotification(lead, 'DELIVERED', lead.trackingNumber);
+    }
+    
+    if (eventType === 'OUTBOUND' && newStatus === 'SHIPPED') {
+      await notificationService.sendShippingNotification(lead, 'SHIPPED', lead.trackingNumber);
+    }
+    
+    if (eventType === 'INBOUND' && newStatus === 'KIT_RETURNING') {
+      await notificationService.sendShippingNotification(lead, 'KIT_RETURNING', lead.inboundTrackingNumber);
     }
     
     if (eventType === 'INBOUND' && newStatus === 'KIT_COMPLETED') {
-      // Lab notification: "Kit received, processing results"
-      console.log('🔬 Lab: Kit received from', lead.firstName, lead.lastName);
+      await notificationService.sendShippingNotification(lead, 'KIT_COMPLETED', lead.inboundTrackingNumber);
     }
 
     // Create alert for collections team when kit is delivered
@@ -174,6 +182,6 @@ async function sendTrackingNotification(lead: any, newStatus: string, eventType:
     }
 
   } catch (error) {
-    console.error('Notification error:', error);
+    console.error('❌ Notification error:', error);
   }
 } 
