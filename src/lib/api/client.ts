@@ -52,17 +52,24 @@ class ApiClient {
     this.client.interceptors.request.use(
       async (config) => {
         try {
-          // Get JWT token from localStorage
-          const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-          if (token) {
+          // Get JWT token from localStorage with better error handling
+          let token = null;
+          if (typeof window !== 'undefined') {
+            try {
+              token = localStorage.getItem('authToken');
+            } catch (storageError) {
+              console.warn('LocalStorage access failed:', storageError);
+            }
+          }
+
+          if (token && token.trim() !== '') {
             config.headers.Authorization = `Bearer ${token}`;
-            // Debug logging
-            console.log(`API Request: ${config.method?.toUpperCase()} ${config.url} with token`);
+            console.log(`✅ API Request: ${config.method?.toUpperCase()} ${config.url} with token`);
           } else {
-            console.warn(`API Request: ${config.method?.toUpperCase()} ${config.url} WITHOUT token`);
+            console.warn(`⚠️ API Request: ${config.method?.toUpperCase()} ${config.url} WITHOUT token`);
           }
         } catch (error) {
-          console.error('Auth error:', error);
+          console.error('❌ Auth interceptor error:', error);
         }
         return config;
       },
