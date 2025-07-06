@@ -14,6 +14,11 @@ function daysBetween(date1: Date, date2: Date): number {
   return Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
 }
 
+// Helper function to check if a status indicates consultation/approval
+function isConsultationStatus(status: string): boolean {
+  return ['SENT_TO_CONSULT', 'APPROVED', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'KIT_RETURNING', 'COLLECTIONS', 'KIT_COMPLETED'].includes(status);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -40,6 +45,8 @@ export async function POST(request: NextRequest) {
         testType: true,
         createdAt: true,
         status: true,
+        advocateReviewedAt: true,
+        consultDate: true,
         vendor: {
           select: {
             name: true,
@@ -59,33 +66,44 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check business rules
+    // ENHANCED BUSINESS RULES FOR SENT_TO_CONSULT TRACKING
+    console.log(`🔍 Checking duplicate rules for MBI: ${mbi}, Test Type: ${testType}`);
+    
     for (const existing of existingLeads) {
       const daysSince = daysBetween(existing.createdAt, new Date());
+      const isConsulted = isConsultationStatus(existing.status);
 
-      // Rule 1: Same test type = always block
+      console.log(`📋 Existing lead: ${existing.id}, Status: ${existing.status}, Test: ${existing.testType}, Days: ${daysSince}, Consulted: ${isConsulted}`);
+
+      // RULE 1: Same test type = ALWAYS block (regardless of status or time)
       if (existing.testType === testType) {
+        const blockReason = isConsulted 
+          ? `Patient already consulted for ${testType} test (Status: ${existing.status}). Cannot submit duplicate.`
+          : `Patient already has ${testType} test in system. Cannot submit duplicate.`;
+
         return NextResponse.json({
           status: 'BLOCKED',
           reason: 'SAME_TEST',
-          message: `Patient already has ${testType} test in system. Cannot submit duplicate.`,
+          message: blockReason,
           existingLeads: [{
             id: existing.id,
             testType: existing.testType,
             submittedAt: existing.createdAt.toISOString(),
             daysSince,
             vendor: existing.vendor.name,
-            status: existing.status
+            status: existing.status,
+            wasConsulted: isConsulted,
+            consultationDate: existing.consultDate?.toISOString() || null
           }]
         });
       }
 
-      // Rule 2: Different test type but < 21 days = block
-      if (daysSince < 21) {
+      // RULE 2: Different test type but patient has been CONSULTED for ANY test < 21 days ago
+      if (isConsulted && daysSince < 21) {
         return NextResponse.json({
           status: 'BLOCKED',
-          reason: 'TOO_SOON',
-          message: `Patient submitted ${existing.testType} test ${daysSince} days ago. Must wait 21 days between different tests.`,
+          reason: 'RECENT_CONSULTATION',
+          message: `Patient was consulted for ${existing.testType} test ${daysSince} days ago (Status: ${existing.status}). Must wait 21 days between different tests after consultation.`,
           daysSince,
           requiredWaitDays: 21,
           existingLeads: [{
@@ -94,26 +112,58 @@ export async function POST(request: NextRequest) {
             submittedAt: existing.createdAt.toISOString(),
             daysSince,
             vendor: existing.vendor.name,
-            status: existing.status
+            status: existing.status,
+            wasConsulted: isConsulted,
+            consultationDate: existing.consultDate?.toISOString() || null
+          }]
+        });
+      }
+
+      // RULE 3: Different test type but NOT consulted yet, still < 21 days = block
+      if (!isConsulted && daysSince < 21) {
+        return NextResponse.json({
+          status: 'BLOCKED',
+          reason: 'TOO_SOON',
+          message: `Patient submitted ${existing.testType} test ${daysSince} days ago (Status: ${existing.status}). Must wait 21 days between different tests.`,
+          daysSince,
+          requiredWaitDays: 21,
+          existingLeads: [{
+            id: existing.id,
+            testType: existing.testType,
+            submittedAt: existing.createdAt.toISOString(),
+            daysSince,
+            vendor: existing.vendor.name,
+            status: existing.status,
+            wasConsulted: isConsulted,
+            consultationDate: existing.consultDate?.toISOString() || null
           }]
         });
       }
     }
 
-    // Rule 3: Different test type and >= 21 days = allow
+    // RULE 4: Different test type and >= 21 days = allow
     const mostRecentLead = existingLeads[0];
     const daysSinceMostRecent = daysBetween(mostRecentLead.createdAt, new Date());
+    const wasConsulted = isConsultationStatus(mostRecentLead.status);
+
+    const allowMessage = wasConsulted
+      ? `Available for ${testType} test (previous ${mostRecentLead.testType} consultation was ${daysSinceMostRecent} days ago)`
+      : `Available for ${testType} test (previous ${mostRecentLead.testType} test was ${daysSinceMostRecent} days ago)`;
+
+    console.log(`✅ Duplicate check passed: ${allowMessage}`);
 
     return NextResponse.json({
       status: 'ALLOWED',
-      message: `Available for ${testType} test (previous ${mostRecentLead.testType} test was ${daysSinceMostRecent} days ago)`,
+      message: allowMessage,
       existingLeads: existingLeads.map(lead => ({
         id: lead.id,
         testType: lead.testType,
         submittedAt: lead.createdAt.toISOString(),
         daysSince: daysBetween(lead.createdAt, new Date()),
         vendor: lead.vendor.name,
-        status: lead.status
+        status: lead.status,
+        wasConsulted: isConsultationStatus(lead.status),
+        consultationDate: lead.consultDate?.toISOString() || null
       }))
     });
 
@@ -123,5 +173,7 @@ export async function POST(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
