@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Limit row count to prevent timeouts
-    const maxRows = 5000;
+    const maxRows = 10000;
     if (csvData.length > maxRows) {
       return NextResponse.json(
         { error: `Too many rows (${csvData.length}). Maximum is ${maxRows} rows per upload. Please split your file into smaller chunks.` },

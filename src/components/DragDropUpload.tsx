@@ -229,13 +229,14 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
                   >
                     Choose File
                   </Button>
-                  <Box sx={{ mt: 2 }}>
-                    <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap">
-                      <Chip label="CSV" size="small" variant="outlined" />
-                      <Chip label="TSV" size="small" variant="outlined" />
-                      <Chip label={`Max ${formatFileSize(maxSize)}`} size="small" variant="outlined" />
-                    </Stack>
-                  </Box>
+                                     <Box sx={{ mt: 2 }}>
+                     <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap">
+                       <Chip label="CSV" size="small" variant="outlined" />
+                       <Chip label="TSV" size="small" variant="outlined" />
+                       <Chip label={`Max ${formatFileSize(maxSize)}`} size="small" variant="outlined" />
+                       <Chip label="Max 10K rows" size="small" variant="outlined" />
+                     </Stack>
+                   </Box>
                 </Box>
               )}
             </Box>
