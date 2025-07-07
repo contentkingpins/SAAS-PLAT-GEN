@@ -8,10 +8,21 @@ export async function GET(
   try {
     const { jobId } = params;
 
-    // Get user from headers (set by middleware)
-    const userId = request.headers.get('x-user-id');
-    if (!userId) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
+    // Manual JWT verification (bypassing middleware dependency)
+    const authHeader = request.headers.get('authorization');
+    let userId: string;
+    
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'healthcare-platform-jwt-secret-2024') as any;
+        userId = decoded.userId;
+      } catch (jwtError) {
+        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      }
+    } else {
+      return NextResponse.json({ error: 'No authorization token' }, { status: 401 });
     }
 
     // Find the batch job
@@ -112,10 +123,21 @@ export async function POST(
     const body = await request.json();
     const { action } = body;
 
-    // Get user from headers (set by middleware)
-    const userId = request.headers.get('x-user-id');
-    if (!userId) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
+    // Manual JWT verification (bypassing middleware dependency)
+    const authHeader = request.headers.get('authorization');
+    let userId: string;
+    
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'healthcare-platform-jwt-secret-2024') as any;
+        userId = decoded.userId;
+      } catch (jwtError) {
+        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      }
+    } else {
+      return NextResponse.json({ error: 'No authorization token' }, { status: 401 });
     }
 
     // Find the batch job

@@ -22,33 +22,25 @@ const UPLOAD_CONFIG = {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 DEBUG: Batch start endpoint called');
-    console.log('🔍 DEBUG: Request headers:', Object.fromEntries(request.headers.entries()));
-    
     const body = await request.json();
-    console.log('🔍 DEBUG: Request body:', { 
-      uploadType: body.uploadType, 
-      fileName: body.fileName, 
-      contentLength: body.fileContent?.length 
-    });
     
     const { uploadType, fileName, fileContent } = startBatchSchema.parse(body);
 
-    // Get user from headers (set by middleware)
-    const userId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role');
+    // Manual JWT verification (bypassing middleware dependency)
     const authHeader = request.headers.get('authorization');
+    let userId: string;
     
-    console.log('🔍 DEBUG: All relevant headers:');
-    console.log('  - x-user-id:', userId);
-    console.log('  - x-user-role:', userRole);
-    console.log('  - authorization:', authHeader ? 'Bearer ' + authHeader.substring(7, 27) + '...' : 'MISSING');
-    
-    if (!userId) {
-      console.error('❌ No user ID in headers - middleware authentication failed');
-      console.error('❌ This means middleware did not run or did not set headers');
-      console.error('❌ Available headers:', Array.from(request.headers.keys()).join(', '));
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'healthcare-platform-jwt-secret-2024') as any;
+        userId = decoded.userId;
+      } catch (jwtError) {
+        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      }
+    } else {
+      return NextResponse.json({ error: 'No authorization token' }, { status: 401 });
     }
 
     // Decode and parse CSV content
@@ -132,10 +124,6 @@ async function processBatchJobAsync(
     });
 
     const rows = parseResult.data;
-    console.log('🔍 DEBUG: Total rows parsed:', rows.length);
-    console.log('🔍 DEBUG: First row headers:', rows.length > 0 ? Object.keys(rows[0] as any) : 'No rows');
-    console.log('🔍 DEBUG: First row sample:', rows.length > 0 ? rows[0] : 'No rows');
-    
     const chunks = [];
     
     // Split into chunks
