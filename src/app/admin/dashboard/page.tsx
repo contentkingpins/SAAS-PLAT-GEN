@@ -33,6 +33,7 @@ import { VendorManagement } from '@/components/admin/VendorManagement';
 import { AgentManagement } from '@/components/admin/AgentManagement';
 import { VendorMetricsDisplay } from '@/components/admin/VendorMetricsDisplay';
 import { PortalLayout } from '@/components/layout/PortalLayout';
+import DragDropUpload from '../../../components/DragDropUpload';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -361,23 +362,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Handle file input change
-  const handleFileChange = (uploadType: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (!file.name.endsWith('.csv')) {
-        setSnackbar({
-          open: true,
-          message: 'Please select a CSV file',
-          severity: 'error'
-        });
-        return;
-      }
-      handleFileUpload(uploadType, file);
-    }
-    // Reset input value to allow re-uploading the same file
-    event.target.value = '';
-  };
+
 
   // Report generation functions
   const generateDailyReport = async () => {
@@ -715,137 +700,77 @@ export default function AdminDashboard() {
         <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3 }}>
           {/* Bulk Lead Upload */}
           <Box sx={{ flex: '1 1 250px' }}>
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Upload sx={{ fontSize: 48, color: 'info.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Bulk Lead Upload
-              </Typography>
-              <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
-                Import historical leads from old CRM system for data migration with smart column mapping
-              </Typography>
-              {uploadStates['bulk-lead'].loading && <LinearProgress sx={{ mb: 2 }} />}
-              {uploadStates['bulk-lead'].message && (
-                <Alert 
-                  severity={uploadStates['bulk-lead'].error ? 'error' : 'success'} 
-                  sx={{ mb: 2, textAlign: 'left' }}
-                >
-                  {uploadStates['bulk-lead'].message}
-                </Alert>
-              )}
-              <Button 
-                variant="contained" 
-                component="label"
-                disabled={uploadStates['bulk-lead'].loading}
-                color="info"
-              >
-                {uploadStates['bulk-lead'].loading ? 'Processing...' : 'Upload CSV'}
-                <input 
-                  type="file" 
-                  hidden 
-                  accept=".csv" 
-                  onChange={handleFileChange('bulk-lead')} 
-                />
-              </Button>
-            </Paper>
+            <DragDropUpload
+              uploadType="bulk-lead"
+              title="Bulk Lead Upload"
+              description="Import historical leads from old CRM system for data migration with smart column mapping"
+              color="info"
+              loading={uploadStates['bulk-lead'].loading}
+              message={uploadStates['bulk-lead'].message}
+              error={uploadStates['bulk-lead'].error}
+              onFileUpload={(file: File) => handleFileUpload('bulk-lead', file)}
+              onClear={() => setUploadStates(prev => ({ ...prev, 'bulk-lead': { loading: false, message: '', error: false } }))}
+            />
           </Box>
 
           {/* Approvals and Denials */}
           <Box sx={{ flex: '1 1 250px' }}>
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Upload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Approvals and Denials
-              </Typography>
-              <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
-                Upload CSV with approval/denial decisions to update lead statuses
-              </Typography>
-              {uploadStates['doctor-approval'].loading && <LinearProgress sx={{ mb: 2 }} />}
-              {uploadStates['doctor-approval'].message && (
-                <Alert 
-                  severity={uploadStates['doctor-approval'].error ? 'error' : 'success'} 
-                  sx={{ mb: 2, textAlign: 'left' }}
-                >
-                  {uploadStates['doctor-approval'].message}
-                </Alert>
-              )}
-              <Button 
-                variant="contained" 
-                component="label"
-                disabled={uploadStates['doctor-approval'].loading}
-              >
-                {uploadStates['doctor-approval'].loading ? 'Processing...' : 'Upload CSV'}
-                <input 
-                  type="file" 
-                  hidden 
-                  accept=".csv" 
-                  onChange={handleFileChange('doctor-approval')} 
-                />
-              </Button>
-            </Paper>
+            <DragDropUpload
+              uploadType="doctor-approval"
+              title="Approvals and Denials"
+              description="Upload CSV with approval/denial decisions to update lead statuses"
+              color="primary"
+              loading={uploadStates['doctor-approval'].loading}
+              message={uploadStates['doctor-approval'].message}
+              error={uploadStates['doctor-approval'].error}
+              onFileUpload={(file: File) => handleFileUpload('doctor-approval', file)}
+              onClear={() => setUploadStates(prev => ({ ...prev, 'doctor-approval': { loading: false, message: '', error: false } }))}
+            />
           </Box>
           
           {/* Outgoing Samples */}
           <Box sx={{ flex: '1 1 250px' }}>
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Upload sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Outgoing Samples
-              </Typography>
-              {uploadStates['shipping-report'].loading && <LinearProgress sx={{ mb: 2 }} />}
-              {uploadStates['shipping-report'].message && (
-                <Alert 
-                  severity={uploadStates['shipping-report'].error ? 'error' : 'success'} 
-                  sx={{ mb: 2, textAlign: 'left' }}
-                >
-                  {uploadStates['shipping-report'].message}
-                </Alert>
-              )}
-              <Button 
-                variant="contained" 
-                component="label"
-                disabled={uploadStates['shipping-report'].loading}
-              >
-                {uploadStates['shipping-report'].loading ? 'Processing...' : 'Upload CSV'}
-                <input 
-                  type="file" 
-                  hidden 
-                  accept=".csv" 
-                  onChange={handleFileChange('shipping-report')} 
-                />
-              </Button>
-            </Paper>
+            <DragDropUpload
+              uploadType="shipping-report"
+              title="Outgoing Samples"
+              description="Upload CSV with outgoing sample tracking information"
+              color="warning"
+              loading={uploadStates['shipping-report'].loading}
+              message={uploadStates['shipping-report'].message}
+              error={uploadStates['shipping-report'].error}
+              onFileUpload={(file: File) => handleFileUpload('shipping-report', file)}
+              onClear={() => setUploadStates(prev => ({ ...prev, 'shipping-report': { loading: false, message: '', error: false } }))}
+            />
           </Box>
           
           {/* Completed Samples */}
           <Box sx={{ flex: '1 1 250px' }}>
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Upload sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Completed Samples
-              </Typography>
-              {uploadStates['kit-return'].loading && <LinearProgress sx={{ mb: 2 }} />}
-              {uploadStates['kit-return'].message && (
-                <Alert 
-                  severity={uploadStates['kit-return'].error ? 'error' : 'success'} 
-                  sx={{ mb: 2, textAlign: 'left' }}
-                >
-                  {uploadStates['kit-return'].message}
-                </Alert>
-              )}
-              <Button 
-                variant="contained" 
-                component="label"
-                disabled={uploadStates['kit-return'].loading}
-              >
-                {uploadStates['kit-return'].loading ? 'Processing...' : 'Upload CSV'}
-                <input 
-                  type="file" 
-                  hidden 
-                  accept=".csv" 
-                  onChange={handleFileChange('kit-return')} 
-                />
-              </Button>
-            </Paper>
+            <DragDropUpload
+              uploadType="kit-return"
+              title="Completed Samples"
+              description="Upload CSV with completed sample and kit return information"
+              color="success"
+              loading={uploadStates['kit-return'].loading}
+              message={uploadStates['kit-return'].message}
+              error={uploadStates['kit-return'].error}
+              onFileUpload={(file: File) => handleFileUpload('kit-return', file)}
+              onClear={() => setUploadStates(prev => ({ ...prev, 'kit-return': { loading: false, message: '', error: false } }))}
+            />
+          </Box>
+          
+          {/* Master Data Upload */}
+          <Box sx={{ flex: '1 1 250px' }}>
+            <DragDropUpload
+              uploadType="master-data"
+              title="Master Data Upload"
+              description="Upload CSV with vendor master data and configuration"
+              color="secondary"
+              loading={uploadStates['master-data'].loading}
+              message={uploadStates['master-data'].message}
+              error={uploadStates['master-data'].error}
+              onFileUpload={(file: File) => handleFileUpload('master-data', file)}
+              onClear={() => setUploadStates(prev => ({ ...prev, 'master-data': { loading: false, message: '', error: false } }))}
+            />
           </Box>
         </Box>
       </TabPanel>

@@ -506,6 +506,81 @@ export async function PATCH(
       console.log('🔧 Updated lead ID:', updatedLead.id);
       console.log('🔧 New advocateId:', updatedLead.advocateId);
       console.log('🔧 New status:', updatedLead.status);
+
+      // 🎯 CONSULTATION TRACKING: Enhanced duplicate checking for SENT_TO_CONSULT
+      if (updatedLead.status === 'SENT_TO_CONSULT' && existingLead.status !== 'SENT_TO_CONSULT') {
+        console.log('🎯 === CONSULTATION TRACKING ACTIVATED ===');
+        console.log('🎯 Lead moved to SENT_TO_CONSULT status - Activating enhanced duplicate checking');
+        
+        // Set consultation date for tracking
+        const consultationUpdate = await prisma.lead.update({
+          where: { id },
+          data: {
+            consultDate: new Date(), // Track when consultation was scheduled
+          }
+        });
+
+        // Check for any other leads with same MBI to flag potential future duplicates
+        const duplicateLeadsToFlag = await prisma.lead.findMany({
+          where: {
+            mbi: updatedLead.mbi,
+            id: { not: id }, // Exclude current lead
+            status: { in: ['SUBMITTED', 'ADVOCATE_REVIEW'] } // Only flag leads that haven't been consulted yet
+          },
+          include: {
+            vendor: { select: { name: true, code: true } }
+          }
+        });
+
+        if (duplicateLeadsToFlag.length > 0) {
+          console.log(`🚨 Found ${duplicateLeadsToFlag.length} potential duplicate leads for MBI: ${updatedLead.mbi}`);
+          
+          // Create high-priority alerts for existing leads with same MBI
+          for (const duplicateLead of duplicateLeadsToFlag) {
+            try {
+              const alertMessage = `CONSULTATION ALERT: Patient ${updatedLead.firstName} ${updatedLead.lastName} (MBI: ${updatedLead.mbi}) has been CONSULTED for ${updatedLead.testType} test. This lead may be a duplicate.`;
+              
+              await prisma.leadAlert.create({
+                data: {
+                  leadId: duplicateLead.id,
+                  type: 'MBI_DUPLICATE',
+                  severity: 'CRITICAL',
+                  message: alertMessage,
+                  relatedLeadId: id,
+                  metadata: {
+                    consultationTriggered: true,
+                    consultedLeadId: id,
+                    consultedTestType: updatedLead.testType,
+                    consultationDate: new Date().toISOString(),
+                    duplicateLeadInfo: {
+                      id: duplicateLead.id,
+                      name: `${duplicateLead.firstName} ${duplicateLead.lastName}`,
+                      vendor: duplicateLead.vendor.name,
+                      testType: duplicateLead.testType,
+                      status: duplicateLead.status
+                    }
+                  }
+                }
+              });
+
+              // Mark the duplicate lead as having active alerts
+              await prisma.lead.update({
+                where: { id: duplicateLead.id },
+                data: { hasActiveAlerts: true }
+              });
+
+              console.log(`🚨 Created consultation alert for duplicate lead: ${duplicateLead.id}`);
+            } catch (alertError) {
+              console.error('❌ Error creating consultation alert:', alertError);
+            }
+          }
+        }
+
+        console.log('🎯 === CONSULTATION TRACKING COMPLETE ===');
+        console.log(`🎯 Consultation date set: ${consultationUpdate.consultDate}`);
+        console.log(`🎯 Duplicate alerts created: ${duplicateLeadsToFlag.length}`);
+      }
+
     } catch (dbError) {
       console.log('🔧 ❌ Database update failed:', dbError);
       throw dbError;

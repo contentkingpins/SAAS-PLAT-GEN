@@ -9,6 +9,7 @@ interface AuthState {
   login: (user: User, token: string) => void;
   logout: () => void;
   setToken: (token: string) => void;
+  initializeAuth: () => void;
 }
 
 interface LeadState {
@@ -49,7 +50,12 @@ const useStore = create<AppState>()(
         login: (user, token) => {
           // Store token in localStorage for API client
           if (typeof window !== 'undefined') {
-            localStorage.setItem('authToken', token);
+            try {
+              localStorage.setItem('authToken', token);
+              console.log('✅ Token stored in localStorage');
+            } catch (error) {
+              console.error('❌ Failed to store token in localStorage:', error);
+            }
           }
           set({ user, token, isAuthenticated: true });
         },
@@ -63,9 +69,66 @@ const useStore = create<AppState>()(
         setToken: (token) => {
           // Update token in localStorage
           if (typeof window !== 'undefined') {
-            localStorage.setItem('authToken', token);
+            try {
+              localStorage.setItem('authToken', token);
+            } catch (error) {
+              console.error('❌ Failed to update token in localStorage:', error);
+            }
           }
           set({ token });
+        },
+        // Helper to sync token with localStorage on app start
+        initializeAuth: () => {
+          if (typeof window !== 'undefined') {
+            try {
+              const storedToken = localStorage.getItem('authToken');
+              if (storedToken && storedToken.trim() !== '') {
+                const state = useStore.getState();
+                if (state.token !== storedToken) {
+                  console.log('🔄 Syncing token from localStorage');
+                  // Decode token to get user info
+                  try {
+                    const payload = JSON.parse(atob(storedToken.split('.')[1]));
+                    const currentTime = Date.now() / 1000;
+                    
+                    if (payload.exp && payload.exp > currentTime) {
+                      // Token is still valid, restore auth state
+                      const user = {
+                        id: payload.userId,
+                        email: payload.email,
+                        firstName: '', // Will be filled from API if needed
+                        lastName: '', // Will be filled from API if needed
+                        role: payload.role.toLowerCase(),
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                        isActive: true,
+                        vendorId: payload.vendorId,
+                        teamId: payload.teamId,
+                      };
+                      
+                      set({ 
+                        token: storedToken, 
+                        user: user,
+                        isAuthenticated: true 
+                      });
+                      console.log('✅ Authentication restored from token');
+                    } else {
+                      // Token is expired, clear it
+                      console.log('⚠️ Token expired, clearing auth state');
+                      localStorage.removeItem('authToken');
+                      set({ user: null, token: null, isAuthenticated: false });
+                    }
+                  } catch (error) {
+                    console.error('❌ Failed to decode token:', error);
+                    localStorage.removeItem('authToken');
+                    set({ user: null, token: null, isAuthenticated: false });
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('❌ Failed to initialize auth from localStorage:', error);
+            }
+          }
         },
 
         // Lead State

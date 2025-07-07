@@ -15,6 +15,11 @@ const createPrismaClient = () => {
         url: databaseUrl,
       },
     },
+    // Add connection pooling and timeout settings for large file uploads
+    transactionOptions: {
+      maxWait: 300000, // 5 minutes
+      timeout: 600000, // 10 minutes
+    },
   });
 };
 
