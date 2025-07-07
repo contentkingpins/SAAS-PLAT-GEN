@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parse } from 'csv-parse/sync';
+import { verifyAdminAuth } from '@/lib/auth/middleware';
 
 export async function POST(request: NextRequest) {
+  // Verify admin authentication
+  const authResult = await verifyAdminAuth(request);
+  if (authResult.error) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
