@@ -1,0 +1,20 @@
+{
+  "trackingNumber": "1ZJ226530141817078",
+  "localActivityDate": "20241201",
+  "localActivityTime": "143000",
+  "activityLocation": {
+    "city": "Atlanta",
+    "stateProvince": "GA",
+    "postalCode": "30309",
+    "countryCode": "US"
+  },
+  "activityStatus": {
+    "type": "D",
+    "code": "008", 
+    "description": "DELIVERED"
+  },
+  "actualDeliveryDate": "20241201",
+  "actualDeliveryTime": "143000",
+  "scheduledDeliveryDate": "20241201",
+  "scheduledDeliveryTime": "120000"
+} 

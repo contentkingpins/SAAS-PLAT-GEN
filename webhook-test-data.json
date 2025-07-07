@@ -1,0 +1,88 @@
+{
+  "webhook_url": "https://saasplat.amplifyapp.com/api/webhooks/ups-tracking",
+  "credential": "1c60fc19395ace28204f84d7096d09d0386103644cf414cf6e3787c8060d909d",
+  "test_scenarios": [
+    {
+      "name": "Package Delivered",
+      "payload": {
+        "trackingNumber": "1ZJ226530141817078",
+        "localActivityDate": "20241201",
+        "localActivityTime": "143000",
+        "activityLocation": {
+          "city": "The Villages",
+          "stateProvince": "FL",
+          "postalCode": "32159",
+          "countryCode": "US"
+        },
+        "activityStatus": {
+          "type": "D",
+          "code": "008",
+          "description": "DELIVERED"
+        },
+        "actualDeliveryDate": "20241201",
+        "actualDeliveryTime": "143000"
+      }
+    },
+    {
+      "name": "Out for Delivery",
+      "payload": {
+        "trackingNumber": "1ZJ226530141784087",
+        "localActivityDate": "20241201",
+        "localActivityTime": "080000",
+        "activityLocation": {
+          "city": "Bastian",
+          "stateProvince": "VA",
+          "postalCode": "24314",
+          "countryCode": "US"
+        },
+        "activityStatus": {
+          "type": "I",
+          "code": "009",
+          "description": "OUT FOR DELIVERY"
+        },
+        "scheduledDeliveryDate": "20241201",
+        "scheduledDeliveryTime": "170000"
+      }
+    },
+    {
+      "name": "Exception - Customer Not Available",
+      "payload": {
+        "trackingNumber": "1ZJ226530141817078",
+        "localActivityDate": "20241130",
+        "localActivityTime": "160000",
+        "activityLocation": {
+          "city": "The Villages",
+          "stateProvince": "FL",
+          "postalCode": "32159",
+          "countryCode": "US"
+        },
+        "activityStatus": {
+          "type": "X",
+          "code": "004",
+          "description": "DELIVERY ATTEMPT - CUSTOMER NOT AVAILABLE"
+        },
+        "scheduledDeliveryDate": "20241201",
+        "scheduledDeliveryTime": "170000"
+      }
+    },
+    {
+      "name": "Package in Transit",
+      "payload": {
+        "trackingNumber": "1ZJ226530141784087",
+        "localActivityDate": "20241130",
+        "localActivityTime": "120000",
+        "activityLocation": {
+          "city": "Atlanta",
+          "stateProvince": "GA",
+          "postalCode": "30309",
+          "countryCode": "US"
+        },
+        "activityStatus": {
+          "type": "I",
+          "code": "003",
+          "description": "DEPARTURE SCAN"
+        }
+      }
+    }
+  ]
+} 
