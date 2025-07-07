@@ -22,12 +22,25 @@ const UPLOAD_CONFIG = {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 DEBUG: Batch start endpoint called');
+    console.log('🔍 DEBUG: Request headers:', Object.fromEntries(request.headers.entries()));
+    
     const body = await request.json();
+    console.log('🔍 DEBUG: Request body:', { 
+      uploadType: body.uploadType, 
+      fileName: body.fileName, 
+      contentLength: body.fileContent?.length 
+    });
+    
     const { uploadType, fileName, fileContent } = startBatchSchema.parse(body);
 
     // Get user from headers (set by middleware)
     const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+    console.log('🔍 DEBUG: User from middleware - ID:', userId, 'Role:', userRole);
+    
     if (!userId) {
+      console.error('❌ No user ID in headers - middleware authentication failed');
       return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
     }
 

@@ -109,11 +109,21 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
     try {
       const fileContent = await fileToBase64(file);
       
+      // Get auth token with better error handling
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.error('❌ No authentication token found for batch upload');
+        throw new Error('Authentication token not found. Please login again.');
+      }
+
+      console.log('🔍 DEBUG: Starting batch upload with token:', token.substring(0, 20) + '...');
+      console.log('🔍 DEBUG: Upload type:', uploadType, '→', uploadType.toUpperCase().replace('-', '_'));
+      
       const response = await fetch('/api/admin/uploads/batch/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           uploadType: uploadType.toUpperCase().replace('-', '_'),
@@ -122,8 +132,12 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
         })
       });
 
+      console.log('🔍 DEBUG: Batch API response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to start batch processing');
+        const errorText = await response.text();
+        console.error('❌ Batch processing API error:', response.status, errorText);
+        throw new Error(`Failed to start batch processing: ${response.status} ${errorText}`);
       }
 
       const result = await response.json();
@@ -168,20 +182,32 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
   const startBatchPolling = (batchJobId: string) => {
     const pollInterval = setInterval(async () => {
       try {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          console.error('❌ No auth token for batch polling, stopping');
+          clearInterval(pollInterval);
+          setBatchPollingInterval(null);
+          return;
+        }
+
         const response = await fetch(`/api/admin/uploads/batch/status/${batchJobId}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            'Authorization': `Bearer ${token}`
           }
         });
         
         if (response.ok) {
           const status = await response.json();
           setBatchJob(status);
+          console.log('🔍 DEBUG: Batch status update:', status.status, `${status.recordsSucceeded}/${status.recordsProcessed} processed`);
           
           if (status.status === 'COMPLETED' || status.status === 'FAILED' || status.status === 'CANCELLED') {
+            console.log('✅ Batch processing completed:', status.status);
             clearInterval(pollInterval);
             setBatchPollingInterval(null);
           }
+        } else {
+          console.error('❌ Batch status polling error:', response.status);
         }
       } catch (error) {
         console.error('Error polling batch status:', error);
