@@ -174,7 +174,7 @@ async function processBatchJobAsync(
         recordsProcessed: totalProcessed,
         recordsSucceeded: totalSucceeded,
         recordsFailed: totalFailed,
-        errorLog: errorLog.length > 0 ? errorLog : null,
+        errorLog: errorLog.length > 0 ? errorLog : undefined,
         progressMessage: `Completed: ${totalSucceeded} succeeded, ${totalFailed} failed`
       }
     });

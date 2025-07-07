@@ -22,7 +22,7 @@ import {
   CloudUpload,
   Description,
   CheckCircle,
-  Error,
+  Error as ErrorIcon,
   Close,
   Refresh,
   Schedule,
@@ -416,7 +416,7 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
             <Box sx={{ mt: 2 }}>
               <Alert 
                 severity={error ? 'error' : 'success'}
-                icon={error ? <Error /> : <CheckCircle />}
+                icon={error ? <ErrorIcon /> : <CheckCircle />}
                 sx={{ textAlign: 'left' }}
               >
                 {message}

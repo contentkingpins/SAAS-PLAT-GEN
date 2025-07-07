@@ -157,7 +157,7 @@ export async function POST(
               recordsProcessed: 0,
               recordsSucceeded: 0,
               recordsFailed: 0,
-              errorLog: null,
+              errorLog: undefined,
               progressMessage: 'Batch job queued for retry',
               startedAt: null,
               completedAt: null,
