@@ -59,7 +59,11 @@ export async function middleware(request: NextRequest) {
   const authResult = await verifyAuth(request);
   
   if (authResult.error) {
-    // Redirect to login if not authenticated
+    // For API routes, return JSON error response
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+    // For page routes, redirect to login
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -67,18 +71,30 @@ export async function middleware(request: NextRequest) {
   const user = authResult.user!;
   
   if (pathname.startsWith('/admin') && user.role !== 'ADMIN') {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
     return NextResponse.redirect(new URL('/unauthorized', request.url));
   }
   
   if (pathname.startsWith('/vendor') && !['ADMIN', 'VENDOR'].includes(user.role)) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
     return NextResponse.redirect(new URL('/unauthorized', request.url));
   }
   
   if (pathname.startsWith('/advocate') && !['ADMIN', 'ADVOCATE'].includes(user.role)) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
     return NextResponse.redirect(new URL('/unauthorized', request.url));
   }
   
   if (pathname.startsWith('/collections') && !['ADMIN', 'COLLECTIONS'].includes(user.role)) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
     return NextResponse.redirect(new URL('/unauthorized', request.url));
   }
 
