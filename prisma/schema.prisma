@@ -24,6 +24,7 @@ model User {
   callbacks          Callback[]
   contactAttempts    ContactAttempt[]
   fileUploads        FileUpload[]
+  batchJobs          BatchJob[]
   leadsAsAdvocate    Lead[]           @relation("AdvocateLead")
   leadsAsCollections Lead[]           @relation("CollectionsLead")
   team               Team?            @relation(fields: [teamId], references: [id])
@@ -186,6 +187,33 @@ model FileUpload {
   @@index([uploadedAt])
 }
 
+model BatchJob {
+  id               String         @id @default(cuid())
+  type             FileUploadType
+  fileName         String
+  fileUrl          String
+  uploadedById     String
+  status           BatchJobStatus @default(PENDING)
+  totalRows        Int
+  totalChunks      Int
+  chunksProcessed  Int           @default(0)
+  recordsProcessed Int           @default(0)
+  recordsSucceeded Int           @default(0)
+  recordsFailed    Int           @default(0)
+  errorLog         Json?
+  progressMessage  String?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  uploadedBy       User          @relation(fields: [uploadedById], references: [id])
+
+  @@index([type])
+  @@index([status])
+  @@index([uploadedById])
+  @@index([createdAt])
+}
+
 model DailyMetrics {
   id             String   @id @default(cuid())
   date           DateTime @unique
@@ -315,4 +343,12 @@ enum FileUploadType {
   KIT_RETURN
   MASTER_DATA
   BULK_LEAD
+}
+
+enum BatchJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
 }

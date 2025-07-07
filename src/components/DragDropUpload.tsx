@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import {
   Box,
@@ -13,6 +13,10 @@ import {
   IconButton,
   Chip,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   CloudUpload,
@@ -21,6 +25,9 @@ import {
   Error,
   Close,
   Refresh,
+  Schedule,
+  PlayArrow,
+  Pause,
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 
@@ -40,6 +47,24 @@ interface DragDropUploadProps {
   onClear?: () => void;
 }
 
+interface BatchJobStatus {
+  id: string;
+  type: string;
+  fileName: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  totalRows: number;
+  totalChunks: number;
+  chunksProcessed: number;
+  progressPercentage: number;
+  progressMessage: string;
+  recordsProcessed: number;
+  recordsSucceeded: number;
+  recordsFailed: number;
+  elapsedTime?: string;
+  estimatedTimeRemaining?: string;
+  errorLog?: any[];
+}
+
 const DragDropUpload: React.FC<DragDropUploadProps> = ({
   uploadType,
   title,
@@ -57,12 +82,128 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  
+  // Batch processing state
+  const [batchJob, setBatchJob] = useState<BatchJobStatus | null>(null);
+  const [showBatchDialog, setShowBatchDialog] = useState(false);
+  const [batchPollingInterval, setBatchPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  // Batch processing threshold (files with more than 1000 rows use batch processing)
+  const BATCH_THRESHOLD = 1000;
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  // Check if file needs batch processing
+  const checkIfBatchNeeded = async (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        const lines = content.split('\n').filter(line => line.trim().length > 0);
+        resolve(lines.length > BATCH_THRESHOLD);
+      };
+      reader.readAsText(file);
+    });
+  };
+
+  // Handle batch upload
+  const handleBatchUpload = async (file: File) => {
+    try {
+      const fileContent = await fileToBase64(file);
+      
+      const response = await fetch('/api/admin/uploads/batch/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({
+          uploadType: uploadType.toUpperCase().replace('-', '_'),
+          fileName: file.name,
+          fileContent: fileContent.split(',')[1] // Remove data:text/csv;base64, prefix
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start batch processing');
+      }
+
+      const result = await response.json();
+      
+      // Start polling for batch status
+      setBatchJob({
+        id: result.batchJobId,
+        type: uploadType,
+        fileName: file.name,
+        status: 'PENDING',
+        totalRows: 0,
+        totalChunks: 0,
+        chunksProcessed: 0,
+        progressPercentage: 0,
+        progressMessage: 'Starting batch processing...',
+        recordsProcessed: 0,
+        recordsSucceeded: 0,
+        recordsFailed: 0
+      });
+      
+      setShowBatchDialog(true);
+      startBatchPolling(result.batchJobId);
+      
+    } catch (error) {
+      console.error('Batch upload error:', error);
+      // Fall back to regular upload
+      onFileUpload(file);
+    }
+  };
+
+  // Convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Start polling for batch job status
+  const startBatchPolling = (batchJobId: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/admin/uploads/batch/status/${batchJobId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+        
+        if (response.ok) {
+          const status = await response.json();
+          setBatchJob(status);
+          
+          if (status.status === 'COMPLETED' || status.status === 'FAILED' || status.status === 'CANCELLED') {
+            clearInterval(pollInterval);
+            setBatchPollingInterval(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error polling batch status:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+    
+    setBatchPollingInterval(pollInterval);
+  };
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
       setSelectedFile(file);
-      onFileUpload(file);
+      
+      // Check if file is large enough for batch processing
+      const shouldUseBatch = await checkIfBatchNeeded(file);
+      
+      if (shouldUseBatch) {
+        await handleBatchUpload(file);
+      } else {
+        onFileUpload(file);
+      }
     }
   }, [onFileUpload]);
 
