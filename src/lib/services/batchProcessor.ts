@@ -199,6 +199,10 @@ export class BatchProcessor {
 
   // Helper methods for data extraction
   private static extractShippingData(row: any) {
+    // Debug logging to see what headers and data we're getting
+    console.log('🔍 DEBUG: Extracting shipping data from row:', Object.keys(row));
+    console.log('🔍 DEBUG: First row sample:', row);
+    
     const trackingNumber = row.packagetrackingnumber || row.tracking_number || row.trackingnumber;
     const name = row.shiptocompanyorname || row.name || row.patient_name;
     const address = row.shiptoaddress1 || row.address || row.address1;
@@ -207,7 +211,18 @@ export class BatchProcessor {
     const zip = row.shiptopostalcode || row.zip || row.zipcode;
     const email = row.shiptoemailaddress || row.email;
 
+    console.log('🔍 DEBUG: Extracted values:', {
+      trackingNumber,
+      name,
+      address,
+      city,
+      state,
+      zip,
+      email
+    });
+
     if (!trackingNumber || !name) {
+      console.log('❌ DEBUG: Missing required fields - trackingNumber:', trackingNumber, 'name:', name);
       return null;
     }
 

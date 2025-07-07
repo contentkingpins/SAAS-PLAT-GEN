@@ -112,6 +112,10 @@ async function processBatchJobAsync(
     });
 
     const rows = parseResult.data;
+    console.log('🔍 DEBUG: Total rows parsed:', rows.length);
+    console.log('🔍 DEBUG: First row headers:', rows.length > 0 ? Object.keys(rows[0] as any) : 'No rows');
+    console.log('🔍 DEBUG: First row sample:', rows.length > 0 ? rows[0] : 'No rows');
+    
     const chunks = [];
     
     // Split into chunks
