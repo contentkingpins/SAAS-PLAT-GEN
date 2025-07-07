@@ -37,10 +37,17 @@ export async function POST(request: NextRequest) {
     // Get user from headers (set by middleware)
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role');
-    console.log('🔍 DEBUG: User from middleware - ID:', userId, 'Role:', userRole);
+    const authHeader = request.headers.get('authorization');
+    
+    console.log('🔍 DEBUG: All relevant headers:');
+    console.log('  - x-user-id:', userId);
+    console.log('  - x-user-role:', userRole);
+    console.log('  - authorization:', authHeader ? 'Bearer ' + authHeader.substring(7, 27) + '...' : 'MISSING');
     
     if (!userId) {
       console.error('❌ No user ID in headers - middleware authentication failed');
+      console.error('❌ This means middleware did not run or did not set headers');
+      console.error('❌ Available headers:', Array.from(request.headers.keys()).join(', '));
       return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
     }
 
