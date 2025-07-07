@@ -14,14 +14,28 @@ export interface AuthUser {
 async function verifyAuth(request: NextRequest): Promise<{ user?: AuthUser; error?: string; status: number }> {
   try {
     const authHeader = request.headers.get('authorization');
+    console.log('🔍 MIDDLEWARE DEBUG: Auth header:', authHeader ? 'Bearer ' + authHeader.substring(7, 27) + '...' : 'MISSING');
+    
     if (!authHeader?.startsWith('Bearer ')) {
+      console.log('❌ MIDDLEWARE DEBUG: No Bearer token found');
       return { error: 'No authorization token provided', status: 401 };
     }
 
     const token = authHeader.substring(7);
+    console.log('🔍 MIDDLEWARE DEBUG: Token extracted, length:', token.length);
     
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+      const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+      console.log('🔍 MIDDLEWARE DEBUG: JWT Secret available:', jwtSecret ? 'YES' : 'NO');
+      
+      const decoded = jwt.verify(token, jwtSecret) as any;
+      console.log('🔍 MIDDLEWARE DEBUG: JWT decoded successfully:', { 
+        userId: decoded.userId, 
+        email: decoded.email, 
+        role: decoded.role,
+        hasVendorId: !!decoded.vendorId,
+        hasTeamId: !!decoded.teamId
+      });
       
       const user: AuthUser = {
         userId: decoded.userId,
@@ -31,11 +45,14 @@ async function verifyAuth(request: NextRequest): Promise<{ user?: AuthUser; erro
         teamId: decoded.teamId,
       };
 
+      console.log('✅ MIDDLEWARE DEBUG: User auth successful for', user.email, 'with role', user.role);
       return { user, status: 200 };
     } catch (jwtError) {
+      console.log('❌ MIDDLEWARE DEBUG: JWT verification failed:', jwtError);
       return { error: 'Invalid or expired token', status: 401 };
     }
   } catch (error) {
+    console.log('❌ MIDDLEWARE DEBUG: General auth error:', error);
     return { error: 'Authentication failed', status: 401 };
   }
 }
