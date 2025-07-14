@@ -27,11 +27,9 @@ import {
   Avatar,
 } from '@mui/material';
 import {
-  Phone,
   Schedule,
   CheckCircle,
   Assignment,
-  CallMade,
   AccountCircle,
   ExitToApp,
   Settings,
@@ -40,6 +38,7 @@ import { useRouter } from 'next/navigation';
 import useStore from '@/store/useStore';
 import { apiClient } from '@/lib/api/client';
 import { PortalLayout } from '@/components/layout/PortalLayout';
+import LeadDetailModal from '@/components/leads/LeadDetailModal';
 
 interface Lead {
   id: string;
@@ -67,6 +66,10 @@ export default function CollectionsDashboard() {
     kitsCompleted: 0,
     callbacksScheduled: 0,
   });
+  
+  // Lead Detail Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -150,12 +153,11 @@ export default function CollectionsDashboard() {
     }
   };
 
-  const handleMakeCall = (leadId: string, phone: string) => {
-    // Implement call functionality or open dialer
-    console.log('Making call to:', phone, 'for lead:', leadId);
-    // You could integrate with a VOIP system here
-    window.open(`tel:${phone}`);
-  };
+  // Call functionality removed temporarily - will be re-added with integration
+  // const handleMakeCall = (leadId: string, phone: string) => {
+  //   console.log('Making call to:', phone, 'for lead:', leadId);
+  //   window.open(`tel:${phone}`);
+  // };
 
   const handleMarkCompleted = async (leadId: string) => {
     try {
@@ -172,6 +174,23 @@ export default function CollectionsDashboard() {
   const isDueForCallback = (nextCallbackDate?: string) => {
     if (!nextCallbackDate) return false;
     return new Date(nextCallbackDate) <= new Date();
+  };
+
+  // Lead Detail Modal Handlers
+  const handleLeadClick = (leadId: string) => {
+    setSelectedLeadId(leadId);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedLeadId(null);
+  };
+
+  const handleLeadUpdated = (updatedLead: any) => {
+    console.log('Lead updated:', updatedLead);
+    // Refresh collections data to show updated lead information
+    loadCollectionsData();
   };
 
   if (loading) {
@@ -222,7 +241,7 @@ export default function CollectionsDashboard() {
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center">
-                  <Phone color="warning" sx={{ mr: 2 }} />
+                  <Schedule color="warning" sx={{ mr: 2 }} />
                   <Box>
                     <Typography color="text.primary" gutterBottom fontWeight="medium">
                       Pending Contact
@@ -276,9 +295,14 @@ export default function CollectionsDashboard() {
         {/* Collections Table */}
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Collections Queue
-            </Typography>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6">
+                Collections Queue
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Click on any lead to view full patient details
+              </Typography>
+            </Box>
 
             <TableContainer component={Paper} elevation={0}>
               <Table>
@@ -299,10 +323,15 @@ export default function CollectionsDashboard() {
                   {leads.map((lead) => (
                     <TableRow
                       key={lead.id}
+                      onClick={() => handleLeadClick(lead.id)}
                       sx={{
                         backgroundColor: isDueForCallback(lead.nextCallbackDate)
                           ? 'rgba(255, 152, 0, 0.1)'
-                          : 'inherit'
+                          : 'inherit',
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor: 'action.hover'
+                        }
                       }}
                     >
                       <TableCell>
@@ -314,13 +343,6 @@ export default function CollectionsDashboard() {
                       <TableCell>
                         <Box display="flex" alignItems="center">
                           {lead.phone}
-                          <IconButton
-                            size="small"
-                            onClick={() => handleMakeCall(lead.id, lead.phone)}
-                            sx={{ ml: 1 }}
-                          >
-                            <CallMade fontSize="small" />
-                          </IconButton>
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -359,21 +381,20 @@ export default function CollectionsDashboard() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Box display="flex" gap={1}>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<Phone />}
-                            onClick={() => handleMakeCall(lead.id, lead.phone)}
-                          >
-                            Call
-                          </Button>
+                        <Box 
+                          display="flex" 
+                          gap={1}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {lead.status === 'SHIPPED' && (
                             <Button
                               size="small"
                               variant="contained"
                               color="success"
-                              onClick={() => handleMarkCompleted(lead.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkCompleted(lead.id);
+                              }}
                             >
                               Mark Complete
                             </Button>
@@ -395,6 +416,14 @@ export default function CollectionsDashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Lead Detail Modal */}
+        <LeadDetailModal
+          open={modalOpen}
+          leadId={selectedLeadId}
+          onClose={handleCloseModal}
+          onLeadUpdated={handleLeadUpdated}
+        />
     </PortalLayout>
   );
 }
